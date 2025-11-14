@@ -142,7 +142,8 @@ contains
     allocate ( CISCI_instance%saved_confTarget ( numberOfSpecies ) ) 
     do spi = 1, numberOfSpecies 
       call Matrix_constructorInteger1 ( CISCI_instance%confCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%coreSpaceSize,8), -1_1 )
-      !call Matrix_constructorInteger1 ( CISCI_instance%confAmplitudeCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%buffer_amplitudeCoreSize,8), -1_1)
+      ! this was replaced by a "vectorized" array to avoid using arrays of types inside a recursive function
+      !call Matrix_constructorInteger1 ( CISCI_instance%confAmplitudeCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%buffer_amplitudeCoreSize,8), -1_1) 
       call Matrix_constructorInteger1 ( CISCI_instance%saved_confTarget(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
     enddo
     allocate ( CISCI_instance%confAmplitudeCore (  CISCI_instance%combinedNumberOfOrbitals, CISCI_instance%buffer_amplitudeCoreSize ) ) 
@@ -198,8 +199,6 @@ contains
     CISCI_instance%coefficientCore%values(1) = 1.0_8
     CISCI_instance%eigenValues%values(1) = HartreeFock_instance%totalEnergy 
 
-    !call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%confCore, m )
-
     write (6,*)    ""
     write (6,"(T2,A29 )")    "Starting SCI macro iterations "
     write (6,*)    ""
@@ -215,7 +214,7 @@ contains
       call CISCI_core_amplitudesNew ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy, m )
       m = 1
 
-      if ( k == 2 ) CISCI_instance%buffer_amplitudeCore%values(1) = 1.0_8
+      if ( k == 2 ) CISCI_instance%buffer_amplitudeCore%values(1) = 1.0_8 !! at first iter, this coefficient diverges
 
       call CISCI_sortAmplitude( ) ! do we need this? again?
 
@@ -349,9 +348,8 @@ contains
         orbA(spi)%values(pi) = 1.0
       enddo
 
-      !call CISCI_binaryToDecimal ( orbA(spi)%values, indexConf )
-
       confCore(spi)%values(:,m) = orbA(spi)%values(:)
+      !call CISCI_binaryToDecimal ( orbA(spi)%values, indexConf )
       !confCore(spi)%values(spi,m) = indexConf
       
     enddo
@@ -444,10 +442,6 @@ contains
    ! !$omp do schedule (static) 
     do a = 1, nonzero !! coreSpace
       
-      !print *, a
-      !if ( confCore%values(1,a) == 0 ) exit
-      ! print *, "a", a, confCore%values(:,a)
-      !print *, "a",  a, OMP_GET_THREAD_NUM()
       ! getting configuration A
       do spi = 1, numberOfSpecies 
 
@@ -577,7 +571,6 @@ contains
                   orbB(spj)%values(vj2) = orbB(spj)%values(vj2) + 1
                   occB(spj)%values(rj) = vj2 
 
-                  !print *, spi, spj, oi1, oj2, vi1, vj2
                   !! get double interspecies sustitutions energy
                   CIenergy = CISCI_calculateEnergyTwoDiffNew( spi, spj, oi1, oj2, vi1, vj2 )
 
@@ -630,41 +623,15 @@ contains
     !!$omp enddo 
     !!$omp end parallel
 
-    !deallocate ( confCoreConfB )
-    !deallocate ( occA  )
-    !deallocate ( occB  )
-    !deallocate ( virA  )
-    !deallocate ( virB  )
-    !deallocate ( orbA  )
-    !deallocate ( orbB  )
-
-    !allocate ( occA ( numberOfSpecies ) )
-    !allocate ( occB ( numberOfSpecies ) )
-    !allocate ( virA ( numberOfSpecies ) )
-    !allocate ( virB ( numberOfSpecies ) )
-    !allocate ( orbA ( numberOfSpecies ) )
-    !allocate ( orbB ( numberOfSpecies ) )
-    !allocate ( confCoreConfB ( numberOfSpecies ) )
-
-    !do spi = 1, numberOfSpecies
-    !  call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
-    !  call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-    !  call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
-    !  call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
-    !  call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-    !  call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-    !end do
-
     !! apply the denominator from eq 4 10.1063/1.4955109. First sort by heat-bath ranking, then final sort by asci ranking
- !   print *, "before denominator"
     call CISCI_sortAmplitude( )
 
     do aa = 1, CISCI_instance%buffer_amplitudeCoreSize !! replace this by m
       a = CISCI_instance%index_amplitudeCore%values(aa) 
 
-     ! print *, "a den",  CISCI_instance%buffer_amplitudeCore%values(a), CISCI_instance%confAmplitudeCore%values(:,a),  CISCI_instance%index_amplitudeCore%values(a) 
       if (  CISCI_instance%confAmplitudeCore(1, a ) == -1_1 ) cycle ! cycle or exit?
       !if (  CISCI_instance%confAmplitudeCore(1)%values(1, a ) == -1_1 ) cycle ! cycle or exit?
+
       do spi = 1, numberOfSpecies 
         occA(spi)%values(:) = 0
         virA(spi)%values(:) = 0
@@ -696,19 +663,9 @@ contains
 
       !! calculating the diagonal elements and the denominator
       CIenergy = CISCI_calculateEnergyZero( occA )
-      !print *, aa, CISCI_instance%confAmplitudeCore%values(:, a ), CISCI_instance%buffer_amplitudeCore%values( aa )
       CISCI_instance%buffer_amplitudeCore%values( aa ) = CISCI_instance%buffer_amplitudeCore%values( aa ) / ( CIenergy - oldEnergy + shift)
 
     enddo    
-
-    !!! append the core space to the target space (i.e. conf from previous step)
-!    do a = 1, SCICoreSpaceSize  
-!      if ( confCore%values(1,a) == 0 ) cycle
-      !! append the amplitude 
-!      call CISCI_appendAmplitude ( m,  coefficientCore(a),  confCore%values(:,a) )
-!    enddo
-
-
 
 !$  timeB = omp_get_wtime()
 
@@ -1633,13 +1590,9 @@ contains
     enddo
     CISCI_instance%index_amplitudeCore%values(m) = m
 
-     ! print *, "m", m,  CISCI_instance%buffer_amplitudeCore%values(m), CISCI_instance%confAmplitudeCore%values(:,m),  CISCI_instance%index_amplitudeCore%values(m) 
-
     !! sort the array when it's full
     if ( m == CISCI_instance%buffer_amplitudeCoreSize ) then
-      !print *, "sorting"
       call CISCI_sortAmplitude( m )
-      !print *, "sorted"
     endif
 
   end subroutine CISCI_appendAmplitude
@@ -1668,79 +1621,57 @@ contains
       enddo
     endif
 
-      !print *, "before finish new sort 1"
-      !do i = 1, m 
-      !  print *, i, CISCI_instance%buffer_amplitudeCore%values(i), CISCI_instance%confAmplitudeCore(:,i),  CISCI_instance%index_amplitudeCore%values(i)
-      !enddo
-
-      !! Sort according to the index of CI configurations per species in order to find duplicates ( N log( N ) )
-      call CISort_quicksort(  CISCI_instance%confAmplitudeCore, &
+    !! Sort according to the index of CI configurations per species in order to find duplicates ( N log( N ) )
+    call CISort_quicksort(  CISCI_instance%confAmplitudeCore, &
                                      CISCI_instance%index_amplitudeCore, & 
                                      1_8, m )
 
+    !! Sort amplituted coeff vector according to sorting of index array, keeping both arrays aligned
+    call CISort_sortVectorByIndex( CISCI_instance%buffer_amplitudeCore, CISCI_instance%index_amplitudeCore, CISCI_instance%buffer_amplitudeCoreSize )
 
-      !print *, "after quick sort"
-      !do i = 1, m 
-      !  print *, i, CISCI_instance%buffer_amplitudeCore%values(i), CISCI_instance%confAmplitudeCore(:,i),  CISCI_instance%index_amplitudeCore%values(i)
-      !enddo
-  
-      !! Sort amplituted coeff vector according to sorting of index array, keeping both arrays aligned
-      call CISort_sortVectorByIndex( CISCI_instance%buffer_amplitudeCore, CISCI_instance%index_amplitudeCore, CISCI_instance%buffer_amplitudeCoreSize )
-
-      !print *, "after sort vector by index"
     !! merge duplicated configurations (sum amplitudes)
-      call CISort_mergeDuplicates ( CISCI_instance%buffer_amplitudeCore, &
+    call CISort_mergeDuplicates ( CISCI_instance%buffer_amplitudeCore, &
                                            CISCI_instance%confAmplitudeCore, &
                                            CISCI_instance%index_amplitudeCore, &
                                            CISCI_instance%buffer_amplitudeCoreSize )
+    !! reset auxindex arrary
+    do i = 1, CISCI_instance%buffer_amplitudeCoreSize
+      CISCI_instance%index_amplitudeCore%values( i ) = i
+    enddo
 
-      !print *, "after duplicates"
-      !! reset auxindex arrary
-      do i = 1, CISCI_instance%buffer_amplitudeCoreSize
-        CISCI_instance%index_amplitudeCore%values( i ) = i
-      enddo
-
-      call MTSort ( CISCI_instance%buffer_amplitudeCore%values, &
+    call MTSort ( CISCI_instance%buffer_amplitudeCore%values, &
             CISCI_instance%index_amplitudeCore%values,  CISCI_instance%buffer_amplitudeCoreSize, "D", nproc )
 
-      !print *, "after coeff sort"
-      call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore, CISCI_instance%index_amplitudeCore, CISCI_instance%buffer_amplitudeCoreSize )
-      !print *, "after sort matrix by index"
+    call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore, CISCI_instance%index_amplitudeCore, CISCI_instance%buffer_amplitudeCoreSize )
 
-      !! reset auxindex arrary
-      do i = 1, CISCI_instance%buffer_amplitudeCoreSize
-        CISCI_instance%index_amplitudeCore%values( i ) = i
+    !! reset auxindex arrary
+    do i = 1, CISCI_instance%buffer_amplitudeCoreSize
+      CISCI_instance%index_amplitudeCore%values( i ) = i
+    enddo
+
+    !! cleaning and finding limit
+    if ( present ( auxm ) ) then
+
+      !! get the new end position
+      newm = CISCI_instance%buffer_amplitudeCoreSize/2 
+      do i = 1, CISCI_instance%buffer_amplitudeCoreSize/2 + 1
+        if ( CISCI_instance%buffer_amplitudeCore%values(i) == 0.0_8 ) then
+          newm = i - 1
+          exit
+        endif
       enddo
+      auxm = newm
 
-      !print *, "final sort "
-      !do i = 1, m 
-      !  print *, i, CISCI_instance%buffer_amplitudeCore%values(i), CISCI_instance%confAmplitudeCore(:,i),  CISCI_instance%index_amplitudeCore%values(i)
-      !enddo
+      !! discard the last two quarters of tmp_ampltitude for next run, if not keep it fot PT2 corr
+      CISCI_instance%buffer_amplitudeCore%values( CISCI_instance%buffer_amplitudeCoreSize/2 + 1 : CISCI_instance%buffer_amplitudeCoreSize ) = 0.0_8
+      do spi = 1, CIcore_instance%numberOfSpecies 
+        !CISCI_instance%confAmplitudeCore(spi)%values( :, CISCI_instance%buffer_amplitudeCoreSize/2 + 1 : CISCI_instance%buffer_amplitudeCoreSize ) = -1_1
+        CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), &
+                                         CISCI_instance%buffer_amplitudeCoreSize/2 + 1 : CISCI_instance%buffer_amplitudeCoreSize) = -1_1
+      enddo
+    endif
 
-      !! cleaning and finding limit
-      if ( present ( auxm ) ) then
-
-        !! get the new end position
-        newm = CISCI_instance%buffer_amplitudeCoreSize/2 
-        do i = 1, CISCI_instance%buffer_amplitudeCoreSize/2 + 1
-          if ( CISCI_instance%buffer_amplitudeCore%values(i) == 0.0_8 ) then
-            newm = i - 1
-            exit
-          endif
-        enddo
-        auxm = newm
-
-        !! discard the last two quarters of tmp_ampltitude for next run, if not keep it fot PT2 corr
-        CISCI_instance%buffer_amplitudeCore%values( CISCI_instance%buffer_amplitudeCoreSize/2 + 1 : CISCI_instance%buffer_amplitudeCoreSize ) = 0.0_8
-        do spi = 1, CIcore_instance%numberOfSpecies 
-          !CISCI_instance%confAmplitudeCore(spi)%values( :, CISCI_instance%buffer_amplitudeCoreSize/2 + 1 : CISCI_instance%buffer_amplitudeCoreSize ) = -1_1
-          !CISCI_instance%confAmplitudeCore(spi)%values( :, CISCI_instance%buffer_amplitudeCoreSize/2 + 1 : CISCI_instance%buffer_amplitudeCoreSize ) = -1_1
-          CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), &
-                                           CISCI_instance%buffer_amplitudeCoreSize/2 + 1 : CISCI_instance%buffer_amplitudeCoreSize) = -1_1
-        enddo
-      endif
-
-   end subroutine CISCI_sortAmplitude
+  end subroutine CISCI_sortAmplitude
 
 
 end module CISCI_
