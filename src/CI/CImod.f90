@@ -905,6 +905,7 @@ contains
       end do
   
       deallocate ( ciLevel )
+      write(6,*) "---------------------------------"
   
       if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
         write (*,*) ""

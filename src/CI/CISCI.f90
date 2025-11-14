@@ -203,7 +203,7 @@ contains
     write (6,"(T2,A29 )")    "Starting SCI macro iterations "
     write (6,*)    ""
 
-    do k = 2, 15
+    do k = 2, 25
         
 !$  timeA(k) = omp_get_wtime()
 
@@ -313,11 +313,12 @@ contains
         exit
       endif
     enddo !k
+    write (6,"(T2,A30)") "SCI Energy Convergence : 1E-5 " 
+    write (6,*)    ""
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
     call CISCI_PT2New ( CISCI_instance%targetSpaceSize, CISCI_instance%eigenValues%values(k), CISCI_instance%PT2energy )
 
-    write (6,*)    ""
     write (6,"(T2,A,F25.12)") "CI-PT2 energy correction :", CISCI_instance%PT2energy 
 
   end subroutine CISCI_runNew
@@ -881,6 +882,9 @@ contains
 
 !$    timeA= omp_get_wtime()
 
+    !$omp parallel &
+    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, ii, diffOrbi, diffOrbj, spj, factorA, factorB ) 
+    !$omp do schedule (static) 
     aloop: do aa = 1, nonzero
 
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -950,8 +954,10 @@ contains
         select case (coupling)
 
         case(1)
-            CIenergy = CISCI_instance%diagonalTarget%values(aa) 
-            w(aa) = w(aa) + CIenergy * v(aa)
+          CIenergy = CISCI_instance%diagonalTarget%values(aa) 
+          !$omp atomic
+          w(aa) = w(aa) + CIenergy * v(aa)
+          !$omp end atomic
 
         case(2)
           do i = 1, numberOfSpecies
@@ -961,8 +967,12 @@ contains
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
           CIenergy = CISCI_calculateEnergyOneNew( spi, occA, occB, diffOrbi(1), diffOrbi(3)  )
 
+          !$omp atomic
           w(bb) = w(bb) + CIenergy * v(aa) * factorA 
+          !$omp end atomic
+          !$omp atomic
           w(aa) = w(aa) + CIenergy * v(bb) * factorA
+          !$omp end atomic
 
         case(3)
           do i = 1, numberOfSpecies
@@ -972,8 +982,12 @@ contains
           diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
           CIenergy = CISCI_calculateEnergyTwoSameNew( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  )
 
+          !$omp atomic
           w(bb) = w(bb) + CIenergy * v(aa) * factorA 
+          !$omp end atomic
+          !$omp atomic
           w(aa) = w(aa) + CIenergy * v(bb) * factorA 
+          !$omp end atomic
 
         case(4)
           do i = 1, numberOfSpecies
@@ -991,13 +1005,19 @@ contains
           diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj), occA(spj), occB(spj), factorB )
           CIenergy = CISCI_calculateEnergyTwoDiffNew( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  )
 
+          !$omp atomic
           w(bb) = w(bb) + CIenergy * v(aa) * factorA * factorB
+          !$omp end atomic
+          !$omp atomic
           w(aa) = w(aa) + CIenergy * v(bb) * factorA * factorB
+          !$omp end atomic
 
         end select
  
       end do bloop !b
     end do aloop !a 
+    !$omp end do nowait
+    !$omp end parallel
 
 !$  timeB = omp_get_wtime()
 
