@@ -177,56 +177,6 @@ contains
     call Vector_constructor (CIcore_instance%lambda, numberOfSpecies)
     call Vector_constructor (CIcore_instance%numberOfSpatialOrbitals2, numberOfSpecies)
 
-    CIcore_instance%nproc = omp_get_max_threads()
-
-    if  ( allocated (CIcore_instance%strings ) ) &
-    deallocate ( CIcore_instance%strings )
-    allocate ( CIcore_instance%strings ( numberOfSpecies ) )
-
-    if  ( allocated (CIcore_instance%orbitals ) ) &
-    deallocate ( CIcore_instance%orbitals )
-    allocate ( CIcore_instance%orbitals ( numberOfSpecies ) )
-
-    if  ( allocated (CIcore_instance%auxstring ) ) &
-    deallocate ( CIcore_instance%auxstring )
-    allocate ( CIcore_instance%auxstring ( CIcore_instance%nproc, numberOfSpecies ) )
-
-    if  ( allocated (CIcore_instance%couplingMatrix ) ) &
-    deallocate ( CIcore_instance%couplingMatrix )
-    allocate ( CIcore_instance%couplingMatrix ( numberOfSpecies, CIcore_instance%nproc ) )
-
-    if  ( allocated (CIcore_instance%couplingMatrixEnergyOne ) ) &
-    deallocate ( CIcore_instance%couplingMatrixEnergyOne )
-    allocate ( CIcore_instance%couplingMatrixEnergyOne ( numberOfSpecies, CIcore_instance%nproc  ) )
-
-    if  ( allocated (CIcore_instance%couplingMatrixFactorOne ) ) &
-    deallocate ( CIcore_instance%couplingMatrixFactorOne )
-    allocate ( CIcore_instance%couplingMatrixFactorOne ( numberOfSpecies, CIcore_instance%nproc  ) )
-
-    if  ( allocated (CIcore_instance%couplingMatrixOrbOne ) ) &
-    deallocate ( CIcore_instance%couplingMatrixOrbOne )
-    allocate ( CIcore_instance%couplingMatrixOrbOne ( numberOfSpecies, CIcore_instance%nproc  ) )
-
-    if  ( allocated (CIcore_instance%nCouplingOneTwo ) ) &
-    deallocate ( CIcore_instance%nCouplingOneTwo )
-    allocate ( CIcore_instance%nCouplingOneTwo ( numberOfSpecies, CIcore_instance%nproc  ) )
-
-    if  ( allocated (CIcore_instance%nCouplingSize ) ) &
-    deallocate ( CIcore_instance%nCouplingSize )
-    allocate ( CIcore_instance%nCouplingSize ( numberOfSpecies, CIcore_instance%nproc  ) )
-
-    if  ( allocated (CIcore_instance%numberOfStrings ) ) &
-    deallocate ( CIcore_instance%numberOfStrings )
-    allocate ( CIcore_instance%numberOfStrings ( numberOfSpecies ) )
-
-    if  ( allocated (CIcore_instance%numberOfStrings2 ) ) &
-    deallocate ( CIcore_instance%numberOfStrings2 )
-    allocate ( CIcore_instance%numberOfStrings2 ( numberOfSpecies ) )
-
-    if  ( allocated (CIcore_instance%sumstrings ) ) &
-    deallocate ( CIcore_instance%sumstrings )
-    allocate ( CIcore_instance%sumstrings ( numberOfSpecies ) )
-
     if ( allocated ( CIcore_instance%totalNumberOfContractions ) ) &
     deallocate ( CIcore_instance%totalNumberOfContractions ) 
     allocate ( CIcore_instance%totalNumberOfContractions (numberOfSpecies ) )
@@ -235,34 +185,15 @@ contains
     deallocate ( CIcore_instance%occupationNumber ) 
     allocate ( CIcore_instance%occupationNumber (numberOfSpecies ) )
 
-    if ( allocated ( CIcore_instance%recursionVector1 ) ) &
-    deallocate ( CIcore_instance%recursionVector1 ) 
-    allocate ( CIcore_instance%recursionVector1 (numberOfSpecies ) )
-
-    if ( allocated ( CIcore_instance%recursionVector2 ) ) &
-    deallocate ( CIcore_instance%recursionVector2 ) 
-    allocate ( CIcore_instance%recursionVector2 (numberOfSpecies ) )
+    if ( allocated ( Conf_occupationNumber ) ) &
+    deallocate ( Conf_occupationNumber ) 
+    allocate ( Conf_occupationNumber (numberOfSpecies ) )
 
     if ( allocated ( CIcore_instance%CILevel) ) &
     deallocate ( CIcore_instance%CILevel ) 
     allocate ( CIcore_instance%CILevel (numberOfSpecies ) )
 
-    if ( allocated ( CIcore_instance%pindexConf) ) &
-    deallocate ( CIcore_instance%pindexConf ) 
-    allocate ( CIcore_instance%pindexConf (numberOfSpecies, CIcore_instance%nproc ) )
-
-    if ( allocated ( Conf_occupationNumber ) ) &
-    deallocate ( Conf_occupationNumber ) 
-    allocate ( Conf_occupationNumber (numberOfSpecies ) )
-
-
-    CIcore_instance%recursionVector1 = 1
-    CIcore_instance%recursionVector2 = 0
-
-    CIcore_instance%recursionVector1(numberOfSpecies) = 0
-    CIcore_instance%recursionVector2(numberOfSpecies) = 1
-
-    CIcore_instance%pindexConf = 0
+    CIcore_instance%nproc = omp_get_max_threads()
 
     do i=1, numberOfSpecies
        !! We are working in spin orbitals not in spatial orbitals!
@@ -300,6 +231,86 @@ contains
     call Configuration_globalConstructor()
 
     close(wfnUnit)
+
+    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+      if  ( allocated (CIcore_instance%strings ) ) &
+      deallocate ( CIcore_instance%strings )
+      allocate ( CIcore_instance%strings ( numberOfSpecies ) )
+  
+      if  ( allocated (CIcore_instance%orbitals ) ) &
+      deallocate ( CIcore_instance%orbitals )
+      allocate ( CIcore_instance%orbitals ( numberOfSpecies ) )
+  
+      if  ( allocated (CIcore_instance%auxstring ) ) &
+      deallocate ( CIcore_instance%auxstring )
+      allocate ( CIcore_instance%auxstring ( CIcore_instance%nproc, numberOfSpecies ) )
+  
+      if  ( allocated (CIcore_instance%couplingMatrix ) ) &
+      deallocate ( CIcore_instance%couplingMatrix )
+      allocate ( CIcore_instance%couplingMatrix ( numberOfSpecies, CIcore_instance%nproc ) )
+  
+      if  ( allocated (CIcore_instance%couplingMatrixEnergyOne ) ) &
+      deallocate ( CIcore_instance%couplingMatrixEnergyOne )
+      allocate ( CIcore_instance%couplingMatrixEnergyOne ( numberOfSpecies, CIcore_instance%nproc  ) )
+  
+      if  ( allocated (CIcore_instance%couplingMatrixFactorOne ) ) &
+      deallocate ( CIcore_instance%couplingMatrixFactorOne )
+      allocate ( CIcore_instance%couplingMatrixFactorOne ( numberOfSpecies, CIcore_instance%nproc  ) )
+  
+      if  ( allocated (CIcore_instance%couplingMatrixOrbOne ) ) &
+      deallocate ( CIcore_instance%couplingMatrixOrbOne )
+      allocate ( CIcore_instance%couplingMatrixOrbOne ( numberOfSpecies, CIcore_instance%nproc  ) )
+  
+      if  ( allocated (CIcore_instance%nCouplingOneTwo ) ) &
+      deallocate ( CIcore_instance%nCouplingOneTwo )
+      allocate ( CIcore_instance%nCouplingOneTwo ( numberOfSpecies, CIcore_instance%nproc  ) )
+  
+      if  ( allocated (CIcore_instance%nCouplingSize ) ) &
+      deallocate ( CIcore_instance%nCouplingSize )
+      allocate ( CIcore_instance%nCouplingSize ( numberOfSpecies, CIcore_instance%nproc  ) )
+  
+      if  ( allocated (CIcore_instance%numberOfStrings ) ) &
+      deallocate ( CIcore_instance%numberOfStrings )
+      allocate ( CIcore_instance%numberOfStrings ( numberOfSpecies ) )
+  
+      if  ( allocated (CIcore_instance%numberOfStrings2 ) ) &
+      deallocate ( CIcore_instance%numberOfStrings2 )
+      allocate ( CIcore_instance%numberOfStrings2 ( numberOfSpecies ) )
+  
+      if  ( allocated (CIcore_instance%sumstrings ) ) &
+      deallocate ( CIcore_instance%sumstrings )
+      allocate ( CIcore_instance%sumstrings ( numberOfSpecies ) )
+ 
+      if ( allocated ( CIcore_instance%recursionVector1 ) ) &
+      deallocate ( CIcore_instance%recursionVector1 ) 
+      allocate ( CIcore_instance%recursionVector1 (numberOfSpecies ) )
+  
+      if ( allocated ( CIcore_instance%recursionVector2 ) ) &
+      deallocate ( CIcore_instance%recursionVector2 ) 
+      allocate ( CIcore_instance%recursionVector2 (numberOfSpecies ) )
+  
+      if ( allocated ( CIcore_instance%pindexConf) ) &
+      deallocate ( CIcore_instance%pindexConf ) 
+      allocate ( CIcore_instance%pindexConf (numberOfSpecies, CIcore_instance%nproc ) )
+  
+      CIcore_instance%recursionVector1 = 1
+      CIcore_instance%recursionVector2 = 0
+
+      CIcore_instance%recursionVector1(numberOfSpecies) = 0
+      CIcore_instance%recursionVector2(numberOfSpecies) = 1
+
+      CIcore_instance%pindexConf = 0
+
+      !! auxiliary string for omp paralelization
+      do n = 1, CIcore_instance%nproc
+        do i = 1, numberOfSpecies
+          call Vector_constructorInteger( CIcore_instance%auxstring(n,i), &
+            int(CIcore_instance%numberOfOccupiedOrbitals%values(i),4), int(0,4))
+        end do    
+      end do  
+
+    endif
+
 
   end subroutine CIcore_constructor
 

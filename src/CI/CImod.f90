@@ -173,6 +173,8 @@ contains
 
     call CIOrder_settingCILevel()
 
+    call CIOrder_estimate_FCI_numberOfConf()
+
    !! write (*,*) "Total number of configurations", CIcore_instance%numberOfConfigurations
     write (*,*) ""
     call Vector_constructor ( CIcore_instance%eigenvalues, &

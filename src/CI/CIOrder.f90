@@ -22,30 +22,10 @@ contains
     implicit none
 
     integer :: numberOfSpecies
-    integer :: i,ii,j,k,l,m,n,p,q,a,b,d,r,s
-    integer(8) :: c, cc
-    integer :: ma,mb,mc,md,me,pa,pb,pc,pd,pe
-    integer :: isLambdaEqual1
+    integer :: i
     type(ivector) :: order
-    type(vector), allocatable :: occupiedCode(:)
-    type(vector), allocatable :: unoccupiedCode(:)
-    integer, allocatable :: auxArray(:,:), auxvector(:),auxvectorA(:)
-    integer :: lambda, otherlambda
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-
-    if ( allocated( occupiedCode ) ) deallocate( occupiedCode )
-    allocate (occupiedCode ( numberOfSpecies ) )
-    if ( allocated( unoccupiedCode ) ) deallocate( unoccupiedCode )
-    allocate (unoccupiedCode ( numberOfSpecies ) )
-
-    !1 auxiliary string for omp paralelization
-    do n = 1, CIcore_instance%nproc
-      do i = 1, numberOfSpecies
-        call Vector_constructorInteger( CIcore_instance%auxstring(n,i), &
-          int(CIcore_instance%numberOfOccupiedOrbitals%values(i),4), int(0,4))
-      end do  
-    end do  
 
     select case ( trim(CIcore_instance%level) )
 
@@ -374,6 +354,48 @@ recursive  function CIOrder_getIndexSize(s, c, auxcilevel) result (os)
     end do
 
   end function CIOrder_getIndexSize
+
+  subroutine CIOrder_estimate_FCI_numberOfConf( )
+    implicit none
+    integer :: spi
+    real(16) :: total
+
+    total = 0
+    do spi = 1, CIcore_instance%numberOfSpecies 
+      total = total + CIOrder_log_combinations ( CIcore_instance%numberOfOrbitals%values(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi) )
+    enddo
+
+    write (6,"(T2,A,I16)") "Total number of FCI configurations : ", ceiling(exp(total),16)
+    write (6,"(T3,A,F4.1)") "log(number of FCI configurations) : ", (total)*log10(exp(1.0_16))
+
+  end subroutine CIOrder_estimate_FCI_numberOfConf
+
+  !! Estimate the number of configurations for FCI
+  function CIOrder_log_combinations(n, r ) result(log_combinations)
+    implicit none
+    integer, intent(in) :: n, r !! basis size, number of particles
+    real(kind=16) :: log_combinations, log_fact_n, log_fact_r, log_fact_n_r
+
+    if (r < 0 .or. r > n) then
+        log_combinations = -huge(0.0_16) ! Or handle as an error
+        return
+    end if
+    if (r == 0 .or. r == n) then
+        log_combinations = 0.0_16
+        return
+    end if
+
+    ! Use the Fortran intrinsic Gamma function (or Lgamm) to get the log of the factorial
+    ! Gamma(x+1) = x!
+    ! You might need to use a specific library function if your compiler does not support Lgamm
+    ! Example: Lgamm is the natural logarithm of the absolute value of the gamma function
+    log_fact_n = Lgamma(real(n+1, kind=16))
+    log_fact_r = Lgamma(real(r+1, kind=16))
+    log_fact_n_r = Lgamma(real(n-r+1, kind=16))
+
+    log_combinations = log_fact_n - log_fact_r - log_fact_n_r
+
+  end function CIOrder_log_combinations
 
   !>
   !! @brief  Maneja excepciones de la clase
