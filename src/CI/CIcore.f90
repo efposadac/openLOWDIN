@@ -65,12 +65,6 @@
      integer :: ncouplingOrderTwoDiff
 
      type(imatrix) :: auxConfigurations !! species, configurations for initial hamiltonian
-     type(imatrix) :: coreConfigurations !! species, configurations for core SCI space
-     type(imatrix) :: targetConfigurations !! species, configurations for target SCI space
-     type(imatrix) :: fullConfigurations !! species, configurations for target SCI space
-     type(imatrix) :: coreConfigurationsLevel !! species, configurations for CI level of core SCI space
-     type(imatrix) :: targetConfigurationsLevel !! species, configurations for CI level target SCI space
-     type(imatrix) :: fullConfigurationsLevel !! species, configurations for CI level target SCI space
 
      type(configuration), allocatable :: configurations(:)
      integer(2), allocatable :: auxconfs(:,:,:) ! nconf, species, occupation
