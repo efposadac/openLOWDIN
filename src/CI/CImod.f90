@@ -184,12 +184,10 @@ contains
       case ("JADAMILU")
         write(*,*) ""
         write(*,*) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-        write(*,*) "============================================================="
         write(*,*) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
         write(*,*) " a software code for computing selected eigenvalues of "
         write(*,*) " large sparse symmetric matrices, "
         write(*,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
-        write(*,*) "============================================================="
 
       case ("DSYEVX")
 
@@ -742,60 +740,70 @@ contains
     implicit none
     type(CIcore) :: this
     integer :: i
-    real(8) :: davidsonCorrection, HFcoefficient, CIcorrection
+    integer(8) :: a
+    real(8) :: davidsonCorrection, HFcoefficient, CIcorrection, MR
     integer numberOfSpecies
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     if ( CIcore_instance%isInstanced ) then
 
-       write(*,"(A)") ""
-       write(*,"(A)") " POST HARTREE-FOCK CALCULATION"
-       write(*,"(A)") " CONFIGURATION INTERACTION THEORY:"
-       write(6,*) "-----------------------------------------------------------------------"
-       write(*,"(A)") ""
-       write (6,"(T8,A30, A5)") "LEVEL = ", CIcore_instance%level
-       write (6,"(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", CIcore_instance%numberOfConfigurations
-       do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-        write (6,"(T8,A7,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenvalues%values(i)
-       end do
-       write(*,"(A)") ""
-       CIcorrection = CIcore_instance%eigenvalues%values(1) - &
-                HartreeFock_instance%totalEnergy
+      CIcorrection = CIcore_instance%eigenvalues%values(1) - &
+               HartreeFock_instance%totalEnergy
 
-       write (6,"(T4,A34, F25.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
+      write(*,"(A)") " SUMMARY OF                       "
+      write(*,"(A)") " POST HARTREE-FOCK CALCULATION    "
+      write(*,"(A)") " CONFIGURATION INTERACTION THEORY:"
+      write(6,*) "-----------------------------------------------------------------------"
+      write(*,"(A)") ""
+      write (6,"(T8,A30, A5)") "LEVEL = ", CIcore_instance%level
+      write (6,"(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", CIcore_instance%numberOfConfigurations
+      write (6,"(T4,A34, F25.12)") "HF ENERGY = ", HartreeFock_instance%totalEnergy
+      write (6,"(T4,A34, F25.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
+      do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+       write (6,"(T18,A7,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenvalues%values(i)
+      end do
+      write(*,"(A)") ""
 
-       if (  CIcore_instance%level == "CISD" ) then
-         write(*,"(A)") ""
-         write (6,"(T2,A34)") "RENORMALIZED DAVIDSON CORRECTION:"
-         write(*,"(A)") ""
-         write (6,"(T8,A54)") "E(CISDTQ) \approx E(CISD) + \delta E(Q)               "
-         write (6,"(T8,A54)") "\delta E(Q) = (1 - c_0^2) * \delta E(CISD) / c_0^2    "
-         write (*,*) ""
-         HFcoefficient = CIcore_instance%eigenVectors%values(1,1) 
-         davidsonCorrection = ( 1 - HFcoefficient*HFcoefficient) * CIcorrection / (HFcoefficient*HFcoefficient)
+      if (  CIcore_instance%level == "CISD" ) then
+        write(*,"(A)") ""
+        write (6,"(T2,A34)") "RENORMALIZED DAVIDSON CORRECTION:"
+        write(*,"(A)") ""
+        write (6,"(T8,A54)") "E(CISDTQ) \approx E(CISD) + \delta E(Q)               "
+        write (6,"(T8,A54)") "\delta E(Q) = (1 - c_0^2) * \delta E(CISD) / c_0^2    "
+        write (*,*) ""
+        HFcoefficient = CIcore_instance%eigenVectors%values(1,1) 
+        davidsonCorrection = ( 1 - HFcoefficient*HFcoefficient) * CIcorrection / (HFcoefficient*HFcoefficient)
   
   
-         write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
-         write (6,"(T8,A19, F25.12)") "\delta E(Q) = ", davidsonCorrection
-         write (6,"(T8,A19, F25.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
-            CIcorrection + davidsonCorrection
+        write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
+        write (6,"(T8,A19, F25.12)") "\delta E(Q) = ", davidsonCorrection
+        write (6,"(T8,A19, F25.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
+           CIcorrection + davidsonCorrection
 
-       else if ( CIcore_instance%level == "SCI" ) then
+      else if ( CIcore_instance%level == "SCI" ) then
 
-         write(*,"(A)") ""
-         write (6,"(T2,A34)") "EPSTEIN-NESBET PT2 CORRECTION:"
-         write(*,"(A)") ""
-         write (6,"(T8,A19, F25.12)") "E_PT2 :", CISCI_instance%PT2energy 
-         write (6,"(T8,A19, F25.12)") "E_SCI + E_PT2 :",  CIcore_instance%eigenvalues%values(1) + CISCI_instance%PT2energy 
+        write(*,"(A)") ""
+        write (6,"(T2,A34)") "EPSTEIN-NESBET PT2 CORRECTION:"
+        write(*,"(A)") ""
+        write (6,"(T8,A19, F25.12)") "E_PT2 :", CISCI_instance%PT2energy 
+        write (6,"(T8,A19, F25.12)") "E_SCI + E_PT2 :",  CIcore_instance%eigenvalues%values(1) + CISCI_instance%PT2energy 
+      endif
 
-       else 
+      MR = 0.0_8
+      do a = 1, CIcore_instance%numberOfConfigurations
+        MR = MR +  abs( CIcore_instance%eigenVectors%values(a,1) )**2  - abs( CIcore_instance%eigenVectors%values(a,1) )**4 
+      enddo
 
-         write(*,"(A)") ""
-         HFcoefficient = CIcore_instance%eigenVectors%values(1,1) 
-         write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
+      write(*,"(A)") ""
+      write(*,"(A)") "MULTI-REFERENCE CHARACTER ANALYSIS:"
+      HFcoefficient = CIcore_instance%eigenVectors%values(1,1) 
+      write(*,"(A)") ""
+      write (6,"(T8,A19, F25.12)") "   HF COEFFICIENT = ", HFcoefficient
+      write (6,"(T8,A19, F25.12)") "HF COEFFICIENT**2 = ", HFcoefficient**2
+      write (6,"(T8,A19, F25.12)") "               MR = ", MR
 
-       end if
+      write(6,*) "-----------------------------------------------------------------------"
 
     end if
 
@@ -823,6 +831,12 @@ contains
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     numberOfConfigurations = CIcore_instance%numberOfConfigurations 
 
+    write (*,*) ""
+    write (*, "(T1,A)") "CI EIGENVECTORS" 
+    write (*,*) ""
+    write (*, "(T1,A,ES8.1)") "Printing coefficients larger than:", CONTROL_instance%CI_PRINT_THRESHOLD 
+    write (*,*) ""
+
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
 
       allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
@@ -845,13 +859,9 @@ contains
       end do
   
       deallocate ( ciLevel )
-      write(6,*) "---------------------------------"
-  
+
       if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
-        write (*,*) ""
-        write (*, "(T1,A)") "Eigenvectors" 
-        write (*,*) ""
-  
+ 
         do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
           write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
           write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
@@ -873,11 +883,7 @@ contains
           write (*,*) ""
         end do
   
-  
       else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
-        write (*,*) ""
-        write (*, "(T1,A)") "Eigenvectors" 
-        write (*,*) ""
   
         do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
           write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
@@ -908,9 +914,6 @@ contains
     else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
 
       if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
-        write (*,*) ""
-        write (*, "(T1,A)") "Eigenvectors" 
-        write (*,*) ""
   
         do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
           write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
@@ -935,9 +938,6 @@ contains
   
   
       else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
-        write (*,*) ""
-        write (*, "(T1,A)") "Eigenvectors" 
-        write (*,*) ""
 
         do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
           write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
@@ -1081,7 +1081,6 @@ contains
 
       endif !!SCI
 
-      write (*,*) ""
       write(6,*) "-----------------------------------------------------------------------"
       write (*,*) "BUILDING CI DENSITY MATRICES"
       write(6,*) "-----------------------------------------------------------------------"
@@ -1439,7 +1438,6 @@ contains
          end do
        end do
 
-       write(*,*) ""
        write(6,*) "-----------------------------------------------------------------------"
        write(*,*) " ONE BODY ENERGY CONTRIBUTIONS:"
        write(*,*) ""
@@ -1462,7 +1460,6 @@ contains
 
        if (CONTROL_instance%CI_NATURAL_ORBITALS) then
 
-          write(*,*) ""
           write(6,*) "-----------------------------------------------------------------------"
           write(*,*) " NATURAL ORBITALS: "
           write(*,*) ""
