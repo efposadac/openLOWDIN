@@ -362,7 +362,8 @@ recursive  function CIOrder_getIndexSize(s, c, auxcilevel) result (os)
 
     total = 0
     do spi = 1, CIcore_instance%numberOfSpecies 
-      total = total + CIOrder_log_combinations ( CIcore_instance%numberOfOrbitals%values(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi) )
+      total = total + CIOrder_log_combinations ( CIcore_instance%numberOfOrbitals%values(spi), &
+                                                 CIcore_instance%numberOfOccupiedOrbitals%values(spi) - CIcore_instance%numberOfCoreOrbitals%values(spi) )
     enddo
 
     write (6,"(T2,A,I16)") "Total number of FCI configurations : ", ceiling(exp(total),16)

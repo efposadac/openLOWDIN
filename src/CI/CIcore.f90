@@ -4,7 +4,6 @@
   use Vector_
   use MolecularSystem_
   use Configuration_
-  use MolecularSystem_
   use String_
   use IndexMap_
   use InputCI_

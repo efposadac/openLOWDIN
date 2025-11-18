@@ -406,14 +406,14 @@ contains
         call CISCI_show()
 
         write (*,*) "Allocating arrays for SCI ..."
-        call CISCI_constructorNew( CIcore_instance%numberOfConfigurations )
+        call CISCI_constructor( CIcore_instance%numberOfConfigurations )
 
         call Matrix_constructor (CIcore_instance%eigenVectors, &
              int(CIcore_instance%numberOfConfigurations,8), &
              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
         !!call CISCI_run() old version. still used for developing purposes
-        call CISCI_runNew( CIcore_instance%eigenVectors )
+        call CISCI_run( CIcore_instance%eigenVectors )
 
 
       case default
@@ -1343,11 +1343,11 @@ contains
               couplingS = 0
               do spi = 1, numberOfSpecies
                 couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
-                                  - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) + 1
+                                  - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) 
               end do
       
               !! just single particle diff 
-              if ( product(couplingS) == 2 ) then
+              if ( sum(couplingS) == 1 ) then
 
                 do spi = 1, numberOfSpecies 
                   oib = 0 
@@ -1361,16 +1361,16 @@ contains
                 enddo
 
                 do i = 1, numberOfSpecies
-                    if ( couplingS(i) == 2 ) spi = i
+                    if ( couplingS(i) == 1 ) spi = i
                 end do
 
                 diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
 
-                auxDensMatrix(spi,n)%values( orbitalA,orbitalB) = auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) + &
+                auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) = auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) + &
                                                                 factorA * & 
                                                                 CIcore_instance%eigenVectors%values(a,state) * &
                                                                 CIcore_instance%eigenVectors%values(b,state)
-                auxDensMatrix(spi,n)%values( orbitalB,orbitalA) = auxDensMatrix(spi,n)%values( diffOrbi(3), diffOrbi(1) ) + &
+                auxDensMatrix(spi,n)%values( diffOrbi(3), diffOrbi(1) ) = auxDensMatrix(spi,n)%values( diffOrbi(3), diffOrbi(1) ) + &
                                                                 factorA * &
                                                                 CIcore_instance%eigenVectors%values(a,state) * &
                                                                 CIcore_instance%eigenVectors%values(b,state)
@@ -1629,6 +1629,13 @@ contains
     call Vector_destructorInteger (CIcore_instance%numberOfOccupiedOrbitals)
     call Vector_destructorInteger (CIcore_instance%numberOfOrbitals)
     call Vector_destructor (CIcore_instance%lambda)
+
+    deallocate(CIcore_instance%twoCenterIntegrals )
+    deallocate(CIcore_instance%fourCenterIntegrals )
+
+    deallocate(CIcore_instance%twoIndexArray )
+    deallocate(CIcore_instance%fourIndexArray )
+
 
     CIcore_instance%isInstanced=.false.
 
