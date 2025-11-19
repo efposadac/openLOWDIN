@@ -1606,7 +1606,7 @@ contains
     do while ( auxdecimalNumber > 0 ) 
       n = n + 1
       binary(n) = modulo(auxdecimalNumber,2.0_8 )
-      auxdecimalNumber = floor( auxdecimalNumber/2.0_8, 16)
+      auxdecimalNumber = floor( auxdecimalNumber/2.0_8, SELECTED_INT_KIND(16))
     enddo 
 
   end subroutine CISCI_decimalToBinary 

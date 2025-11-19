@@ -366,7 +366,7 @@ recursive  function CIOrder_getIndexSize(s, c, auxcilevel) result (os)
                                                  CIcore_instance%numberOfOccupiedOrbitals%values(spi) - CIcore_instance%numberOfCoreOrbitals%values(spi) )
     enddo
 
-    write (6,"(T2,A,I16)") "Total number of FCI configurations : ", ceiling(exp(total),16)
+    write (6,"(T2,A,I16)") "Total number of FCI configurations : ", ceiling(exp(total),SELECTED_INT_KIND(16))
     write (6,"(T3,A,F4.1)") "log(number of FCI configurations) : ", (total)*log10(exp(1.0_16))
 
   end subroutine CIOrder_estimate_FCI_numberOfConf
