@@ -415,7 +415,7 @@ contains
         !!call CISCI_run() old version. still used for developing purposes
         call CISCI_run( CIcore_instance%eigenVectors )
 
-
+        call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )
       case default
 
         call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented for SCI")

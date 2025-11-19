@@ -464,7 +464,7 @@ contains
 
     !$omp parallel &
     !$omp& private ( occA, occB, virA, virB, orbA, orbB) &
-    !$omp& private ( n, a, oia, via, pi, qi, ri, si, oi1, vi1, oi2, vi2, spi, spj, oj2, vj2, factor1, factor2, factor2j, CIenergy ) 
+    !$omp& private ( n, a, oia, via, pi, qi, ri, si, oi1, vi1, oi2, vi2, spi, spj, oj2, vj2, factor1, factor2, factor2j, CIenergy )  &
     !$omp& shared ( nonzero, CISCI_instance, coefficientCore, confCore)
 
     !! allocating auxiliary arrays (omp) for working with conf and orbitals
@@ -931,7 +931,7 @@ contains
 !$    timeA= omp_get_wtime()
 
     !$omp parallel &
-    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, ii, diffOrbi, diffOrbj, spj, factorA, factorB ) 
+    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, ii, diffOrbi, diffOrbj, spj, factorA, factorB ) &
     !$omp& shared ( w, v, numberOfSpecies, CIcore_instance)
     allocate ( occA ( numberOfSpecies ) )
     allocate ( occB ( numberOfSpecies ) )
@@ -1370,7 +1370,7 @@ contains
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
     !$omp parallel &
-    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, ii, diagonal, denominator, diffOrbi, diffOrbj, spj, factorA, factorB )
+    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, ii, diagonal, denominator, diffOrbi, diffOrbj, spj, factorA, factorB ) 
     allocate ( occA ( numberOfSpecies ) )
     allocate ( occB ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
@@ -1386,8 +1386,7 @@ contains
 
     energyCorrection = 0.0_8
     
-    !$omp& reduction (+:energyCorrection)
-    !$omp do schedule (static) 
+    !$omp do schedule (static),  reduction (+:energyCorrection)
     aloop: do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
 
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -1513,6 +1512,69 @@ contains
 !$  write(*,"(A,E10.3)") "Time for CI-PT2 correction: ", timeB -timeA
 
   end subroutine CISCI_PT2
+
+  subroutine CISCI_saveEigenVector ( eigenVectors )
+  
+    implicit none
+    type(matrix) :: eigenVectors
+    character(50) :: nameFile
+    integer :: unitFile
+    real(8) :: timeA, timeB
+    integer(8) :: a
+    integer :: spi, spj, numberOfSpecies
+    type (ivector), allocatable :: orbA(:), orbReF(:)
+    integer, allocatable :: CIlevel(:)
+
+!$  timeA = omp_get_wtime()
+
+    numberOfSpecies = CIcore_instance%numberOfSpecies 
+
+    unitFile = 36 
+    nameFile = trim(CONTROL_instance%INPUT_FILE)//"sci"
+    open(unit = unitFile, file=trim(nameFile), status="new", form="formatted")
+
+    allocate ( CIlevel ( numberOfSpecies ) )
+    allocate ( orbA ( numberOfSpecies ) )
+    allocate ( orbRef ( numberOfSpecies ) )
+
+    CIlevel = 0
+
+    do spi = 1, numberOfSpecies
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbRef(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+    end do
+
+    !building reference orbitals
+    do spi = 1, numberOfSpecies
+      orbRef(spi)%values(1:CIcore_instance%numberOfOccupiedOrbitals%values(spi) ) = 1
+    enddo 
+
+    do a = 1, CISCI_instance%targetSpaceSize 
+      ! getting configuration A
+      do spi = 1, numberOfSpecies 
+        !! build the orbital from the index using the bit mapping
+        orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
+        CIlevel(spi) = CIcore_instance%numberOfOccupiedOrbitals%values(spi) - sum( orbA(spi)%values * orbRef(spi)%values ) 
+      enddo
+
+      write(unitFile,*) a, eigenVectors%values(a,1), CIlevel(:)
+
+    end do 
+
+    do spi = 1, numberOfSpecies
+      call Vector_destructorInteger ( orbRef(spi) ) 
+      call Vector_destructorInteger ( orbA(spi) ) 
+    end do
+
+    deallocate ( orbRef )
+    deallocate ( orbA )
+    deallocate ( CIlevel )
+    close(unitFile)
+
+!$  timeB = omp_get_wtime()
+!$  write(*,"(A,E10.3)") "Time for saving SCI eigenVector: ", timeB -timeA
+
+  end subroutine CISCI_saveEigenVector
 
   !> Vector is defined in reverse order, e.g. vector (1,1,0), binary : 011, decimal : 3
   subroutine CISCI_binaryToDecimal ( binary, decimalNumber )
