@@ -390,9 +390,9 @@ recursive  function CIOrder_getIndexSize(s, c, auxcilevel) result (os)
     ! Gamma(x+1) = x!
     ! You might need to use a specific library function if your compiler does not support Lgamm
     ! Example: Lgamm is the natural logarithm of the absolute value of the gamma function
-    log_fact_n = Lgamma(real(n+1, kind=16))
-    log_fact_r = Lgamma(real(r+1, kind=16))
-    log_fact_n_r = Lgamma(real(n-r+1, kind=16))
+    log_fact_n = Log_gamma(real(n+1, kind=16))
+    log_fact_r = Log_gamma(real(r+1, kind=16))
+    log_fact_n_r = Log_gamma(real(n-r+1, kind=16))
 
     log_combinations = log_fact_n - log_fact_r - log_fact_n_r
 
