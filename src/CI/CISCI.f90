@@ -63,7 +63,7 @@ contains
     CISCI_instance%targetSpaceSize = CONTROL_instance%CI_SCI_TARGET_SPACE * CIcore_instance%nproc 
     !! the first quarter is the real target space, the second quarter is the waiting list if the amplitude could grow more. 
     !! The last half is just a temporary space to avoid sorting a big array for a single addition
-    CISCI_instance%buffer_amplitudeCoreSize = CISCI_instance%targetSpaceSize * 8 
+    CISCI_instance%buffer_amplitudeCoreSize = CISCI_instance%targetSpaceSize * CONTROL_instance%CI_SCI_BUFFER_FACTOR
 
     totalSize = 0_8
     do spi = 1, CIcore_instance%numberOfSpecies 

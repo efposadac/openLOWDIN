@@ -22,7 +22,8 @@ CONTROL
 	!CIPrintThreshold = 5e-2
 	buildTwoParticlesMatrixForOneParticle=T
 	CISCICoreSpace = 100
-	CISCITargetSpace = 500
+	CISCITargetSpace = 250
+	CISCIBufferFactor = 8
 	CIMatVecTolerance = 1e-10
 	HFprintEigenVectors = "ALL"
 END CONTROL
