@@ -92,7 +92,6 @@ module Vector_
        Vector_reverseSortElements8, &
        Vector_reverseSortElements8Int, &
        Vector_reverseSortElementsAbsolute8, &
-       Vector_sortElementsAbsolute8, &
        Vector_swapElements, &
        Vector_getSize, &
        Vector_getElement, &
@@ -1540,93 +1539,6 @@ contains
     end do
 
   end subroutine Vector_reverseSortElementsAbsolute8
-
-  subroutine Vector_sortElementsAbsolute8(this,indexVector,m, tol)
-    type(Vector8) :: this
-    type(IVector8) :: indexVector
-    integer(8) :: m
-    integer(8) i,j,n, j1, j2
-    real(8) :: timeA, timeB
-    real(8) :: value1, value2
-    integer(8) :: pos1, pos2
-    real(8), allocatable :: maxValue(:)
-    real(8) :: maxValueCore, tol
-    integer(8), allocatable :: maxPos(:)
-    integer(8) :: maxPosCore
-    integer(8) :: nn, ncore, chunkSize, idcore
-
-    ncore = omp_get_max_threads()
-    allocate( maxValue ( ncore) )     
-    allocate( maxPos ( ncore) )     
-    n = Vector_getSize8(this)
-
-!$  timeA = omp_get_wtime()
-
-    do i=1,m
-
-      chunkSize = ceiling ( float(n-i + 1) / float(ncore) )
-      !print *, "chunk", chunkSize
-      do nn = 1, ncore
-        maxPos(nn) = (nn - 1)*chunkSize + i
-        maxValue(nn) = abs(this%values(maxPos(nn)))
-      end do
-
-      !$omp parallel &
-      !$omp& private( j, nn, j1, j2 ) 
-      !$omp& shared( maxPos, maxValue ) 
-      !$omp do schedule (static)
-      do nn = 1,ncore
-        j1 = (nn - 1)*chunkSize + i
-        j2 = (nn )*chunkSize + i - 1 
-        if ( j2 > n ) j2 = n
-       ! print *, nn, j1, j2
-        do j = j1, j2
-          if ( abs(this%values(j)) .gt. maxValue(nn) )  then
-            maxValue(nn) = abs(this%values(j))
-            maxPos(nn) = j
-          end if
-        end do
-      end do
-      !$omp end do nowait
-      !$omp end parallel
-
-      maxValueCore = maxValue(1)
-      maxPosCore = maxPos(1)
-      !print *, "max val", i, maxValue, maxPos
-
-      do nn = 1, ncore
-        if ( maxValue(nn ) .ge. maxValueCore ) then
-          maxValueCore = maxValue(nn)
-          maxPosCore = maxPos(nn)
-        endif
-      end do
-
-      if ( maxValueCore <= tol ) exit
-
-      !call Vector_swapElements8( this, i, maxPosCore )
-
-      !! swap
-      value1 = this%values( i )
-      value2 = this%values( maxPosCore )
-      this%values( i ) = value2
-      this%values( maxPosCore ) = value1
-
-      !! index swap
-      pos1 = indexVector%values( i )
-      pos2 = indexVector%values( maxPosCore )
-      indexVector%values( i ) = pos2
-      indexVector%values( maxPosCore ) = pos1
-
-    end do
-
-!$  timeB = omp_get_wtime()
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for sorting the vector : ", timeB - timeA ," (s)"
-
-    deallocate( maxPos )     
-    deallocate( maxValue )     
-
-  end subroutine Vector_sortElementsAbsolute8
-
 
   subroutine Vector_reverseSortElements8Int(this,indexVector,m)
     type(IVector8) :: this
