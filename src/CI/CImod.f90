@@ -921,12 +921,11 @@ contains
           write (*,*) ""
           do a = 1, numberOfConfigurations
             if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
-              !indexConf(:) = CIcore_instance%allIndexConf(:,a) 
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
                 do p = 1, CIcore_instance%numberOfOrbitals%values(i)
-                  write (*, "(I1)", advance="no") CISCI_instance%targetOrb(i,a)%values(p)
-                  !write (*, "(I1)", advance="no")  CIcore_instance%orbitals(i)%values(p,indexConf(i)) 
+                  write (*, "(I1)", advance="no") CISCI_instance%saved_confTarget(i)%values(p,a)
+                                                  !CISCI_instance%targetOrb(i,a)%values(p)
                 end do
                 write (*, "(A1)", advance="no")  " "
               end do
@@ -945,16 +944,14 @@ contains
           write (*,*) ""
           do a = 1, numberOfConfigurations
             if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
-              !indexConf(:) = CIcore_instance%allIndexConf(:,a) 
   
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
-                !do p = 1, CIcore_instance%numberOfOccupiedOrbitals%values(i)
                 do p = 1, CIcore_instance%numberOfOrbitals%values(i)
-                  if ( CISCI_instance%targetOrb(i,a)%values(p)  == 1 ) then
+                  if ( CISCI_instance%saved_confTarget(i)%values(p,a)  == 1 ) then
+                    !CISCI_instance%targetOrb(i,a)%values(p)
                     write (*, "(I3,A1)", advance="no") p, " "
                   endif
-                  !write (*, "(I3,A1)", advance="no") CIcore_instance%strings(i)%values(p,indexConf(i) ), " "
                 end do
                 write (*, "(A1)", advance="no")  "|"
               end do
@@ -1304,7 +1301,8 @@ contains
             do spi = 1, numberOfSpecies 
               oia = 0 
 
-              orbA(spi)%values = CISCI_instance%targetOrb(spi,a)%values
+              !!orbA(spi)%values = CISCI_instance%targetOrb(spi,a)%values
+              orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,a)
 
               !! build auxiliary vectors of occupied and virtuals orbitals
               do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
@@ -1336,7 +1334,8 @@ contains
             do b = 1, CICore_instance%numberOfConfigurations 
 
               do spi = 1, numberOfSpecies 
-                orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values
+                !orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values
+                orbB(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,b)
               enddo
 
               !! determinate number of diff orbitals
