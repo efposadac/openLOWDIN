@@ -186,6 +186,7 @@ contains
        print *, ""
        write (*,"(A,I5,A,I10,A)") "Displacing coordinates of ", numberOfTranslationCenters, " centers", &
             this%numberOfIndividualTransformations," times"
+       write (*,"(A,F12.8)") "With step ", CONTROL_instance%TRANSLATION_STEP
        print *, ""
 
     else if(numberOfRotationCenters.ne.0) then
@@ -207,7 +208,7 @@ contains
           this%numberOfIndividualTransformations=int(CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE/CONTROL_instance%ROTATION_AROUND_Z_STEP)+1
        end if
        
-       write (*,"(A,I5,A,I5,A)") "From 0 to ", CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE ," degrees in ", this%numberOfIndividualTransformations, " steps"
+       write (*,"(A,F7.3,A,I5,A)") "From 0 to ", CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE ," degrees in ", this%numberOfIndividualTransformations, " steps"
        print *, ""
 
        this%transformationType="ROTATION_AROUND_Z"
@@ -571,6 +572,7 @@ contains
                             if(center.eq.displacedMolecularSystem%allParticles(p)%particlePtr%translationCenter) then
                                ! call ParticleManager_setOrigin( MolecularSystem_instance%allParticles(p)%particlePtr, displacedOrigin )
                                displacedMolecularSystem%allParticles(p)%particlePtr%origin=displacedOrigin
+                               if( .not. displacedMolecularSystem%allParticles(p)%particlePtr%isQuantum) cycle
                                do mu = 1, displacedMolecularSystem%allParticles(p)%particlePtr%basis%length
                                   displacedMolecularSystem%allParticles(p)%particlePtr%basis%contraction(mu)%origin = displacedOrigin
                                end do

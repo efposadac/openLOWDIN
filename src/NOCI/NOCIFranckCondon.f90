@@ -171,8 +171,8 @@ contains
     call MolecularSystem_showParticlesInformation(superMergedMolecularSystem)
     call MolecularSystem_showCartesianMatrix(superMergedMolecularSystem)
 
-    call NOCIMatrices_mergeCoefficients(numberOfSpecies,this%mergedCoefficients(:),auxCoefficients(:),&
-         this%mergedMolecularSystem,MolecularSystem_instance,superMergedMolecularSystem,&
+    call NOCIMatrices_mergeCoefficients(numberOfSpecies,this%mergedMolecularSystem,MolecularSystem_instance,superMergedMolecularSystem,&
+         this%mergedCoefficients(:),auxCoefficients(:),&
          orbListI(:),orbListII(:),superMergedCoefficients(:))
 
     ! do speciesID=1, numberOfSpecies
@@ -185,7 +185,7 @@ contains
        ! print *, "orbListI", "speciesID", speciesID
        ! call Vector_showInteger(orbListI(speciesID))
        do sysI=1, this%numberOfDisplacedSystems
-          call Vector_copyConstructorInteger(auxIVector,this%sysBasisList(sysI,speciesID))
+          call Vector_copyConstructorInteger(auxIVector,this%sysBasisList(speciesID,sysI))
           call Vector_constructorInteger(sysListCur(sysI,speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,superMergedMolecularSystem), 0)           
           do i=1, size(auxIVector%values)
              if(orbListI(speciesID)%values(i) .eq. 0) cycle

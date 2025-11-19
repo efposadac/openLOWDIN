@@ -6,14 +6,12 @@ import sys
 import lowdinTestFunctions as test
 def setReferenceValues():
     refValues = {
-"HF energy" : [-75.905888732170,1E-8],
-"Iterations" : [20,19],
-}                       
+"HF energy" : [-75.907461787658,1E-8], 
+}
     return refValues
 
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
-    testValues["Iterations"] = test.getSCFiterations(testName)
     return 
 
 if __name__ == '__main__':

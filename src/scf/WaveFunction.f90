@@ -1471,7 +1471,7 @@ contains
                         Libint2Instance)
                 end if
 
-                auxMatrix = auxMatrix * MolecularSystem_getCharge(speciesID ) * MolecularSystem_getCharge( otherSpeciesID )
+                auxMatrix = auxMatrix *MolecularSystem_getCharge(speciesID,these(speciesID)%molSys)*MolecularSystem_getCharge(otherSpeciesID,these(otherSpeciesID)%molSys)
 
              else !! G12 integrals
                 if(present(Libint2Objects)) then

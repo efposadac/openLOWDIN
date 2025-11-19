@@ -49,7 +49,6 @@ EXENAME="openlowdin"
 PREFIX="/usr/local"
 SCRATCH='/scratch'
 CUDAFLAGS="no"
-COMP_ERKALE="yes"
 DEFAULTS='F'
 SED=sed
 if [[ $(uname -s) == Darwin ]]; then
@@ -124,8 +123,6 @@ else
         LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         LIBXC_LIBS=`awk '{if($1 == "LIBXC_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
-	COMP_ERKALE=`awk '{if($1 == "COMP_ERKALE" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
-
         # ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
     fi
 fi
@@ -277,14 +274,6 @@ PREFIX=$BINDIR
 ###############################################################################
 #                       ADDITIONAL UTILITIES
 ###############################################################################
-if [[ $DEFAULTS == 'F' ]]; then
-    echo "Compile erkale? (for orbital localization and embedding): yes(default)/no [$COMP_ERKALE]"
-    read ERKALE
-fi
-
-if [ "$ERKALE" != "no" ] ; then
-    COMP_ERKALE="yes"
-fi
 	 
 ###############################################################################
 #                       SAVING OPTIONS
@@ -311,29 +300,13 @@ echo "LIBXC_LIBS = $LIBXC_LIBS"  >> CONFIG
 echo "CUDA_LIBS = $CUDA_LIBS" >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 echo "SED = $SED"  >> CONFIG
-echo "COMP_ERKALE = $COMP_ERKALE"  >> CONFIG
-
-
-###############################################################################
-#                     Compile Erkale  
-###############################################################################
-if [ "$COMP_ERKALE" = "yes" ] ; then
-    if [ -e utilities/erkale/erkale/bin/erkale_loc ]; then
-	echo "I found the folliowing erkale binaries, skipping erkale compilation"
-	ls utilities/erkale/erkale/bin/*
-    else
-	cd $TOPDIR/utilities/erkale
-	./compileForLowdin.sh $FC
-	cd $TOPDIR
-    fi
-fi
 
 ###############################################################################
 #                       Generate makefiles
 ###############################################################################
 
 SRCDIR="src utilities"
-SUBDIRS="core ints DFT scf integralsTransformation MBPT PT CalcProp aduw gepol cosmo output CI NOCI MM molden2aim jadamilu"
+SUBDIRS="core ints DFT scf integralsTransformation MBPT PT CalcProp aduw gepol cosmo output CI NOCI MM molden2aim jadamilu erkale"
 
 for DIR in $SRCDIR ; do
     cd $DIR

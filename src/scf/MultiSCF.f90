@@ -644,7 +644,7 @@ contains
           if ( sum(abs(CONTROL_instance%ELECTRIC_FIELD )) .ne. 0 ) &
                call DirectIntegralManager_getElectricFieldIntegrals(this%molSys,speciesID,wfObjects(speciesID)%electricField(1:3))
           if ( MolecularSystem_getOmega(speciesID,this%molSys) .ne. 0.0_8) &
-               call DirectIntegralManager_getHarmonicIntegrals(this%molSys,speciesID,MolecularSystem_getQDOcenter(speciesID),wfObjects(speciesID)%harmonic)
+               call DirectIntegralManager_getHarmonicIntegrals(this%molSys,speciesID,MolecularSystem_getQDOcenter(speciesID,this%molSys),wfObjects(speciesID)%harmonic)
        end do
     end if
 

@@ -1064,8 +1064,8 @@ contains
     real(8), allocatable :: integralValue(:), auxintegralValue(:)
 
     if(allocated(labels)) deallocate(labels)
-    allocate(labels(MolecularSystem_instance%species(speciesID)%basisSetSize))
-    labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(speciesID))
+    allocate(labels(molSystem%species(speciesID)%basisSetSize))
+    labels = DirectIntegralManager_getLabels(molSystem%species(speciesID))
 
     call Matrix_constructor(integralsMatrix, int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), &
          int(MolecularSystem_getTotalNumberOfContractions(speciesID,molSystem),8), 0.0_8)

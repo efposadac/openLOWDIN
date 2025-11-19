@@ -337,7 +337,7 @@ def getRMSradius(testName,species):
         if "EXPECTED RMS RADIUS OF QUANTUM SPECIES" in line:
             for j in range(i,len(outputRead)):
                 linej = outputRead[j]
-                if "QP+" in linej:
+                if species in linej:
                     radius= float(linej.split()[1])
                     break
     output.close()
@@ -443,8 +443,11 @@ def getParticlesInGrid(testName,species):
     output.close()
     return number
 
-def getOccupMolden(testName,species,number):
-    molden = open(testName+"."+species+".molden", "r")
+def getOccupMolden(testName,species,number,state=1):
+    if state==1:
+        molden = open(testName+"."+species+".molden", "r")
+    else:
+        molden = open(testName+"."+species+"-s"+str(state)+".molden", "r")
     moldenRead = molden.readlines()
     v=0
     eigenv=1.0E16
@@ -781,3 +784,41 @@ def getGradient(testName):
             break
     output.close()
     return grad
+
+def getTrCIEnergyContribution(testName,typ,species1,species2):
+    output = open(testName+".out", "r")
+    outputRead = output.readlines()
+    energy=1.0E16
+    sumOverlap=0.0
+    sumEnergy=0.0
+    if(typ=="Hamiltonian"):
+        query=typ+" element"
+    elif(typ=="Kinetic"):
+        query=species1+" "+typ+" element"
+    elif(typ=="Hartree"):
+        query=species1+"/"+species2+" "+typ+" element"
+    else:
+        query=typ+" element"
+            
+    for i in range(0,len(outputRead)):
+        line = outputRead[i]
+        if "Overlap element" in line:
+            fields=line.split()
+            if(fields[0]=="1"):
+                element=float(fields[len(fields)-1])
+                weight=(float(fields[1])-1)**2
+                sign=1.0
+                if(abs(element)>0.0):
+                    sign=element/abs(element)
+                sumOverlap=sumOverlap+weight*sign*element
+        if query in line:
+            fields=line.split()
+            if(fields[0]=="1"):
+                element=float(fields[len(fields)-1])
+                sumEnergy=sumEnergy+weight*sign*element
+
+    output.close()
+    if(sumOverlap > 0):
+        energy=sumEnergy/sumOverlap
+    return energy
+

@@ -216,7 +216,7 @@ module CONTROL_
      integer :: TRANSLATION_SCAN_GRID(3)
      integer :: ROTATIONAL_SCAN_GRID
      integer :: NESTED_ROTATIONAL_GRIDS
-     integer :: ROTATION_AROUND_Z_MAX_ANGLE
+     real(8) :: ROTATION_AROUND_Z_MAX_ANGLE
      real(8) :: ROTATION_AROUND_Z_STEP
      real(8) :: TRANSLATION_STEP
      real(8) :: NESTED_GRIDS_DISPLACEMENT
@@ -236,7 +236,9 @@ module CONTROL_
      logical :: READ_NOCI_GEOMETRIES
      logical :: EMPIRICAL_OVERLAP_CORRECTION
      logical :: ONLY_FIRST_NOCI_ELEMENTS
+     logical :: NOCI_KINETIC_APPROXIMATION
      logical :: COMPUTE_ROCI_FORMULA
+     logical :: REMOVE_QDO_IN_CI
 
      !!***************************************************************************
      !! CCSD Parameters
@@ -566,7 +568,7 @@ module CONTROL_
   integer :: LowdinParameters_translationScanGrid(3)
   integer :: LowdinParameters_rotationalScanGrid
   integer :: LowdinParameters_nestedRotationalGrids
-  integer :: LowdinParameters_rotationAroundZMaxAngle
+  real(8) :: LowdinParameters_rotationAroundZMaxAngle
   real(8) :: LowdinParameters_rotationAroundZStep
   real(8) :: LowdinParameters_translationStep
   real(8) :: LowdinParameters_nestedGridsDisplacement
@@ -586,7 +588,9 @@ module CONTROL_
   logical :: LowdinParameters_readNOCIGeometries
   logical :: LowdinParameters_empiricalOverlapCorrection
   logical :: LowdinParameters_onlyFirstNOCIelements
+  logical :: LowdinParameters_NOCIKineticApproximation
   logical :: LowdinParameters_computeROCIformula
+  logical :: LowdinParameters_removeQDOinCI
 
   !!***************************************************************************
   !! CCSD
@@ -938,7 +942,9 @@ module CONTROL_
        LowdinParameters_readNOCIGeometries,&
        LowdinParameters_empiricalOverlapCorrection,&
        LowdinParameters_onlyFirstNOCIelements,&
+       LowdinParameters_NOCIKineticApproximation,&
        LowdinParameters_computeROCIformula,&
+       LowdinParameters_removeQDOinCI,&
        !!***************************************************************************
                                 !! CCSD 
                                 !!
@@ -1288,7 +1294,7 @@ contains
     LowdinParameters_nonOrthogonalConfigurationInteraction=.false.
     LowdinParameters_translationScanGrid(:)=0
     LowdinParameters_rotationalScanGrid=0
-    LowdinParameters_rotationAroundZMaxAngle=360
+    LowdinParameters_rotationAroundZMaxAngle=360.0_8
     LowdinParameters_rotationAroundZStep=0
     LowdinParameters_nestedRotationalGrids=1
     LowdinParameters_translationStep=0.0
@@ -1309,7 +1315,9 @@ contains
     LowdinParameters_readNOCIgeometries=.false.
     LowdinParameters_empiricalOverlapCorrection=.false.
     LowdinParameters_onlyFirstNOCIelements=.false.
+    LowdinParameters_NOCIKineticApproximation=.false.
     LowdinParameters_computeROCIformula=.false.
+    LowdinParameters_removeQDOinCI=.false.
     !!***************************************************************************
     !! CCSD
     !!
@@ -1389,7 +1397,7 @@ contains
     !! Graphs Options
     !!
     LowdinParameters_numberOfPointsPerDimension = 50
-    LowdinParameters_moldenFileFormat = "MIXED" 
+    LowdinParameters_moldenFileFormat = "STANDARD" 
 
     !!*****************************************************
     !! Cubes Options
@@ -1657,7 +1665,9 @@ contains
     CONTROL_instance%READ_NOCI_GEOMETRIES=.false.
     CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION=.false.
     CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=.false.
+    CONTROL_instance%NOCI_KINETIC_APPROXIMATION=.false.
     CONTROL_instance%COMPUTE_ROCI_FORMULA=.false.
+    CONTROL_instance%REMOVE_QDO_IN_CI=.false.
     !!***************************************************************************                                              
     !! CCSD                                                                                                              
     !!                                                                                                                         
@@ -1737,7 +1747,7 @@ contains
     !! Graphs Options                                                                                                          
     !!                                                                                                                         
     CONTROL_instance%NUMBER_OF_POINTS_PER_DIMENSION = 50
-    LowdinParameters_moldenFileFormat = "MIXED" 
+    LowdinParameters_moldenFileFormat = "STANDARD" 
 
     !!*****************************************************                                                                    
     !! Cubes Options                                                                                                           
@@ -2062,8 +2072,9 @@ contains
     CONTROL_instance%READ_NOCI_GEOMETRIES=LowdinParameters_readNOCIGeometries
     CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION=LowdinParameters_empiricalOverlapCorrection
     CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=LowdinParameters_onlyFirstNOCIelements
+    CONTROL_instance%NOCI_KINETIC_APPROXIMATION=LowdinParameters_NOCIKineticApproximation
     CONTROL_instance%COMPUTE_ROCI_FORMULA=LowdinParameters_computeROCIformula
-
+    CONTROL_instance%REMOVE_QDO_IN_CI=LowdinParameters_removeQDOinCI
 
     !!***************************************************************************      
     !! CCSD                                                                       
@@ -2432,7 +2443,9 @@ contains
     LowdinParameters_readNOCIGeometries=CONTROL_instance%READ_NOCI_GEOMETRIES
     LowdinParameters_empiricalOverlapCorrection=CONTROL_instance%EMPIRICAL_OVERLAP_CORRECTION
     LowdinParameters_onlyFirstNOCIelements=CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS
+    LowdinParameters_NOCIKineticApproximation=CONTROL_instance%NOCI_KINETIC_APPROXIMATION
     LowdinParameters_computeROCIformula=CONTROL_instance%COMPUTE_ROCI_FORMULA
+    LowdinParameters_removeQDOinCI=CONTROL_instance%REMOVE_QDO_IN_CI
 
     !!***************************************************************************      
     !! CCSD                                                                      
@@ -2771,8 +2784,10 @@ contains
     otherThis%CONFIGURATION_USE_SYMMETRY=this%CONFIGURATION_USE_SYMMETRY
     otherThis%READ_NOCI_GEOMETRIES=this%READ_NOCI_GEOMETRIES
     otherThis%ONLY_FIRST_NOCI_ELEMENTS=this%ONLY_FIRST_NOCI_ELEMENTS
+    otherThis%NOCI_KINETIC_APPROXIMATION=this%NOCI_KINETIC_APPROXIMATION
     otherThis%COMPUTE_ROCI_FORMULA=this%COMPUTE_ROCI_FORMULA
-    
+    otherThis%REMOVE_QDO_IN_CI=this%REMOVE_QDO_IN_CI
+
     !!***************************************************************************
     !! CCSD
     !!
@@ -3065,6 +3080,9 @@ contains
        if(CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS) &
             write (*,"(T10,A)") "COMPUTING NOCI ELEMENTS ONLY WITH RESPECT TO THE FIRST GEOMETRY - YOU HAVE TO SOLVE THE CI EQUATION MANUALLY!"
 
+       if(CONTROL_instance%NOCI_KINETIC_APPROXIMATION) &
+            write (*,"(T10,A)") "IN THIS NOCI CALCULATION, ONLY OVERLAP AND KINETIC ENERGY WILL BE COMPUTED, OTHER ENERGY CONTRIBUTIONS WILL BE APPROXIMATED AS EAB=SAB/2(EA+EB)" 
+       
        if(CONTROL_instance%COMPUTE_ROCI_FORMULA) then
           CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS=.true.
           if(CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE .gt. 180 ) CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE=180
@@ -3079,12 +3097,15 @@ contains
           print *, ""
        end if
 
+       if(CONTROL_instance%REMOVE_QDO_IN_CI) &
+            write (*,"(T10,A)") "COMPUTING SCF WITH QDO POTENTIALS AND REMOVING THEM IN THE POST-SCF CALCULATION"
+
        if(CONTROL_instance%ROTATION_AROUND_Z_STEP .gt. 0 ) then
           ! if(CONTROL_instance%NESTED_ROTATIONAL_GRIDS .gt. 1 ) then
           !    write (*,"(T10,I3,A,I6,A)") CONTROL_instance%NESTED_ROTATIONAL_GRIDS, "  GRIDS OF", CONTROL_instance%ROTATIONAL_SCAN_GRID_AROUND_Z, " BASIS FUNCTIONS WILL BE PLACED AROUND EACH ROTATIONAL CENTER"
           !    write (*,"(T10,A,F6.3,A10)") "WITH A RADIAL SEPARATION  OF", CONTROL_instance%NESTED_GRIDS_DISPLACEMENT,  " BOHRS"
           ! else
-          write (*,"(T10,A,F8.2,A,I6,A)") "THE MOLECULAR SYSTEM WILL BE ROTATED AROUND THE Z AXIS IN STEPS OF", CONTROL_instance%ROTATION_AROUND_Z_STEP, " DEGREES UP TO ",  CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE, " DEGREES"
+          write (*,"(T10,A,F8.2,A,F7.4,A)") "THE MOLECULAR SYSTEM WILL BE ROTATED AROUND THE Z AXIS IN STEPS OF", CONTROL_instance%ROTATION_AROUND_Z_STEP, " DEGREES UP TO ",  CONTROL_instance%ROTATION_AROUND_Z_MAX_ANGLE, " DEGREES"
           ! end if
        end if
        

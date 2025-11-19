@@ -6,14 +6,16 @@ import sys
 import lowdinTestFunctions as test
 def setReferenceValues():
     refValues = {
-"HF energy" : [-75.905888732170,1E-8],
-"Iterations" : [20,19],
-}                       
+"Orb5alpha_P2" : [-10.768693,1E-3],
+"Orb5alpha_SCS_P2" : [-10.740363,1E-3],
+"Orb5alpha_SOS_P2" : [-10.725240,1E-3],
+}
     return refValues
 
 def getTestValues(testValues,testName):
-    testValues["HF energy"] = test.getSCFTotalEnergy(testName)
-    testValues["Iterations"] = test.getSCFiterations(testName)
+    testValues["Orb5alpha_P2"] = test.getP2orbEnergy(testName,"E-ALPHA",5)
+    testValues["Orb5alpha_SCS_P2"] = test.getP2orbScaledEnergy(testName,"E-ALPHA",5,"SCS")
+    testValues["Orb5alpha_SOS_P2"] = test.getP2orbScaledEnergy(testName,"E-ALPHA",5,"SOS")
     return 
 
 if __name__ == '__main__':
