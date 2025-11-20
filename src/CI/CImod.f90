@@ -1563,6 +1563,14 @@ contains
         deallocate ( CIcore_instance%allIndexConf )
         deallocate ( stringAinB )
       else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+
+        do spi = 1, numberOfSpecies
+          call Vector_destructorInteger ( occA(spi) ) 
+          call Vector_destructorInteger ( occB(spi) )
+          call Vector_destructorInteger ( orbA(spi) ) 
+          call Vector_destructorInteger ( orbB(spi) ) 
+        end do
+
         deallocate ( occA )
         deallocate ( occB )
         deallocate ( orbA )
@@ -1570,7 +1578,7 @@ contains
         deallocate ( couplingS )
       endif
 
-      deallocate( coefficients, atomicDensityMatrix, ciDensityMatrix )
+      deallocate( coefficients, kineticMatrix, attractionMatrix, externalPotMatrix, atomicDensityMatrix, ciDensityMatrix, auxDensMatrix )
 
       !$  timeDB = omp_get_wtime()
       !$  write(*,"(A,F10.4,A4)") "** TOTAL Elapsed Time for Building density matrices: ", timeDB - timeDA ," (s)"

@@ -752,7 +752,8 @@ contains
 !   N: size of the problem
 !   MAXEIG: max. number of wanteg eig (NEIG<=MAXEIG)
 !   MAXSP: max. value of MADSPACE
-    integer(8) :: n, maxeig, MAXSP
+    integer(8)m intent(in) :: n, maxeig
+    integer(8) :: MAXSP
     integer(8) :: LX
     real(8), allocatable :: EIGS(:), RES(:), X(:)!, D(:)
 !   arguments to pass to the routines
@@ -767,7 +768,6 @@ contains
     integer(4) :: size1,size2
     integer(8) :: I,J,K,ii,jj,jjj
     integer(4) :: iiter
-    logical :: fullMatrix
     real(8) :: timeA, timeB
     
 !$  timeA = omp_get_wtime()
@@ -837,16 +837,11 @@ contains
                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                        SHIFT, DROPTOL, MEM, ICNTL, &
                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-     if (CONTROL_instance%CI_JACOBI ) then
-       fullMatrix = .false.
-     else 
-       fullMatrix = .true.
-     end if
 
 !!   your private matrix-vector multiplication
      iiter = iiter +1
      IF (IJOB.EQ.1) THEN
-       call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter)
+       !call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter)
        GOTO 10
      END IF
   
@@ -867,7 +862,6 @@ contains
     if ( allocated ( x ) ) deallocate ( x )
     if ( allocated ( eigs ) ) deallocate ( eigs )
     if ( allocated ( res ) ) deallocate ( res )
-    if ( allocated ( x ) ) deallocate ( x )
 
 !$  timeB = omp_get_wtime()
 
@@ -930,7 +924,6 @@ contains
 
     !$omp parallel &
     !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, ii, diffOrbi, diffOrbj, spj, factorA, factorB ) &
-    !$omp& shared ( w, v, numberOfSpecies, CIcore_instance)
     allocate ( occA ( numberOfSpecies ) )
     allocate ( occB ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
