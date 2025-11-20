@@ -752,7 +752,7 @@ contains
 !   N: size of the problem
 !   MAXEIG: max. number of wanteg eig (NEIG<=MAXEIG)
 !   MAXSP: max. value of MADSPACE
-    integer(8)m intent(in) :: n, maxeig
+    integer(8), intent(in) :: n, maxeig
     integer(8) :: MAXSP
     integer(8) :: LX
     real(8), allocatable :: EIGS(:), RES(:), X(:)!, D(:)
@@ -841,7 +841,7 @@ contains
 !!   your private matrix-vector multiplication
      iiter = iiter +1
      IF (IJOB.EQ.1) THEN
-       !call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter)
+       call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter)
        GOTO 10
      END IF
   
@@ -923,7 +923,7 @@ contains
 !$    timeA= omp_get_wtime()
 
     !$omp parallel &
-    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, ii, diffOrbi, diffOrbj, spj, factorA, factorB ) &
+    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, ii, diffOrbi, diffOrbj, spj, factorA, factorB ) 
     allocate ( occA ( numberOfSpecies ) )
     allocate ( occB ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
