@@ -841,7 +841,7 @@ contains
 !!   your private matrix-vector multiplication
      iiter = iiter +1
      IF (IJOB.EQ.1) THEN
-       !call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter)
+       call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter)
        GOTO 10
      END IF
   
