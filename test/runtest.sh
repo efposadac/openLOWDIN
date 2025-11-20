@@ -19,7 +19,9 @@ echo "Saving outputs to " testResults_$EXENAME
 for testfile in `ls *.py`; do
     #Run test
     testName=`echo $testfile | gawk '{print substr($1,1,length($1)-3)}'`
-    python3 $testName.py $EXENAME | tee -a testResults_$EXENAME/maketest_$date.log
+    #python3 $testName.py $EXENAME | tee -a testResults_$EXENAME/maketest_$date.log
+    /usr/bin/time -o time.log -f "%e" python3 $testName.py $EXENAME > testResults_$EXENAME/maketest_$date.log && printf "%-60s \t %s sec \n" "$(cat testResults_$EXENAME/maketest_$date.log)" $(cat time.log) 
+    #/usr/bin/time -o time.log -f "%e" python3 $testName.py $EXENAME | tee -a testResults_$EXENAME/maketest_$date.log && printf "%-60s \t %s sec \n" "$(cat testResults_$EXENAME/maketest_$date.log)" $(cat time.log) 
     #Save results 
     find . -maxdepth 1 -name $testName.out -exec mv -t testResults_$EXENAME {} \;
     find . -maxdepth 1 -name $testName"*molden" -exec mv -t testResults_$EXENAME {} \;

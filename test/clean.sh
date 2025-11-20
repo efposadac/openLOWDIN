@@ -22,3 +22,5 @@ find . -name "*.ints" -exec rm -f {} \;
 find . -name "*.dens" -exec rm -f {} \;
 find . -name "*.coords" -exec rm -f {} \;
 find . -name "*.states" -exec rm -f {} \;
+find . -name "out.log" -exec rm -f {} \;
+find . -name "time.log" -exec rm -f {} \;

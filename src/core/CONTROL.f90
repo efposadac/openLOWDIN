@@ -207,6 +207,7 @@ module CONTROL_
      logical :: CI_NATURAL_ORBITALS
      integer :: CI_SCI_CORE_SPACE
      integer :: CI_SCI_TARGET_SPACE
+     integer :: CI_SCI_BUFFER_FACTOR
 
      !!***************************************************************************
      !! Non-orthogonal CI
@@ -558,6 +559,7 @@ module CONTROL_
   logical :: LowdinParameters_CINaturalOrbitals
   integer :: LowdinParameters_CISCICoreSpace 
   integer :: LowdinParameters_CISCITargetSpace 
+  integer :: LowdinParameters_CISCIBufferFactor
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -805,6 +807,7 @@ module CONTROL_
        LowdinParameters_HFprintEigenvectors, &
        LowdinParameters_overlapEigenThreshold, &
        LowdinParameters_electricField, &
+       LowdinParameters_multipoleOrder, &
        
        
                                 !!***************************************************************************
@@ -908,6 +911,7 @@ module CONTROL_
        LowdinParameters_CIPrintThreshold, &
        LowdinParameters_CISCICoreSpace, &
        LowdinParameters_CISCITargetSpace, &
+       LowdinParameters_CISCIBufferFactor, &
 
 
        
@@ -1282,6 +1286,7 @@ contains
     LowdinParameters_CINaturalOrbitals = .false.
     LowdinParameters_CIPrintEigenVectorsFormat = "OCCUPIED"
     LowdinParameters_CIPrintThreshold = 1E-1
+    LowdinParameters_CISCIBufferFactor = 8
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -1631,6 +1636,7 @@ contains
     CONTROL_instance%CI_PRINT_THRESHOLD = 1E-1
     CONTROL_instance%CI_SCI_CORE_SPACE = 100
     CONTROL_instance%CI_SCI_TARGET_SPACE = 10000
+    CONTROL_instance%CI_SCI_BUFFER_FACTOR = 8
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2031,6 +2037,7 @@ contains
     CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
     CONTROL_instance%CI_SCI_CORE_SPACE = LowdinParameters_CISCICoreSpace
     CONTROL_instance%CI_SCI_TARGET_SPACE = LowdinParameters_CISCITargetSpace
+    CONTROL_instance%CI_SCI_BUFFER_FACTOR = LowdinParameters_CISCIBufferFactor
 
 
 
@@ -2407,6 +2414,7 @@ contains
     LowdinParameters_CIPrintThreshold = CONTROL_instance%CI_PRINT_THRESHOLD 
     LowdinParameters_CISCICoreSpace = CONTROL_instance%CI_SCI_CORE_SPACE 
     LowdinParameters_CISCITargetSpace = CONTROL_instance%CI_SCI_TARGET_SPACE 
+    LowdinParameters_CISCIBufferFactor = CONTROL_instance%CI_SCI_BUFFER_FACTOR
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2752,6 +2760,7 @@ contains
     otherThis%CI_PRINT_THRESHOLD = this%CI_PRINT_THRESHOLD 
     otherThis%CI_SCI_CORE_SPACE = this%CI_SCI_CORE_SPACE 
     otherThis%CI_SCI_TARGET_SPACE = this%CI_SCI_TARGET_SPACE 
+    otherThis%CI_SCI_BUFFER_FACTOR = this%CI_SCI_BUFFER_FACTOR
 
     !!***************************************************************************
     !! Non-orthogonal CI

@@ -164,10 +164,11 @@ module Libint2Interface_
   !!Interface to libint_iface.cpp
   interface
 
-    function c_LibintInterface_new (stack_size, id, el, parallel) result(this) bind(C,name="LibintInterface_new")
+    function c_LibintInterface_new (stack_size, tol, id, el, parallel) result(this) bind(C,name="LibintInterface_new")
      use, intrinsic :: iso_c_binding
      implicit none
      integer(c_int), value :: stack_size
+     real(c_double), value  :: tol
      integer(c_int), value :: id
      logical(c_bool), value :: el
      logical(c_bool), value :: parallel
@@ -405,7 +406,7 @@ contains
     ! if (this%isInstanced) call Libint2Interface_destructor(this)
 
     ! Create Libint object
-    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, speciesID, &
+    this%this = c_LibintInterface_new(CONTROL_instance%INTEGRAL_STACK_SIZE, CONTROL_instance%INTEGRAL_THRESHOLD, speciesID, &
          molSys%species(speciesID)%isElectron,parbool)
         
     ! ! Iterate over particles

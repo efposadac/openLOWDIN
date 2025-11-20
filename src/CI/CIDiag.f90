@@ -24,6 +24,7 @@ contains
     integer(8) :: a,b,c
     integer :: u,v
     integer :: ci
+    integer :: nproc, n, nn
     integer :: i, j, ii, jj
     integer :: s, numberOfSpecies, auxnumberOfSpecies
     integer :: size1, size2
@@ -31,7 +32,8 @@ contains
     integer(1) :: coupling
     integer(8) :: numberOfConfigurations
     real(8) :: CIenergy
-    integer(8), allocatable :: indexConf(:)
+    integer(8), allocatable :: indexConf(:,:)
+    integer(8), allocatable :: cc(:)
     integer, allocatable :: cilevel(:), auxcilevel(:), dd(:)
 
 !$  timeA = omp_get_wtime()
@@ -45,7 +47,6 @@ contains
 
     allocate ( ciLevel ( numberOfSpecies ) )
     allocate ( auxciLevel ( numberOfSpecies ) )
-    allocate ( dd ( numberOfSpecies ) )
 
     ciLevel = 0
     auxciLevel = 0
@@ -71,26 +72,36 @@ contains
 
     write (*,*) "Number Of Configurations: ", numberOfConfigurations
 
-    allocate ( indexConf ( numberOfSpecies ) )
+    call omp_set_num_threads(omp_get_max_threads())
+    nproc = omp_get_max_threads()
+    allocate ( indexConf ( numberOfSpecies, nproc ) )
+    allocate ( cc ( nproc ) )
     indexConf = 0
 
     !! calculate the diagonal 
     s = 0
     c = 0
     ciLevel = 0
+    n = 1
 
     do ci = 1,  CIcore_instance%sizeCiOrderList 
 
       cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
       s = 0
-      dd = 0
 
-      u = CIcore_instance%auxciOrderList(ci)
-      auxnumberOfSpecies = CIDiag_buildDiagonalRecursion( s, numberOfSpecies, indexConf,  c, dd, u, cilevel, auxcilevel )
+      auxnumberOfSpecies = CIDiag_buildDiagonalRecursion( s, numberOfSpecies, nproc, indexConf,  c, cc, n, cilevel )
     end do
+
+    !! computing the final batch < ncore
+    if  ( n > 1 ) then
+      do nn = 1, n-1
+        CIcore_instance%diagonalHamiltonianMatrix2%values(cc(nn)) = CIDiag_calculateEnergyZero ( indexConf(:,nn) )
+      end do
+    end if
+
     !stop
 
-    deallocate ( dd )
+    deallocate ( cc )
     deallocate ( indexConf )
     deallocate ( ciLevel )
     deallocate ( auxciLevel )
@@ -130,32 +141,30 @@ recursive  function CIDiag_numberOfConfigurationsRecursion(s, numberOfSpecies, c
   end function CIDiag_numberOfConfigurationsRecursion
 
 
-recursive  function CIDiag_buildDiagonalRecursion(s, numberOfSpecies, indexConf, c, dd, u, cilevel, auxcilevel) result (os)
+recursive  function CIDiag_buildDiagonalRecursion(s, numberOfSpecies, nproc, indexConf, c, cc, n, cilevel ) result (os)
     implicit none
 
-    integer(8) :: a,b,c,cc,d
-    integer :: u,v
+    integer(8), intent(inout) :: c
+    integer(8), intent(inout) :: cc(:)
+    integer(8), intent(inout) :: indexConf(:,:)
+    integer, intent(in) :: nproc
+    integer, intent(in) :: cilevel(:)
+    integer(8) :: a
     integer :: i, j, ii, jj 
     integer :: s, numberOfSpecies
     integer :: os,is
-    integer :: size1, size2
-    integer(8) :: indexConf(:)
-    real(8) :: timeA, timeB
-    integer(1) :: coupling
-    integer(8) :: numberOfConfigurations
-    real(8) :: CIenergy
+    integer :: n, nn
     integer :: ssize
-    integer :: cilevel(:), auxcilevel(:), dd(:)
 
     is = s + 1
     if ( is < numberOfSpecies ) then
       i = cilevel(is) + 1
       ssize = CIcore_instance%numberOfStrings2(is)%values(i)
       do a = 1, CIcore_instance%numberOfStrings(is)%values(i)
-        indexConf(is) = ssize + a
+        indexConf(is,n:) = ssize + a
 
-        dd(is) =(a + CIcore_instance%ciOrderSize1(u,is))* CIcore_instance%ciOrderSize2(u,is) 
-        os = CIDiag_buildDiagonalRecursion( is, numberOfSpecies, indexConf, c, dd, u, cilevel, auxcilevel )
+        !dd(is) =(a + CIcore_instance%ciOrderSize1(u,is))* CIcore_instance%ciOrderSize2(u,is) 
+        os = CIDiag_buildDiagonalRecursion( is, numberOfSpecies, nproc, indexConf, c, cc, n, cilevel )
       end do
     else 
       os = is
@@ -163,13 +172,33 @@ recursive  function CIDiag_buildDiagonalRecursion(s, numberOfSpecies, indexConf,
       ssize = CIcore_instance%numberOfStrings2(is)%values(i)
       do a = 1, CIcore_instance%numberOfStrings(is)%values(i)
         c = c + 1
-        indexConf(is) = ssize + a
-        !print *, indexConf
-        dd(is) =(a + CIcore_instance%ciOrderSize1(u,is))* CIcore_instance%ciOrderSize2(u,is) 
-        d = sum(dd)
+        cc(n) = c
+        indexConf(is,n:) = ssize + a
+        !dd(is) =(a + CIcore_instance%ciOrderSize1(u,is))* CIcore_instance%ciOrderSize2(u,is) 
+        !d = sum(dd)
 
-        CIcore_instance%diagonalHamiltonianMatrix2%values(c) = &
-                              CIDiag_calculateEnergyZero ( indexConf )
+        !! saving to a stock to send in parallel
+        if ( n == nproc ) then
+          !$omp parallel &
+          !$omp& private(nn),&
+          !$omp& shared( indexConf, nproc) 
+          !$omp do schedule (static) 
+          do nn = 1, nproc
+            CIcore_instance%diagonalHamiltonianMatrix2%values(cc(nn)) = CIDiag_calculateEnergyZero ( indexConf(:,nn) )
+          end do
+          !$omp end do nowait
+          !$omp end parallel
+
+          !!reset the stock
+          n = 0 
+          do nn = 1, nproc
+            indexConf(:,nn) = indexConf(:,nproc) 
+            !cilevel(:,nn) = cilevel(:,nproc) 
+          end do
+
+        end if
+
+        n = n + 1
 
       end do
     end if
@@ -179,7 +208,7 @@ recursive  function CIDiag_buildDiagonalRecursion(s, numberOfSpecies, indexConf,
   function CIDiag_calculateEnergyZero( this ) result (auxCIenergy)
     implicit none
 
-    integer(8) :: this(:)
+    integer(8), intent(in) :: this(:)
     integer(8) :: a, b
     integer :: i,j,s
     integer :: l,k,z,kk,ll

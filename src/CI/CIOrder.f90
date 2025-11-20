@@ -22,30 +22,10 @@ contains
     implicit none
 
     integer :: numberOfSpecies
-    integer :: i,ii,j,k,l,m,n,p,q,a,b,d,r,s
-    integer(8) :: c, cc
-    integer :: ma,mb,mc,md,me,pa,pb,pc,pd,pe
-    integer :: isLambdaEqual1
+    integer :: i
     type(ivector) :: order
-    type(vector), allocatable :: occupiedCode(:)
-    type(vector), allocatable :: unoccupiedCode(:)
-    integer, allocatable :: auxArray(:,:), auxvector(:),auxvectorA(:)
-    integer :: lambda, otherlambda
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-
-    if ( allocated( occupiedCode ) ) deallocate( occupiedCode )
-    allocate (occupiedCode ( numberOfSpecies ) )
-    if ( allocated( unoccupiedCode ) ) deallocate( unoccupiedCode )
-    allocate (unoccupiedCode ( numberOfSpecies ) )
-
-    !1 auxiliary string for omp paralelization
-    do n = 1, CIcore_instance%nproc
-      do i = 1, numberOfSpecies
-        call Vector_constructorInteger( CIcore_instance%auxstring(n,i), &
-          int(CIcore_instance%numberOfOccupiedOrbitals%values(i),4), int(0,4))
-      end do  
-    end do  
 
     select case ( trim(CIcore_instance%level) )
 
@@ -81,6 +61,18 @@ contains
       end do
       CIcore_instance%maxCILevel = 2
 
+    case ( "CISD-" )
+
+      if ( .not. numberOfSpecies == 3 ) call CIOrder_exception( ERROR, "CIOrder setting CI level ", "CISD- is specific for three quantum species")
+
+      do i=1, numberOfSpecies
+        CIcore_instance%CILevel(i) = 1
+        if ( CIcore_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
+          CIcore_instance%CILevel(i) = CIcore_instance%numberOfOccupiedOrbitals%values(i) 
+      end do
+      CIcore_instance%maxCILevel = 1
+
+
     case ( "CISD+" )
 
       if ( .not. numberOfSpecies == 3 ) call CIOrder_exception( ERROR, "CIOrder setting CI level ", "CISD+ is specific for three quantum species")
@@ -94,7 +86,7 @@ contains
 
     case ( "CISD+2" )
 
-      if ( .not. numberOfSpecies == 4 ) call CIOrder_exception( ERROR, "CIOrder setting CI level", "CISD+2 is specific for three quantum species")
+      if ( .not. numberOfSpecies == 4 ) call CIOrder_exception( ERROR, "CIOrder setting CI level", "CISD+2 is specific for four quantum species")
       do i=1, numberOfSpecies
         CIcore_instance%CILevel(i) = 2
         if ( CIcore_instance%numberOfOccupiedOrbitals%values(i) < 2 ) &
@@ -261,12 +253,13 @@ recursive  function CIOrder_buildCIOrderRecursion( s, numberOfSpecies, c, cileve
     integer :: s, numberOfSpecies
     integer :: os,is,auxis, auxos
     integer :: cilevel(:)
-    integer :: plusOne(3,3) , plusTwo(4,6)
+    integer :: minusOne(3,2), plusOne(3,3) , plusTwo(4,6)
 
     is = s + 1
     if ( is < numberOfSpecies ) then
       do i = 1, size(CIcore_instance%numberOfStrings(is)%values, dim = 1)
        cilevel(is) = i - 1
+       if ( CIcore_instance%numberOfStrings(is)%values(i) == 0 ) cycle
        os = CIOrder_buildCIOrderRecursion( is, numberOfSpecies, c, cilevel )
       end do
       cilevel(is) = 0
@@ -276,10 +269,27 @@ recursive  function CIOrder_buildCIOrderRecursion( s, numberOfSpecies, c, cileve
        c = c + 1
 
        CIcore_instance%ciOrderList( c, : ) = cilevel(:)
+
+       if ( CIcore_instance%numberOfStrings(is)%values(i) == 0 ) cycle
+
        if ( sum(cilevel) <= CIcore_instance%maxCIlevel ) then
          CIcore_instance%sizeCiOrderList = CIcore_instance%sizeCiOrderList + 1
          CIcore_instance%auxciOrderList(  CIcore_instance%sizeCiOrderList  ) = c
        end if
+
+       if ( trim(CIcore_instance%level) == "CISD-" ) then !!special case. 
+         minusOne(:,1) = (/1,0,1/)
+         minusOne(:,2) = (/0,1,1/)
+       
+         do k = 1, 2
+           if ( sum(  abs(cilevel(:) - minusOne(:,k)) ) == 0 ) then
+           CIcore_instance%sizeCiOrderList = CIcore_instance%sizeCiOrderList + 1
+           CIcore_instance%auxciOrderList(  CIcore_instance%sizeCiOrderList  ) = c
+           end if
+         end do
+       
+       end if
+ 
 
        if ( trim(CIcore_instance%level) == "CISD+" ) then !!special case. 
          plusOne(:,1) = (/1,1,1/)
@@ -344,6 +354,49 @@ recursive  function CIOrder_getIndexSize(s, c, auxcilevel) result (os)
     end do
 
   end function CIOrder_getIndexSize
+
+  subroutine CIOrder_estimate_FCI_numberOfConf( )
+    implicit none
+    integer :: spi
+    real(16) :: total
+
+    total = 0
+    do spi = 1, CIcore_instance%numberOfSpecies 
+      total = total + CIOrder_log_combinations ( CIcore_instance%numberOfOrbitals%values(spi), &
+                                                 CIcore_instance%numberOfOccupiedOrbitals%values(spi) - CIcore_instance%numberOfCoreOrbitals%values(spi) )
+    enddo
+
+    write (6,"(T2,A,I16)") "Total number of FCI configurations : ", ceiling(exp(total),SELECTED_INT_KIND(16))
+    write (6,"(T3,A,F4.1)") "log(number of FCI configurations) : ", (total)*log10(exp(1.0_16))
+
+  end subroutine CIOrder_estimate_FCI_numberOfConf
+
+  !! Estimate the number of configurations for FCI
+  function CIOrder_log_combinations(n, r ) result(log_combinations)
+    implicit none
+    integer, intent(in) :: n, r !! basis size, number of particles
+    real(kind=16) :: log_combinations, log_fact_n, log_fact_r, log_fact_n_r
+
+    if (r < 0 .or. r > n) then
+        log_combinations = -huge(0.0_16) ! Or handle as an error
+        return
+    end if
+    if (r == 0 .or. r == n) then
+        log_combinations = 0.0_16
+        return
+    end if
+
+    ! Use the Fortran intrinsic Gamma function (or Lgamm) to get the log of the factorial
+    ! Gamma(x+1) = x!
+    ! You might need to use a specific library function if your compiler does not support Lgamm
+    ! Example: Lgamm is the natural logarithm of the absolute value of the gamma function
+    log_fact_n = Log_gamma(real(n+1, kind=16))
+    log_fact_r = Log_gamma(real(r+1, kind=16))
+    log_fact_n_r = Log_gamma(real(n-r+1, kind=16))
+
+    log_combinations = log_fact_n - log_fact_r - log_fact_n_r
+
+  end function CIOrder_log_combinations
 
   !>
   !! @brief  Maneja excepciones de la clase

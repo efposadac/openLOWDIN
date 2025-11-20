@@ -197,7 +197,12 @@ contains
          fockMatrixTransformed%values), wfObject%transformationMatrix%values )
 
     !! Calcula valores y vectores propios de matriz de Fock transformada.
-    call Matrix_eigen( fockMatrixTransformed, wfObject%molecularOrbitalsEnergy, &
+    !!call Matrix_eigen( fockMatrixTransformed, wfObject%molecularOrbitalsEnergy, &
+    !!     wfObject%waveFunctionCoefficients, SYMMETRIC )
+
+    !! Calcula valores y vectores propios de matriz de Fock transformada.
+    call Matrix_eigen_dsyevr( fockMatrixTransformed, wfObject%molecularOrbitalsEnergy, &
+         1_8, numberOfContractions, &
          wfObject%waveFunctionCoefficients, SYMMETRIC )
 
     !! Calcula los  vectores propios para matriz de Fock       

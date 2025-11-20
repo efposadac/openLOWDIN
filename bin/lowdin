@@ -560,6 +560,7 @@ if [ $extFile="lowdin" ]; then
 	# mv $LOWDIN_SCRATCH/$nameFile/*.dat $currentPath &> 2
 	# mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.casino $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.sci $currentPath &> 2
 
 	if [ $keepScratch = "F" ]; then
 	   rm -rf $LOWDIN_SCRATCH/$nameFile

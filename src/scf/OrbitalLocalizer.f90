@@ -2175,7 +2175,7 @@ contains
        call Matrix_writeToFile(WaveFunction_instance(speciesID)%transformationMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-          labels(1) = "EXTERNAL_POTENTIAL"
+          labels(1) = "EXTERNAL-POTENTIAL"
           call Matrix_writeToFile(WaveFunction_instance(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
        end if
 

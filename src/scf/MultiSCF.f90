@@ -1403,7 +1403,7 @@ contains
        labels(1) = "ATTRACTION"
        call Matrix_writeToFile(wfObjects(speciesID)%puntualInteractionMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 
-       labels(1) = "EXTERNAL"
+       labels(1) = "EXTERNAL-POTENTIAL"
        if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
             call Matrix_writeToFile(wfObjects(speciesID)%externalPotentialMatrix, unit=wfnUnit, binary=.true., arguments = labels )
 

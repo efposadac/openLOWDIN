@@ -1881,7 +1881,7 @@ contains
   subroutine Matrix_eigen_select( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method )
     implicit none
     type(Matrix), intent(in) :: this
-    type(Vector8), intent(inout) :: eigenValues
+    type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
     integer(4), intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
     !! of the eigenvalues to be computed. Start at 1
@@ -2062,9 +2062,10 @@ contains
   subroutine Matrix_eigen_dsyevr( this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method )
     implicit none
     type(Matrix), intent(in) :: this
-    type(Vector8), intent(inout) :: eigenValues
+    !type(Vector8), intent(inout) :: eigenValues
+    type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
-    integer, intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
+    integer(8), intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
     !! of the eigenvalues to be computed. Start at 1
     integer, intent(in), optional :: flags
     integer, intent(in), optional :: dm
@@ -2078,20 +2079,30 @@ contains
     integer :: i
     real(8) :: vl, vu  !! If RANGE='V', the lower and upper bounds of the interval to be searched for eigenvalues.
     real(8) :: abstol
-    integer :: m_dsyevx   !! The total number of eigenvalues found.
-    integer, allocatable :: iFail(:), iwork(:)
+    integer :: m_dsyevr   !! The total number of eigenvalues found.
+    integer, allocatable :: isuppz(:)
+    integer, allocatable :: iwork(:)
+    character(1) :: mode
 
     !!Negative ABSTOL means using the default value
     abstol = -1.0
 
+    vl = 0.0_8
+    vu = 0.0_8
+
     matrixSize = size( this%values, DIM=1 )
-    if (allocated (iFail) ) deallocate (iFail)
-    allocate (iFail(matrixSize))
+    m_dsyevr = matrixSize
+
+    if (allocated (isuppz) ) deallocate (isuppz)
+    allocate( isuppz( 2*m_dsyevr ) )
 
     if (allocated (iwork) ) deallocate (iwork)
-    allocate( iwork( matrixSize*5 ) )
+    allocate( iwork( matrixSize*10 ) )
 
-    call omp_set_num_threads(omp_get_max_threads())
+    mode = "A"
+    if ( largestEigenValue - smallestEigenValue < matrixSize ) mode = "I"
+
+!    call omp_set_num_threads(omp_get_max_threads())
 !    call omp_set_num_threads (OMP_GET_NUM_THREADS())
 
     if( flags == SYMMETRIC ) then
@@ -2118,7 +2129,7 @@ contains
          !! calculates the optimal size of the WORK array
          call dsyevr( &
               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
-              "I", &
+              mode, & !! A: All, I: select
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2126,10 +2137,10 @@ contains
               vl, vu, &
               smallestEigenValue, largestEigenValue, &
               abstol, &
-              m_dsyevx, &
+              m_dsyevr, &
               eigenValues%values, &
               eigenVectors%values, matrixSize, &
-              largestEigenValue - smallestEigenValue + 1, &
+              isuppz, &
               workSpace, &
               lengthWorkSpace, &
               iwork, &
@@ -2147,11 +2158,10 @@ contains
          if (allocated(iwork)) deallocate(iwork)
          allocate( iwork( lengthiwork ) )
 
-
          !! Calcula valores propios de la matriz de entrada
          call dsyevr( &
               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
-              "I", &
+              mode, & !! A: All, I: select
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2159,10 +2169,10 @@ contains
               vl, vu, &
               smallestEigenValue, largestEigenValue, &
               abstol, &
-              m_dsyevx, &
+              m_dsyevr, &
               eigenValues%values, &
               eigenVectors%values, matrixSize, &
-              largestEigenValue - smallestEigenValue + 1, &
+              isuppz, &
               workSpace, &
               lengthWorkSpace, &
               iwork, &
@@ -2180,7 +2190,7 @@ contains
          !! calculates the optimal size of the WORK array
          call dsyevr( &
               COMPUTE_EIGENVALUES, &
-              "I", &
+              mode, &
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2188,11 +2198,11 @@ contains
               vl, vu, &
               smallestEigenValue, largestEigenValue, &
               abstol, &
-              m_dsyevx, &
+              m_dsyevr, &
               eigenValues%values, &
               eigenVectorsTmp%values, &
               matrixSize, &
-              largestEigenValue - smallestEigenValue + 1, &
+              isuppz, &
               workSpace, &
               lengthWorkSpace, &
               iwork, &
@@ -2214,7 +2224,7 @@ contains
          !! Calcula valores propios de la matriz de entrada
          call dsyevr( &
               COMPUTE_EIGENVALUES, &
-              "I", &
+              mode, &
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2222,11 +2232,11 @@ contains
               vl, vu, &
               smallestEigenValue, largestEigenValue, &
               abstol, &
-              m_dsyevx, &
+              m_dsyevr, &
               eigenValues%values, &
               eigenVectorsTmp%values, &
               matrixSize, &
-              largestEigenValue - smallestEigenValue + 1, &
+              isuppz, &
               workSpace, &
               lengthWorkSpace, &
               iwork, &
@@ -2253,6 +2263,8 @@ contains
 
       !! libera memoria separada para vector de trabajo
       deallocate(workSpace)
+      deallocate( isuppz )
+      deallocate( iwork )
 
     end if
 
