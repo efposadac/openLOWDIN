@@ -60,7 +60,7 @@ contains
 
     !! take from input
     CISCI_instance%coreSpaceSize = CONTROL_instance%CI_SCI_CORE_SPACE
-    CISCI_instance%targetSpaceSize = CONTROL_instance%CI_SCI_TARGET_SPACE * CIcore_instance%nproc 
+    CISCI_instance%targetSpaceSize = CONTROL_instance%CI_SCI_TARGET_SPACE !* CIcore_instance%nproc 
     !! the first quarter is the real target space, the second quarter is the waiting list if the amplitude could grow more. 
     !! The last half is just a temporary space to avoid sorting a big array for a single addition
     CISCI_instance%buffer_amplitudeCoreSize = CISCI_instance%targetSpaceSize * CONTROL_instance%CI_SCI_BUFFER_FACTOR
@@ -77,7 +77,6 @@ contains
                     size(CIcore_instance%fourCenterIntegrals( spi, spj )%values,1) * 8
       enddo
     enddo
-    print *, totalSize
 
     write(6,*) "-----------------------------------------------------------------------"
     write (6,"(T2,A62)") "          SELECTED CONFIGURATION INTERACTION (SCI):          " 
@@ -109,8 +108,8 @@ contains
     write (6,"(T2,A,I8 )") "Length of core (search) space                          :",  CISCI_instance%coreSpaceSize
     write (6,"(T2,A,I8 )") "Length of target (Full-CI subset) space per OMP thread :",  CISCI_instance%targetSpaceSize / CIcore_instance%nproc
     write (6,"(T2,A,I8 )") "Length of buffer (auxiliary sort) space per OMP thread :",  CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
-    write (6,"(T2,A,I8 )") "Length of total target space                           :",  CISCI_instance%targetSpaceSize/ CIcore_instance%nproc
-    write (6,"(T2,A,I8 )") "Length of total buffer space                           :",  CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
+    write (6,"(T2,A,I8 )") "Length of total target space                           :",  CISCI_instance%targetSpaceSize
+    write (6,"(T2,A,I8 )") "Length of total buffer space                           :",  CISCI_instance%buffer_amplitudeCoreSize 
     write(6,*) "-----------------------------------------------------------------------"
     
 
@@ -295,8 +294,11 @@ contains
       enddo
 
       !! getting the core absolute largest coefficients
-      call MTSort (  CISCI_instance%auxcoefficientTarget%values, &
-           CISCI_instance%index_amplitudeCore%values,  int( CISCI_instance%coreSpaceSize ,8), "D", nproc )
+      !call MTSort (  CISCI_instance%auxcoefficientTarget%values, &
+      !     CISCI_instance%index_amplitudeCore%values,  int( CISCI_instance%coreSpaceSize ,8), "D", nproc ) 
+      call CISort_quicksort_vector(  CISCI_instance%auxcoefficientTarget%values(1:CISCI_instance%coreSpaceSize) , &
+                                      CISCI_instance%index_amplitudeCore%values(1:CISCI_instance%coreSpaceSize) , &
+                                     1_8, int( CISCI_instance%coreSpaceSize,8) )
 
       !! storing only the largest coefficients, and rearraing the next eigenvector guess 
       do i = 1,  CISCI_instance%coreSpaceSize
@@ -325,16 +327,10 @@ contains
         enddo
       enddo
 
-      !! reset auxindex arrary, for later use in sorting target coeff
-      !do i = 1, CISCI_instance%buffer_amplitudeCoreSize
-      !  print *, "----",  i, CISCI_instance%index_amplitudeCore%values( i ) 
-      !enddo
-
       !! restart amplitudes for next run, except when exiting to do PT2 corr
       CISCI_instance%buffer_amplitudeCore%values = 0.0_8
       do spi = 1, numberOfSpecies
         CISCI_instance%confAmplitudeCore = -1_1
-        !CISCI_instance%confAmplitudeCore(spi)%values = -1_1
         CISCI_instance%saved_confTarget(spi)%values = -1_1
       enddo 
 
@@ -406,6 +402,10 @@ contains
       
     enddo
 
+    do spi = 1, numberOfSpecies 
+     call Vector_destructorInteger( orbA(spi)) 
+    enddo
+
     deallocate ( orbA  )
 
     !! append the initial configuration to the amplitude, otherwise this is zero at the first iteration 
@@ -428,7 +428,6 @@ contains
     real(8) :: CIEnergy
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj
     integer(4) :: nproc, n, nn
-    real(8) :: wi
     real(8) :: timeA, timeB
     real(8) :: tol
     integer(4) :: iter, size1, size2
@@ -450,8 +449,6 @@ contains
     integer :: nonzero
 
 !$  timeA = omp_get_wtime()
-    call omp_set_num_threads(omp_get_max_threads())
-    nproc = omp_get_max_threads()
     shift = 1E-6 !! to avoid divergence
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
@@ -464,8 +461,8 @@ contains
 
     !$omp parallel &
     !$omp& private ( occA, occB, virA, virB, orbA, orbB) &
-    !$omp& private ( n, a, oia, via, pi, qi, ri, si, oi1, vi1, oi2, vi2, spi, spj, oj2, vj2, factor1, factor2, factor2j, CIenergy )  &
-    !$omp& shared ( nonzero, CISCI_instance, coefficientCore, confCore)
+    !$omp& private ( n, a, oia, via, pi, qi, ri, si, oi1, vi1, oi2, vi2, spi, spj, oj2, vj2, factor1, factor2, factor2j, CIenergy ) 
+!    !$omp& shared ( nonzero, CISCI_instance, coefficientCore, confCore)
 
     !! allocating auxiliary arrays (omp) for working with conf and orbitals
     allocate ( occA ( numberOfSpecies ) )
@@ -788,86 +785,89 @@ contains
     allocate ( x ( lx ) )
     x = 0.0_8
 
-!    set input variables
-     IPRINT = 0 !     standard report on standard output
-     ISEARCH = 1 !    we want the smallest eigenvalues
-     NEIG = maxeig !    number of wanted eigenvalues
-     !NINIT = 0 !    no initial approximate eigenvectors
-     NINIT = NEIG !    initial approximate eigenvectors
-     MADSPACE = maxsp !    desired size of the search space
-     ITER = 1000*NEIG !    maximum number of iteration steps
-     TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
-     TOL = 1e-4 !1.0d-4 !    tolerance for the eigenvector residual, for ASCI this can be higher
+    !set input variables
+    IPRINT = 0 !     standard report on standard output
+    ISEARCH = 1 !    we want the smallest eigenvalues
+    NEIG = maxeig !    number of wanted eigenvalues
+    !NINIT = 0 !    no initial approximate eigenvectors
+    NINIT = NEIG !    initial approximate eigenvectors
+    MADSPACE = maxsp !    desired size of the search space
+    ITER = 1000*NEIG !    maximum number of iteration steps
+    TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
+    TOL = 1e-3 !1.0d-4 !    tolerance for the eigenvector residual, for ASCI this can be higher
 
-     NDX1 = 0
-     NDX2 = 0
-     MEM = 0
+    NDX1 = 0
+    NDX2 = 0
+    MEM = 0
 
-!    additional parameters set to default
-     ICNTL(1)=0
-     ICNTL(2)=0
-     ICNTL(3)=0
-     ICNTL(4)=0
-     ICNTL(5)=1
+    ! additional parameters set to default
+    ICNTL(1)=0
+    ICNTL(2)=0
+    ICNTL(3)=0
+    ICNTL(4)=0
+    ICNTL(5)=1
 
-     IJOB=0
+    IJOB=0
 
-     JA(1) = -1 
-     IA(1) = -1 
+    JA(1) = -1 
+    IA(1) = -1 
 
-     ! set initial eigenpairs
-     do j = 1, n 
-       X(j) = eigenVectors%values(j,1)
-     end do
+    ! set initial eigenpairs
+    do j = 1, n 
+      X(j) = eigenVectors%values(j,1)
+    end do
 
-     do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-       EIGS(i) = eigenValues%values(i)
-     end do
+    do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      EIGS(i) = eigenValues%values(i)
+    end do
 
-     DROPTOL = 1E-4
+    DROPTOL = 1E-4
 
-     SIGMA = EIGS(1)
-     gap = 0 
-     SHIFT = 0!EIGS(1)
+    SIGMA = EIGS(1)
+    gap = 0 
+    SHIFT = 0!EIGS(1)
 
-     do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-       write(6,"(T2,A5,I4,2X,A10,F20.10,2X,A11,F20.10)") "State", i, "Eigenvalue", eigs( i ), "Eigenvector", x((i-1)*n + i)
-     end do
+    do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      write(6,"(T2,A5,I4,2X,A10,F20.10,2X,A11,F20.10)") "State", i, "Eigenvalue", eigs( i ), "Eigenvector", x((i-1)*n + i)
+    end do
 
-     iiter = 0
+    iiter = 0
   
-10   CALL DPJDREVCOM( N, CISCI_instance%diagonalTarget%values , JA, IA, EIGS, RES, X, LX, NEIG, &
-                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
-                        SHIFT, DROPTOL, MEM, ICNTL, &
-                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
-      if (CONTROL_instance%CI_JACOBI ) then
-        fullMatrix = .false.
-      else 
-        fullMatrix = .true.
-      end if
+10  CALL DPJDREVCOM( N, CISCI_instance%diagonalTarget%values , JA, IA, EIGS, RES, X, LX, NEIG, &
+                       SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
+                       SHIFT, DROPTOL, MEM, ICNTL, &
+                       IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
+     if (CONTROL_instance%CI_JACOBI ) then
+       fullMatrix = .false.
+     else 
+       fullMatrix = .true.
+     end if
 
-!!    your private matrix-vector multiplication
-      iiter = iiter +1
-      IF (IJOB.EQ.1) THEN
-        call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter)
-        GOTO 10
-      END IF
+!!   your private matrix-vector multiplication
+     iiter = iiter +1
+     IF (IJOB.EQ.1) THEN
+       call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter)
+       GOTO 10
+     END IF
   
-      !! saving the eigenvalues
-      eigenValues%values = EIGS
+     !! saving the eigenvalues
+     eigenValues%values = EIGS
 
-      !! saving the eigenvectors
-      k = 0
-      do j = 1, maxeig
-         do i = 1, N
-          k = k + 1
-          eigenVectors%values(i,j) = X(k)
-        end do
-      end do
+     !! saving the eigenvectors
+     k = 0
+     do j = 1, maxeig
+        do i = 1, N
+         k = k + 1
+         eigenVectors%values(i,j) = X(k)
+       end do
+     end do
 
-!    release internal memory and discard preconditioner
-     CALL PJDCLEANUP
-     if ( allocated ( x ) ) deallocate ( x )
+!   release internal memory and discard preconditioner
+    CALL PJDCLEANUP
+    if ( allocated ( x ) ) deallocate ( x )
+    if ( allocated ( eigs ) ) deallocate ( eigs )
+    if ( allocated ( res ) ) deallocate ( res )
+    if ( allocated ( x ) ) deallocate ( x )
 
 !$  timeB = omp_get_wtime()
 
@@ -908,8 +908,6 @@ contains
     integer :: factorA, factorB
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
-    call omp_set_num_threads(omp_get_max_threads())
-    nproc = omp_get_max_threads()
 
     nonzero = 0
     nonzerow = 0
@@ -1075,6 +1073,13 @@ contains
     end do aloop !a 
     !$omp end do nowait
 
+    do spi = 1, numberOfSpecies
+      call Vector_destructorInteger ( occA(spi) )
+      call Vector_destructorInteger ( occB(spi) )
+      call Vector_destructorInteger ( orbA(spi) )
+      call Vector_destructorInteger ( orbB(spi) )
+    end do
+
     deallocate ( couplingS )
     deallocate ( occA  )
     deallocate ( occB  )
@@ -1109,8 +1114,6 @@ contains
     type (ivector), allocatable :: orbA(:)
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
-    call omp_set_num_threads(omp_get_max_threads())
-    nproc = omp_get_max_threads()
 
     allocate ( occA ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
@@ -1120,7 +1123,7 @@ contains
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
 
-!$    timeA= omp_get_wtime()
+!$  timeA= omp_get_wtime()
 
     do aa = 1, CISCI_instance%targetSpaceSize 
 
@@ -1151,6 +1154,11 @@ contains
     end do !a 
 
 !$  timeB = omp_get_wtime()
+
+    do spi = 1, numberOfSpecies
+      call Vector_destructorInteger ( occA(spi) ) 
+      call Vector_destructorInteger ( orbA(spi) ) 
+    end do
 
     deallocate ( occA  )
     deallocate ( orbA  )
@@ -1344,8 +1352,6 @@ contains
     real(8) :: CIEnergy
     integer(8) :: nonzero
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj
-    integer(4) :: nproc, n, nn
-    real(8) :: wi
     real(8) :: timeA, timeB
     real(8) :: tol
     integer(4) :: iter, size1, size2
@@ -1365,8 +1371,6 @@ contains
     integer :: diffOrbj(4)
 
 !$  timeA = omp_get_wtime()
-    call omp_set_num_threads(omp_get_max_threads())
-    nproc = omp_get_max_threads()
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
     !$omp parallel &
@@ -1748,7 +1752,7 @@ contains
     endif 
 
     !! Sort according to the index of CI configurations per species in order to find duplicates ( N log( N ) )
-    call CISort_quicksort(  CISCI_instance%confAmplitudeCore(:,m1:m2), &
+    call CISort_quicksort_matrix(  CISCI_instance%confAmplitudeCore(:,m1:m2), &
                                      CISCI_instance%index_amplitudeCore%values(m1:m2), & 
                                      1_8, m2b - m1 + 1, n )
 
@@ -1768,10 +1772,16 @@ contains
       CISCI_instance%index_amplitudeCore%values( m1 + i - 1 ) = i
     enddo
 
-    call MTSort ( CISCI_instance%buffer_amplitudeCore%values(m1:m2), &
-                  CISCI_instance%index_amplitudeCore%values(m1:m2), &
-                  m2 - m1 + 1, "D", 1 )
+    !call MTSort ( CISCI_instance%buffer_amplitudeCore%values(m1:m2), &
+    !              CISCI_instance%index_amplitudeCore%values(m1:m2), &
+    !              m2 - m1 + 1, "D", 1 )
 
+    !! descening sort according to the absolute value of the amplitude
+    call CISort_quicksort_vector(  CISCI_instance%buffer_amplitudeCore%values(m1:m2), &
+                                     CISCI_instance%index_amplitudeCore%values(m1:m2), & 
+                                     1_8, m2b - m1 + 1 )
+    
+    !! organize configurations according to the sorted amplitudes
     call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore(:,m1:m2), &
                                   CISCI_instance%index_amplitudeCore%values(m1:m2), &
                                   m2 - m1 + 1, n )
