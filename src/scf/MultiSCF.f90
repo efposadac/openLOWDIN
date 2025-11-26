@@ -680,7 +680,7 @@ contains
        normCheck=sum( transpose(wfObjects(speciesID)%densityMatrix%values)*wfObjects(speciesID)%overlapMatrix%values)
 
        if ( this%printSCFiterations ) &
-            write(*,"(A15,A10,A40,F12.6)") "number of ", trim(MolecularSystem_getSymbolofspecies(speciesID,this%molSys)) , &
+            write(*,"(A11,A10,A40,F12.6)") "Number of ", trim(MolecularSystem_getSymbolofspecies(speciesID,this%molSys)) , &
             " particles in guess density matrix: ", normCheck
 
        expectedOccupation=MolecularSystem_getEta(speciesID,this%molSys)*this%molSys%species(speciesID)%ocupationNumber

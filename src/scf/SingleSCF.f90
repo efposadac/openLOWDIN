@@ -503,6 +503,8 @@ contains
     character(50) :: wfnFile
     character(50) :: arguments(20)
     integer :: wfnUnit
+    character(50) :: auxString
+    integer :: state
 
     wfnUnit = 30
     numberOfContractions = MolecularSystem_getTotalnumberOfContractions(wfObject%species,wfObject%molSys)
@@ -550,8 +552,34 @@ contains
           else
              call  SingleSCF_exception( ERROR, "I did not find any .vec coefficients file", "At SCF program, at SingleSCF_Iterate")
           end if
-
        end if
+
+    else if ( CONTROL_instance%READ_NATURAL_ORBITALS ) then
+        
+      wfnUnit = 29
+      wfnFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+      arguments(2) = MolecularSystem_getNameOfSpecies(wfObject%species,wfObject%molSys)
+  
+      inquire(FILE = wfnFile, EXIST = existFile )
+  
+      if ( existFile) then
+
+        open(unit = wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+        do state = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+          write(auxstring,*) state
+          print *, "reading nat orb"
+          arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
+          wfObject%waveFunctionCoefficients = Matrix_getFromFile(unit= wfnUnit, rows = int(numberOfContractions,4), columns= int(numberOfContractions,4), &
+                                        arguments=arguments(1:2) )
+          call  Matrix_show(wfObject%waveFunctionCoefficients )
+
+        end do
+  
+        close(wfnUnit)
+
+      else
+        call SingleSCF_exception( ERROR, "I did not find any .Matrices.ci coefficients file", "At SCF program, at SingleSCF_Iterate")
+      end if
 
     else
        call  SingleSCF_exception( ERROR, "I did not find any coefficients file for the noSCF procedure", "At SCF program, at SingleSCF_Iterate")

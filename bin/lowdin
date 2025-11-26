@@ -439,6 +439,7 @@ if [ $extFile="lowdin" ]; then
 	    mkdir $LOWDIN_SCRATCH/$nameFile
 	fi
 	
+	# moving external files to scratch
 	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.plainvec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp $nameFile*.fchk $LOWDIN_SCRATCH/$nameFile &> /dev/null
@@ -454,6 +455,7 @@ if [ $extFile="lowdin" ]; then
 	mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	mv $nameFile*.coeff $LOWDIN_SCRATCH/$nameFile &> /dev/null		
 	cp $nameFile*.gms.bs $LOWDIN_SCRATCH/$nameFile &> /dev/null
+	cp $nameFile*.Matrices.ci $LOWDIN_SCRATCH/$nameFile &> /dev/null
 
 	#PID to avoid basis/potentials duplicates in simultaneous calculations
 	if [ ${#BASIS_NAMES[@]} -gt "0" ]
@@ -561,6 +563,7 @@ if [ $extFile="lowdin" ]; then
 	# mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.casino $currentPath &> 2
 	mv $LOWDIN_SCRATCH/$nameFile/*.sci $currentPath &> 2
+	mv $LOWDIN_SCRATCH/$nameFile/*.Matrices.ci $currentPath &> 2
 
 	if [ $keepScratch = "F" ]; then
 	   rm -rf $LOWDIN_SCRATCH/$nameFile
