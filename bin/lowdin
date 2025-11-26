@@ -1,6 +1,6 @@
 #!/bin/bash
 PID=$$
-VARS_PATH="PREFIX/.EXENAME/lowdinvars.sh"
+VARS_PATH="/home/users/jcharrymartinez/bin//."openlowdin"/lowdinvars.sh"
 source ${VARS_PATH}
 
 SED=sed
@@ -77,7 +77,7 @@ version=".x"
 runTest="F"
 keepScratch="F"
 
-while getopts 	"i:pt:sv:n:hwk" OPTNAME
+while getopts 	"i:pt:sv:n:hwkS:" OPTNAME
 do
 	case $OPTNAME in
 		i)
@@ -110,6 +110,9 @@ do
                         test=$OPTARG
                         runTest="T"
                         ;;
+		S)	
+			setScratch=$OPTARG
+			;;
 	esac
 done
 
@@ -118,6 +121,12 @@ if [ $runTest = "T" ]; then
 	testop
 	exit 0
 fi
+
+echo $LOWDIN_SCRATCH
+if [ -n "$setScratch" ]; then
+	export LOWDIN_SCRATCH=$setScratch
+fi
+echo $LOWDIN_SCRATCH
 
 #############################################
 # Esta seccion verifica todo lo relacionado
