@@ -70,8 +70,7 @@ contains
       totalSize = totalSize + &
                   ( CISCI_instance%buffer_amplitudeCoreSize * ( 8 + 8 + 1*CIcore_instance%numberOfOrbitals%values(spi) )  + & ! data type for coeff, index, conf
                   CISCI_instance%coreSpaceSize * ( 8 + 8 + 1*CIcore_instance%numberOfOrbitals%values(spi)) + & ! coeff, diagonal conf
-                  CISCI_instance%targetSpaceSize * ( 8 + 8 + 2*8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) ) * & !! coeff, diagonal, eigenvectors, conf
-                  CIcore_instance%nproc ! per OMP thread
+                  CISCI_instance%targetSpaceSize * ( 8 + 8 + 2*8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) )  !! coeff, diagonal, eigenvectors, conf
       do spj = spi, CIcore_instance%numberOfSpecies 
         totalSize = totalSize + &
                     size(CIcore_instance%fourCenterIntegrals( spi, spj )%values,1) * 8
@@ -772,6 +771,7 @@ contains
     
 !$  timeA = omp_get_wtime()
     maxsp = CONTROL_instance%CI_MADSPACE
+    maxsp = 25
 
     LX = N*(3*MAXSP+MAXEIG+1)+4*MAXSP*MAXSP
 
@@ -792,20 +792,20 @@ contains
     !NINIT = 0 !    no initial approximate eigenvectors
     NINIT = NEIG !    initial approximate eigenvectors
     MADSPACE = maxsp !    desired size of the search space
-    ITER = 1000*NEIG !    maximum number of iteration steps
+    ITER = 30*NEIG !    maximum number of iteration steps
     TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
     TOL = 1e-3 !1.0d-4 !    tolerance for the eigenvector residual, for ASCI this can be higher
 
     NDX1 = 0
     NDX2 = 0
-    MEM = 0
+    MEM = 20
 
     ! additional parameters set to default
     ICNTL(1)=0
     ICNTL(2)=0
     ICNTL(3)=0
     ICNTL(4)=0
-    ICNTL(5)=1
+    ICNTL(5)=0
 
     IJOB=0
 
@@ -821,7 +821,7 @@ contains
       EIGS(i) = eigenValues%values(i)
     end do
 
-    DROPTOL = 1E-4
+    DROPTOL = 1E-3
 
     SIGMA = EIGS(1)
     gap = 0 
