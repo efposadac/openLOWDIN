@@ -49,8 +49,9 @@ contains
     type(Matrix), intent(inout) :: densityMatrix
     type(Matrix), intent(inout) :: orbitals
     logical, intent(in) :: printInfo
-    type(MolecularSystem), optional, target :: system
 
+    type(Vector) :: orbital_occupations
+    type(MolecularSystem), optional, target :: system
     type(MolecularSystem), pointer :: molSys
 
     type(Matrix) :: auxMatrix
@@ -62,6 +63,8 @@ contains
     character(50) :: arguments(20)
     integer :: wfnUnit
     integer :: i,j,k
+    character(50) :: auxString
+    integer :: state
 
     if( present(system) ) then
        molSys=>system
@@ -81,7 +84,7 @@ contains
     call Matrix_constructor(orbitals, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8 )
 
     readSuccess=.false.
-    !!Verifica el archivo que contiene los coeficientes para una especie dada
+    !! read orbitals from external file
     if ( CONTROL_instance%READ_FCHK ) then
        wfnFile=trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".fchk"
        call MolecularSystem_readFchk(wfnFile, orbitals, densityMatrix, nameOfSpecies, readSuccess)
@@ -107,8 +110,33 @@ contains
              close(wfnUnit)             
           end if
        end if
+
+    else if ( CONTROL_instance%READ_NATURAL_ORBITALS ) then
+
+       wfnUnit = 29
+       wfnFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+
+       call Vector_constructor(orbital_occupations, int(orderOfMatrix,4), 0.0_8 )
+
+       open(unit = wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+       do state = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+           write(auxstring,*) state
+           arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
+           orbitals = Matrix_getFromFile(unit= wfnUnit, rows= int(orderOfMatrix,4), &
+                columns = int(orderOfMatrix,4), arguments=arguments(1:2))
+             readSuccess=orbitals%wasRead
+
+           arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring)) 
+           call Vector_getFromFile(unit= wfnUnit, elementsNum = int(orderOfMatrix,4), &
+                arguments=arguments(1:2), output = orbital_occupations  )
+
+       end do
+
+       close(wfnUnit)
+
     end if
     
+    !! if no external orbitals are provide, then compute initial guess
     if(readSuccess .and. printInfo ) print *, "Combination coefficients for ", trim(symbolOfSpecies), " were read from ", trim(wfnFile)
 
     if(.not. readSuccess) then
@@ -119,7 +147,7 @@ contains
           guessType=CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS
        end if
 
-       if(printInfo) write(*, '(A13, A6, A28, A10)') &
+       if(printInfo) write(*, '(A7, A6, A28, A10)') &
             "Usign ", trim(guessType), " density guess for species: ", trim(symbolOfSpecies)
 
        select case( trim( String_getUppercase( guessType ) ) )
@@ -159,6 +187,7 @@ contains
        end do
     end if
     
+    !! build density matrix from orbitals coefficients
     call Matrix_constructor(densityMatrix, int(orderOfMatrix,8), int(orderOfMatrix,8), 0.0_8  )
     do i = 1 , orderOfMatrix
        do j = 1 , orderOfMatrix
@@ -167,8 +196,11 @@ contains
           end do
        end do
     end do
+
+    !! multiply density matrix by orbital occupations
     densityMatrix%values=densityMatrix%values*MolecularSystem_getEta(speciesID,molSys)
     
+    !! do alpha-beta density mixed for spin breaking systems
     if ( CONTROL_instance%BUILD_MIXED_DENSITY_MATRIX .and. ( trim(nameOfSpecies)=="E-ALPHA" .or. trim(nameOfSpecies)=="E+A")  ) then
 
        densityMatrix%values(occupationNumber,:) =  densityMatrix%values(occupationNumber,:) + 0.25*densityMatrix%values(occupationNumber,:)*densityMatrix%values(occupationNumber+1,:)
@@ -211,7 +243,7 @@ contains
     call Vector_destructor( eigenValues )
     
   end subroutine DensityMatrixSCFGuess_hcore
-      
+
   !>
   !! @brief  Maneja excepciones de la clase
   subroutine DensityMatrixSCFGuess_exception( typeMessage, description, debugDescription)

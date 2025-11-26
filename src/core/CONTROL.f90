@@ -85,6 +85,7 @@ module CONTROL_
      logical :: HARTREE_PRODUCT_GUESS
      logical :: READ_COEFFICIENTS
      logical :: READ_FCHK
+     logical :: READ_NATURAL_ORBITALS
      logical :: WRITE_COEFFICIENTS_IN_BINARY
      logical :: READ_EIGENVALUES
      logical :: READ_EIGENVALUES_IN_BINARY
@@ -438,6 +439,7 @@ module CONTROL_
   logical :: LowdinParameters_hartreeProductGuess
   logical :: LowdinParameters_readCoefficients
   logical :: LowdinParameters_readFchk
+  logical :: LowdinParameters_readNaturalOrbitals
   logical :: LowdinParameters_writeCoefficientsInBinary
   logical :: LowdinParameters_readCoefficientsInBinary
   logical :: LowdinParameters_readEigenvalues
@@ -791,6 +793,7 @@ module CONTROL_
        LowdinParameters_readCoefficients,&
        LowdinParameters_readFchk,&
        LowdinParameters_readCoefficientsInBinary, &
+       LowdinParameters_readNaturalOrbitals, &
        LowdinParameters_writeCoefficientsInBinary, &
        LowdinParameters_readEigenvalues,&
        LowdinParameters_readEigenvaluesInBinary, &
@@ -1167,6 +1170,7 @@ contains
     LowdinParameters_hartreeProductGuess = .false.
     LowdinParameters_readCoefficients = .true.
     LowdinParameters_readFchk = .false.
+    LowdinParameters_readNaturalOrbitals = .false.
     LowdinParameters_writeCoefficientsInBinary = .true.
     LowdinParameters_readEigenvalues = .false.
     LowdinParameters_readEigenvaluesInBinary = .true.
@@ -1519,6 +1523,7 @@ contains
     CONTROL_instance%HARTREE_PRODUCT_GUESS = .false.
     CONTROL_instance%READ_COEFFICIENTS = .true.
     CONTROL_instance%READ_FCHK=.false.
+    CONTROL_instance%READ_NATURAL_ORBITALS=.false.
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = .true.
     CONTROL_instance%NO_SCF = .false.
     CONTROL_instance%FINITE_MASS_CORRECTION = .false.
@@ -1915,6 +1920,7 @@ contains
     CONTROL_instance%HARTREE_PRODUCT_GUESS = LowdinParameters_hartreeProductGuess
     CONTROL_instance%READ_COEFFICIENTS = LowdinParameters_readCoefficients
     CONTROL_instance%READ_FCHK = LowdinParameters_readFchk
+    CONTROL_instance%READ_NATURAL_ORBITALS = LowdinParameters_readNaturalOrbitals
     CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY = LowdinParameters_writeCoefficientsInBinary
     CONTROL_instance%READ_EIGENVALUES = LowdinParameters_readEigenvalues
     CONTROL_instance%READ_EIGENVALUES_IN_BINARY =  LowdinParameters_readEigenvaluesInBinary
@@ -2291,6 +2297,8 @@ contains
     LowdinParameters_hartreeProductGuess = CONTROL_instance%HARTREE_PRODUCT_GUESS
     LowdinParameters_readCoefficients = CONTROL_instance%READ_COEFFICIENTS
     LowdinParameters_readFchk = CONTROL_instance%READ_FCHK
+    LowdinParameters_readNaturalOrbitals = CONTROL_instance%READ_NATURAL_ORBITALS
+
     LowdinParameters_writeCoefficientsInBinary = CONTROL_instance%WRITE_COEFFICIENTS_IN_BINARY
     LowdinParameters_readEigenvalues = CONTROL_instance%READ_EIGENVALUES
     LowdinParameters_readEigenvaluesInBinary = CONTROL_instance%READ_EIGENVALUES_IN_BINARY
@@ -2651,6 +2659,7 @@ contains
     otherThis%HARTREE_PRODUCT_GUESS = this%HARTREE_PRODUCT_GUESS 
     otherThis%READ_COEFFICIENTS = this%READ_COEFFICIENTS 
     otherThis%READ_FCHK = this%READ_FCHK
+    otherThis%READ_NATURAL_ORBITALS = this%READ_NATURAL_ORBITALS
     otherThis%WRITE_COEFFICIENTS_IN_BINARY = this%WRITE_COEFFICIENTS_IN_BINARY
     otherThis%NO_SCF = this%NO_SCF 
     otherThis%FINITE_MASS_CORRECTION = this%FINITE_MASS_CORRECTION 

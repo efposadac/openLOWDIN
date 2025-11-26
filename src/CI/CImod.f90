@@ -1331,7 +1331,7 @@ contains
              end do
 
             !!Off Diagonal contributions
-            do b = 1, CICore_instance%numberOfConfigurations 
+            do b = a + 1, CICore_instance%numberOfConfigurations 
 
               do spi = 1, numberOfSpecies 
                 !orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values
@@ -1394,7 +1394,7 @@ contains
      unit = 29
        
      file = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-     open(unit = unit, file=trim(file), status="new", form="formatted")
+     open(unit = unit, file=trim(file), status="unknown", form="formatted")
        
      !! Building the CI reduced density matrix in the atomic orbital representation       
      do species=1, numberOfSpecies
