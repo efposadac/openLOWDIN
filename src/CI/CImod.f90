@@ -1331,7 +1331,7 @@ contains
              end do
 
             !!Off Diagonal contributions
-            do b = 1, CICore_instance%numberOfConfigurations 
+            do b = a + 1, CICore_instance%numberOfConfigurations 
 
               do spi = 1, numberOfSpecies 
                 !orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values

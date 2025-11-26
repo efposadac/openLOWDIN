@@ -191,31 +191,20 @@ contains
     do i=1, numberOfSpecies
        !! We are working in spin orbitals not in spatial orbitals!
        CIcore_instance%lambda%values(i) = MolecularSystem_getLambda( i )
-       CIcore_instance%numberOfCoreOrbitals%values(i) = 0
        CIcore_instance%numberOfOccupiedOrbitals%values(i) = int (MolecularSystem_getOcupationNumber( i )* &
                                                                               CIcore_instance%lambda%values(i))
        CIcore_instance%numberOfOrbitals%values(i) = MolecularSystem_getTotalNumberOfContractions( i )* &
                                                                       CIcore_instance%lambda%values(i) 
        CIcore_instance%numberOfSpatialOrbitals2%values(i) = MolecularSystem_getTotalNumberOfContractions( i )
-       CIcore_instance%numberOfSpatialOrbitals2%values(i) = &
-         CIcore_instance%numberOfSpatialOrbitals2%values(i) *  ( &
-         CIcore_instance%numberOfSpatialOrbitals2%values(i) + 1 ) / 2
+       CIcore_instance%numberOfSpatialOrbitals2%values(i) = CIcore_instance%numberOfSpatialOrbitals2%values(i) *  ( &
+                                                            CIcore_instance%numberOfSpatialOrbitals2%values(i) + 1 ) / 2
 
-      
        CIcore_instance%totalNumberOfContractions( i ) = MolecularSystem_getTotalNumberOfContractions( i )
        CIcore_instance%occupationNumber( i ) = int( MolecularSystem_instance%species(i)%ocupationNumber )
        Conf_occupationNumber( i ) =  MolecularSystem_instance%species(i)%ocupationNumber
 
-
-      !! Take the active space from input
-      if ( InputCI_Instance(i)%coreOrbitals /= 0 ) then
-       CIcore_instance%numberOfCoreOrbitals%values(i) = InputCI_Instance(i)%coreOrbitals 
-      end if
-      if ( InputCI_Instance(i)%activeOrbitals /= 0 ) then
-        CIcore_instance%numberOfOrbitals%values(i) = InputCI_Instance(i)%activeOrbitals * &
-                                    CIcore_instance%lambda%values(i) + &
-                                    CIcore_instance%numberOfCoreOrbitals%values(i)
-      end if
+       !! set active space
+       call CIcore_setActiveSpace( i )
 
        !!Uneven occupation number = alpha
        !!Even occupation number = beta     
@@ -365,6 +354,69 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
     output = output + 1
 
   end function CIcore_getIndex
+
+  subroutine CIcore_setActiveSpace ( speciesID )
+    implicit none
+    character(50) :: wfnFile
+    integer :: wfnUnit
+    integer :: speciesID
+    integer :: canonicalNumberOfOrbitals
+    character(50) :: arguments(20)
+    character(30) :: nameOfSpecies
+    integer :: i,j,k
+    character(50) :: auxString
+    integer :: state
+    type(Vector) :: orbital_occupations
+
+    canonicalNumberOfOrbitals = MolecularSystem_getTotalNumberOfContractions( speciesID ) * CIcore_instance%lambda%values( speciesID ) 
+
+    !! default 
+    CIcore_instance%numberOfCoreOrbitals%values(speciesID) = 0
+    CIcore_instance%numberOfOrbitals%values(speciesID) = canonicalNumberOfOrbitals
+
+    !! Take the active space from input
+    if ( InputCI_Instance(speciesID)%coreOrbitals /= 0 ) then
+       CIcore_instance%numberOfCoreOrbitals%values(speciesID) = InputCI_Instance(speciesID)%coreOrbitals 
+    end if
+    if ( InputCI_Instance(speciesID)%activeOrbitals /= 0 ) then
+      CIcore_instance%numberOfOrbitals%values(speciesID) = InputCI_Instance(speciesID)%activeOrbitals * &
+                                    CIcore_instance%lambda%values(speciesID) + &
+                                    CIcore_instance%numberOfCoreOrbitals%values(speciesID)
+    end if
+
+    if ( CONTROL_instance%READ_NATURAL_ORBITALS ) then
+
+      wfnUnit = 29
+      wfnFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+
+      nameOfSpecies = trim( MolecularSystem_getNameOfSpecies( speciesID ) )
+      arguments(2) = nameOfSpecies
+
+      call Vector_constructor(orbital_occupations, canonicalNumberOfOrbitals, 0.0_8 )
+
+      open(unit = wfnUnit, file=trim(wfnFile), status="old", form="formatted")
+
+      do state = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+        write(auxstring,*) state
+        arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring)) 
+        call Vector_getFromFile(unit= wfnUnit, elementsNum = canonicalNumberOfOrbitals, &
+             arguments=arguments(1:2), output = orbital_occupations  )
+
+      end do
+
+      do i = 1, canonicalNumberOfOrbitals 
+        if ( orbital_occupations%values(i) < 5E-5 ) then
+          CIcore_instance%numberOfOrbitals%values(speciesID) = i 
+          exit
+        endif
+      enddo
+
+      close(wfnUnit)
+
+    endif
+
+
+  end subroutine
 
 end module CIcore_
 
