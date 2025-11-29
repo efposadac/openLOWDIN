@@ -567,11 +567,9 @@ contains
         open(unit = wfnUnit, file=trim(wfnFile), status="old", form="formatted")
         do state = 1, CONTROL_instance%NUMBER_OF_CI_STATES
           write(auxstring,*) state
-          print *, "reading nat orb"
           arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
           wfObject%waveFunctionCoefficients = Matrix_getFromFile(unit= wfnUnit, rows = int(numberOfContractions,4), columns= int(numberOfContractions,4), &
                                         arguments=arguments(1:2) )
-          call  Matrix_show(wfObject%waveFunctionCoefficients )
 
         end do
   
