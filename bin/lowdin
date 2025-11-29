@@ -1,6 +1,6 @@
 #!/bin/bash
 PID=$$
-VARS_PATH="/home/users/jcharrymartinez/bin//."openlowdin"/lowdinvars.sh"
+VARS_PATH="PREFIX/.EXENAME/lowdinvars.sh"
 source ${VARS_PATH}
 
 SED=sed
@@ -122,11 +122,9 @@ if [ $runTest = "T" ]; then
 	exit 0
 fi
 
-echo $LOWDIN_SCRATCH
 if [ -n "$setScratch" ]; then
 	export LOWDIN_SCRATCH=$setScratch
 fi
-echo $LOWDIN_SCRATCH
 
 #############################################
 # Esta seccion verifica todo lo relacionado
