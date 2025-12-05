@@ -47,47 +47,47 @@ FC="gfortran"
 FLAGS="1"
 EXENAME="openlowdin"
 PREFIX="/usr/local"
-SCRATCH='/scratch'
+SCRATCH='/tmp'
 CUDAFLAGS="no"
-DEFAULTS='F'
+INLINEOPT='F'
 SED=sed
 if [[ $(uname -s) == Darwin ]]; then
     SED=gsed
 fi
 
 ############################################
-# Script options
+# Script inline options
 ############################################
 while getopts   "n:f:o:p:s:l:dh" OPTNAME
 do
     case $OPTNAME in
         n)
             EXENAME=$OPTARG
-            DEFAULTS='T'
+            INLINEOPT='T'
             ;;
         f)
             FC=$OPTARG
-            DEFAULTS='T'
+            INLINEOPT='T'
             ;;
         o)
 	    FLAGS=$OPTARG
-            DEFAULTS='T'
+            INLINEOPT='T'
             ;;
         p)
             PREFIX=$OPTARG
-            DEFAULTS='T'
+            INLINEOPT='T'
             ;;
         s)
             SCRATCH=$OPTARG
-            DEFAULTS='T'
+            INLINEOPT='T'
             ;;
         d)
-            DEFAULTS='T'
+            INLINEOPT='T'
             ;;
         l)  
             LAPACK_LIBS=$OPTARG
             ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
-            DEFAULTS='T'
+            INLINEOPT='T'
             ;;
         h)
             usage
@@ -96,8 +96,8 @@ do
     esac
 done
 
-if [[ $DEFAULTS == 'T' ]]; then
-    echo 'INFO: Using default configuration for inline options!'
+if [[ $INLINEOPT == 'T' ]]; then
+    echo 'INFO: Using default configuration and inline options!'
 else
     echo 'INFO: Interactive configuration options'
     ###############################################################################
@@ -130,8 +130,8 @@ fi
 ###############################################################################
 #                        OPTIONS FOR FORTRAN COMPILER
 ###############################################################################
-if [[ $DEFAULTS == 'F' ]]; then
-    echo "Fortran Compiler command? gfortran(default) or ifort/ifx [$FC]"
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Fortran Compiler command? gfortran(default) or ifort/ifx [current=$FC]"
     read FCOMP
 fi
 if [ "$FCOMP" = "" ] ; then
@@ -159,8 +159,8 @@ else
     CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11"
 fi
 
-if [[ $DEFAULTS == 'F' ]]; then
-    echo "Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level [$FLAGS]"
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Compiler Options: (1) regular, default,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level [current=$FLAGS]"
     read FFLAGS
 fi
 if [ "$FFLAGS" = "" ] ; then
@@ -168,8 +168,8 @@ if [ "$FFLAGS" = "" ] ; then
 fi
 FLAGS=$FFLAGS
 
-if [[ $DEFAULTS == 'F' ]]; then
-    echo "Speed up on GPUs? (you need to have already installed CUDA and Magma libraries): yes/no [$CUDAFLAGS]"
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Speed up on GPUs? (you need to have already installed CUDA and Magma libraries): yes/no [current=$CUDAFLAGS]"
     read FCUDAFLAGS
 fi
 if [ "$FCUDAFLAGS" = "" ] ; then
@@ -183,7 +183,6 @@ if [ "$CUDAFLAGS" = "yes" ] ; then
 fi
 
 if [ "$FLAGS" = "1" ] ; then
-    
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
     else
@@ -253,8 +252,8 @@ ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIB
 ###############################################################################
 #                       SPECIFIC INSTALLATION DIRECTORIES
 ###############################################################################
-if [[ $DEFAULTS == 'F' ]]; then
-    echo "Executable name? default=openlowdin [$EXENAME]"
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Executable name? default=openlowdin [current=$EXENAME]"
     read NAME
 fi
 if [ "$NAME" = "" ] ; then
@@ -262,14 +261,23 @@ if [ "$NAME" = "" ] ; then
 fi
 EXENAME=$NAME
 
-if [[ $DEFAULTS == 'F' ]]; then
-    echo "Installation directory? default=/usr/local [$PREFIX]"
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Installation directory? default=/usr/local [current=$PREFIX]"
     read BINDIR
 fi
 if [ "$BINDIR" = "" ] ; then
     BINDIR=$PREFIX
 fi
 PREFIX=$BINDIR
+
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Local temporary files directory (Scratch)? default=/tmp [current=$SCRATCH]"
+    read SCRDIR
+fi
+if [ "$SCRDIR" = "" ] ; then
+    SCRDIR=$SCRATCH
+fi
+SCRATCH=$SCRDIR
 
 ###############################################################################
 #                       ADDITIONAL UTILITIES

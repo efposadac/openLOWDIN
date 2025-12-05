@@ -1,0 +1,31 @@
+GEOMETRY
+e-(H) cc-pvdz 0.00 0.00 0.00
+e-(F) cc-pvdz 0.000 1.396 0.000
+H_1 DZSPDN 0.00 0.00 0.00
+F dirac 0.000 1.396 0.000
+END GEOMETRY
+
+TASKS
+method = "RKS"
+END TASKS
+
+CONTROL
+readCoefficients=T
+freezeElectronicOrbitals=T
+electronExchangeCorrelationFunctional="B3LYP"
+nuclearElectronCorrelationFunctional="epc17-2"
+END CONTROL
+
+!The reference vecs for this calculation were generated with:
+!GEOMETRY
+!e-(H) cc-pvdz 0.00 0.00 0.00
+!e-(F) cc-pvdz 0.000 1.396 0.000
+!H_1 dirac 0.00 0.00 0.00
+!F dirac 0.000 1.396 0.000
+!END GEOMETRY
+!TASKS
+!method = "RKS"
+!END TASKS
+!CONTROL
+!electronExchangeCorrelationFunctional="B3LYP"
+!END CONTROL
