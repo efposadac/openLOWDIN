@@ -707,7 +707,7 @@ contains
 
     end do
 
-    if(this%iterationToStartConvergence.gt.0) write(*,"(A77)") "The first energy in the SCF will not be a variational estimate"
+    if(this%printSCFiterations .and. this%iterationToStartConvergence.gt.0) write(*,"(A77)") "The first energy in the SCF will not be a variational estimate"
 
     
     !Forces equal coefficients for E-ALPHA and E-BETA in open shell calculations

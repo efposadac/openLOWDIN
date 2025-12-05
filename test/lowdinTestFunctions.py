@@ -5,6 +5,8 @@ import os
 import sys
 
 def performTest(testName,setRefValuesFunc,getTestValuesFunc):
+
+    checkAndSetRefVec(testName)
     # Run calculation
     if len(sys.argv)==2:
         lowdinbin = sys.argv[1]
@@ -40,6 +42,11 @@ def getDefaultLowdinBin():
                 lowdinbin = line.split()[2]
                 break
     return lowdinbin
+
+def checkAndSetRefVec(testName):
+    if(os.path.isfile(testName+".refvec")):
+        status = os.system("cp "+testName+".refvec "+testName+".vec")
+    return
 
 def runLowdinCalculation(lowdinbin,testName):
     status = os.system(lowdinbin + " -i " + testName+".lowdin")
