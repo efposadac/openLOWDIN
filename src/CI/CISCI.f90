@@ -639,6 +639,7 @@ contains
           enddo !qi
           orbB(spi)%values(oi1) = orbB(spi)%values(oi1) + 1
         enddo !pi
+       CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
 
       enddo !spi
       
@@ -1680,7 +1681,8 @@ contains
       ! getting configuration A
       do spi = 1, numberOfSpecies 
         !! build the orbital from the index using the bit mapping
-        orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
+        orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:, a) 
+
         CIlevel(spi) = CIcore_instance%numberOfOccupiedOrbitals%values(spi) - sum( orbA(spi)%values * orbRef(spi)%values ) 
       enddo
 
