@@ -1670,7 +1670,7 @@ contains
         CIlevel(spi) = CIcore_instance%numberOfOccupiedOrbitals%values(spi) - sum( orbA(spi)%values * orbRef(spi)%values ) 
       enddo
 
-      write(unitFile,*) a, eigenVectors%values(a,1), CIlevel(:)
+      write(unitFile,*) a, eigenVectors%values(a,1), CIlevel(:), sum(CIlevel(:))
 
     end do 
 
