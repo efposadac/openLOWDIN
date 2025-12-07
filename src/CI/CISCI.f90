@@ -528,6 +528,7 @@ contains
             !call CISCI_binaryToDecimal ( orbB(spi)%values, confCoreConfB(spi) )
             !confCoreConfB(spi)%values = orbB(spi)%values ! save the indexconfB to use later in double inter, because double intra will overwritten it 
             CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
+            print *, CIlevel
 
             if ( CIenergy /= 0.0_8 .and. sum(CIlevel) <= 2 .and. sum(CIlevel(1:2)) <= 1 ) then
             !if ( CIenergy /= 0.0_8 ) then
@@ -639,6 +640,7 @@ contains
           enddo !qi
           orbB(spi)%values(oi1) = orbB(spi)%values(oi1) + 1
         enddo !pi
+       CIlevel(spi) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
 
       enddo !spi
       
@@ -1680,7 +1682,8 @@ contains
       ! getting configuration A
       do spi = 1, numberOfSpecies 
         !! build the orbital from the index using the bit mapping
-        orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
+        orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:, a) 
+
         CIlevel(spi) = CIcore_instance%numberOfOccupiedOrbitals%values(spi) - sum( orbA(spi)%values * orbRef(spi)%values ) 
       enddo
 
