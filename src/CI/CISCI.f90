@@ -424,6 +424,7 @@ contains
     real(8) :: shift
     type (ivector), allocatable :: occA(:), occB(:), virA(:), virB(:)
     type (ivector), allocatable :: orbA(:), orbB(:)
+    integer, allocatable :: CIlevel(:)
     real(8) :: tmpconfCoreConfB
     integer :: pi, qi, ri, si, pj, qj, rj, sj
     integer :: oia, oja, via, vja, aaa
@@ -443,7 +444,7 @@ contains
     enddo
 
     !$omp parallel &
-    !$omp& private ( occA, occB, virA, virB, orbA, orbB) &
+    !$omp& private ( occA, occB, virA, virB, orbA, orbB, CIlevel) &
     !$omp& private ( n, a, oia, via, pi, qi, ri, si, oi1, vi1, oi2, vi2, spi, spj, oj2, vj2, factor1, factor2, factor2j, CIenergy, diagEnergy ) 
 
     !! allocating auxiliary arrays (omp) for working with conf and orbitals
@@ -453,6 +454,7 @@ contains
     allocate ( virB ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
     allocate ( orbB ( numberOfSpecies ) )
+    allocate ( CIlevel ( numberOfSpecies ) )
 
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
@@ -496,6 +498,7 @@ contains
         virB(spi)%values = virA(spi)%values 
 
       enddo
+      CIlevel = 0
 
       !! building all single sustitutions from configuration A. 
       !! here all configurations pairs are generated in maximum coincidence 
@@ -524,12 +527,13 @@ contains
             !! bit mapping from orbital to decimal num
             !call CISCI_binaryToDecimal ( orbB(spi)%values, confCoreConfB(spi) )
             !confCoreConfB(spi)%values = orbB(spi)%values ! save the indexconfB to use later in double inter, because double intra will overwritten it 
+            CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
 
             if ( CIenergy /= 0.0_8 ) then
               CIenergy = CIenergy * coefficientCore(a) 
 
               ! alternative approximation
-              diagEnergy = CISCI_calculateEnergyZero( occA )
+              diagEnergy = CISCI_calculateEnergyZero( occB )
               CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
 
               !! append the amplitude 
@@ -551,6 +555,7 @@ contains
 
                 !! get double intraspecies sustitutions energy
                 CIenergy = CISCI_calculateEnergyTwoSame( spi, occA, occB, oi1, oi2, vi1,  vi2 )
+                CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
 
                 if ( CIenergy /= 0.0_8 ) then
                   !! calculate the sign factor for canonical order of the configuration
@@ -563,7 +568,7 @@ contains
 
                   CIenergy = CIenergy * coefficientCore(a)
                   ! alternative approximation
-                  diagEnergy = CISCI_calculateEnergyZero( occA )
+                  diagEnergy = CISCI_calculateEnergyZero( occB )
                   CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
 
                   !! append the amplitude 
@@ -576,6 +581,8 @@ contains
               enddo
               orbB(spi)%values(oi2) = orbB(spi)%values(oi2) + 1 ! reset orbital
             enddo
+
+            CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
 
             !! building all double interspecies sustitutions from configuration A. maybe build this as a superloop?
             !! get double interspecies sustitutions energy
@@ -591,6 +598,7 @@ contains
 
                   !! get double interspecies sustitutions energy
                   CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, vi1, vj2 )
+                  CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
 
                   if ( CIenergy /= 0.0_8 ) then
 
@@ -604,7 +612,7 @@ contains
 
                     CIenergy = CIenergy * coefficientCore(a) 
                     ! alternative approximation
-                    diagEnergy = CISCI_calculateEnergyZero( occA )
+                    diagEnergy = CISCI_calculateEnergyZero( occB )
                     CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
 
                     !! append the amplitude 
@@ -616,8 +624,10 @@ contains
                   orbB(spj)%values(vj2) = orbB(spj)%values(vj2) -1 
                 enddo ! sj
                 orbB(spj)%values(oj2) = orbB(spj)%values(oj2) + 1
+                CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
               enddo ! rj
 
+              CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
             enddo !spj
 
             !! reset the confB
@@ -641,6 +651,7 @@ contains
       call Vector_destructorInteger ( orbB(spi) ) 
     end do
 
+    deallocate ( CIlevel )
     deallocate ( occA  )
     deallocate ( occB  )
     deallocate ( virA  )
