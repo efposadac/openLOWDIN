@@ -529,7 +529,8 @@ contains
             !confCoreConfB(spi)%values = orbB(spi)%values ! save the indexconfB to use later in double inter, because double intra will overwritten it 
             CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
 
-            if ( CIenergy /= 0.0_8 ) then
+            if ( CIenergy /= 0.0_8 .and. sum(CIlevel) <= 2 .and. sum(CIlevel(1:2)) <= 1 ) then
+            !if ( CIenergy /= 0.0_8 ) then
               CIenergy = CIenergy * coefficientCore(a) 
 
               ! alternative approximation
@@ -557,7 +558,8 @@ contains
                 CIenergy = CISCI_calculateEnergyTwoSame( spi, occA, occB, oi1, oi2, vi1,  vi2 )
                 CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
 
-                if ( CIenergy /= 0.0_8 ) then
+                !if ( CIenergy /= 0.0_8 ) then
+                if ( CIenergy /= 0.0_8 .and. sum(CIlevel) <= 2 .and. sum(CIlevel(1:2)) <= 1 ) then
                   !! calculate the sign factor for canonical order of the configuration
                   factor2 = CISCI_canonicalOrderFactor( spi, orbB(spi), occB(spi) )
  
@@ -600,7 +602,8 @@ contains
                   CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, vi1, vj2 )
                   CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
 
-                  if ( CIenergy /= 0.0_8 ) then
+                  !if ( CIenergy /= 0.0_8 ) then
+                  if ( CIenergy /= 0.0_8 .and. sum(CIlevel) <= 2 .and. sum(CIlevel(1:2)) <= 1 ) then
 
                     !! calculate the sign factor for canonical order of the configuration
                     factor2j = CISCI_canonicalOrderFactor( spj, orbB(spj), occB(spj) )
