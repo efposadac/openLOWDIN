@@ -188,6 +188,7 @@ module CONTROL_
      !! CI
      !!
      character(20) :: CONFIGURATION_INTERACTION_LEVEL
+     character(20) :: SELECTIVE_CONFIGURATION_INTERACTION_METHOD
      integer :: NUMBER_OF_CI_STATES
      character(20) :: CI_DIAGONALIZATION_METHOD
      character(20) :: CI_PRINT_EIGENVECTORS_FORMAT
@@ -541,6 +542,7 @@ module CONTROL_
   !! CISD - FCI
   !!
   character(20) :: LowdinParameters_configurationInteractionLevel
+  character(20) :: LowdinParameters_selectiveConfigurationInteractionMethod
   integer :: LowdinParameters_numberOfCIStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
   character(20) :: LowdinParameters_CIPrintEigenVectorsFormat
@@ -894,6 +896,7 @@ module CONTROL_
                                 !! CISD - FCI
                                 !!
        LowdinParameters_configurationInteractionLevel,&
+       LowdinParameters_selectiveConfigurationInteractionMethod, &
        LowdinParameters_numberOfCIStates, &
        LowdinParameters_CIdiagonalizationMethod, &
        LowdinParameters_CIdiagonalDressedShift, &
@@ -1272,6 +1275,7 @@ contains
     !! CISD - FCI
     !!
     LowdinParameters_configurationInteractionLevel = "NONE"
+    LowdinParameters_selectiveConfigurationInteractionMethod = "NONE"
     LowdinParameters_numberOfCIStates = 1
     LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
     LowdinParameters_CIdiagonalDressedShift = "NONE"
@@ -1621,6 +1625,7 @@ contains
     !! CISD - FCI                                                                                                              
     !!                                                                                                                         
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "NONE"
+    CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD = "NONE"
     CONTROL_instance%NUMBER_OF_CI_STATES= 1
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
     CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT = "NONE"
@@ -2021,6 +2026,7 @@ contains
     !! CISD - FCI                                                                      
     !!                                                                                 
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
+    CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD = LowdinParameters_selectiveConfigurationInteractionMethod 
     CONTROL_instance%NUMBER_OF_CI_STATES       = LowdinParameters_numberOfCIStates
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
     CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT = LowdinParameters_CIdiagonalDressedShift
@@ -2405,6 +2411,7 @@ contains
     !! CISD - FCI                                                                      
     !!                                                                                 
     LowdinParameters_configurationInteractionLevel = CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+    LowdinParameters_selectiveConfigurationInteractionMethod = CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD 
     LowdinParameters_numberOfCIStates        = CONTROL_instance%NUMBER_OF_CI_STATES
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
     LowdinParameters_CIdiagonalDressedShift = CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
@@ -2749,6 +2756,7 @@ contains
     !! CISD - FCI
     !!
     otherThis%CONFIGURATION_INTERACTION_LEVEL = this%CONFIGURATION_INTERACTION_LEVEL 
+    otherThis%SELECTIVE_CONFIGURATION_INTERACTION_METHOD = this%SELECTIVE_CONFIGURATION_INTERACTION_METHOD 
     otherThis%NUMBER_OF_CI_STATES       = this%NUMBER_OF_CI_STATES
     otherThis%CI_DIAGONALIZATION_METHOD = this%CI_DIAGONALIZATION_METHOD
     otherThis%CI_DIAGONAL_DRESSED_SHIFT = this%CI_DIAGONAL_DRESSED_SHIFT
@@ -3013,6 +3021,13 @@ contains
        ! CONTROL_instance%NONELECTRONIC_ENERGY_TOLERANCE = 1E-08
 
     end if
+
+    if(CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD /= "NONE" ) then
+
+      if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "NONE" ) CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "FCI" 
+      write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
+      write (*,"(T10,A,A)") "SELECTIVE CONFIGURATION INTERACTION NETHOD:  ", CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD
+    endif
 
     !!***************************************************************************
     !! Non-orthogonal CI

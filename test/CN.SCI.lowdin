@@ -11,12 +11,12 @@ END GEOMETRY
 
 TASKS
 	method = "UHF"
-	configurationInteractionLevel ="SCI"
-	!configurationInteractionLevel ="CISD"
+	configurationInteractionLevel ="FCI"
 END TASKS
 
 CONTROL
 	readCoefficients=F
+	selectiveConfigurationInteractionMethod = "ASCI"
 	numberOfCIstates=1	
 	CINaturalOrbitals=T
 	CIStatesToPrint = 1

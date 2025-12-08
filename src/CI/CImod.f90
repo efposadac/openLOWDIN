@@ -221,7 +221,8 @@ contains
     !! start the calculation
 
     !! -------------------------------- Standard CI -------------------------------------
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+    if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
+
 
       write (*,*) "Building Strings..."
       call CIStrings_buildStrings()
@@ -397,7 +398,7 @@ contains
        endif !! standard CI methods 
   
     !! -------------------------------- SCI -------------------------------------
-    elseif ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+    else !if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "SCI" ) then
 
       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
@@ -780,8 +781,9 @@ contains
         write (6,"(T8,A19, F25.12)") "\delta E(Q) = ", davidsonCorrection
         write (6,"(T8,A19, F25.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
            CIcorrection + davidsonCorrection
+      endif
 
-      else if ( CIcore_instance%level == "SCI" ) then
+      if (  CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD /= "NONE" ) then
 
         write(*,"(A)") ""
         write (6,"(T2,A34)") "EPSTEIN-NESBET PT2 CORRECTION:"
@@ -837,7 +839,7 @@ contains
     write (*, "(T1,A,ES8.1)") "Printing coefficients larger than:", CONTROL_instance%CI_PRINT_THRESHOLD 
     write (*,*) ""
 
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+    if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
 
       allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
       allocate ( ciLevel ( numberOfSpecies ) )
@@ -911,7 +913,7 @@ contains
       deallocate ( indexConf )
       deallocate ( CIcore_instance%allIndexConf )
 
-    else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+    else !if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
 
       if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
   
@@ -1022,7 +1024,7 @@ contains
   
       numberOfConfigurations = CIcore_instance%numberOfConfigurations 
   
-      if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+      if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
         allocate (stringAinB ( numberOfSpecies ))
   
         do i = 1, numberOfSpecies 
@@ -1061,7 +1063,7 @@ contains
         indexConfB = 0
         jj = 0
 
-      else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+      else !if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
 
         allocate ( occA ( numberOfSpecies ) )
         allocate ( occB ( numberOfSpecies ) )
@@ -1147,7 +1149,7 @@ contains
       !! Building the CI reduced density matrix in the molecular orbital representation in parallel
       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
-        if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+        if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
           !$omp parallel & 
           !$omp& firstprivate (stringAinB,indexConfA,indexConfB, jj) &
           !$omp& private(i,j, species, s, numberOfOccupiedOrbitals, k, coupling, orbital, orbitalA, orbitalB, AA, BB, a, b, factor, n, cilevelA, ss, ssize, cilevel, ci, u, uu, bj),&
@@ -1292,8 +1294,8 @@ contains
              end do
           end do
                 
-        !!------------------------------------------------------------------------------------
-        else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+        !!---------------------------------- SCI --------------------------------------------------
+        else !if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
 
           do a = 1, CIcore_instance%numberOfConfigurations
             n = 1
@@ -1553,7 +1555,7 @@ contains
       close(unit)
 
 
-      if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+      if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
         deallocate ( jj )
         deallocate ( indexConfB )
         deallocate ( indexConfA )
@@ -1562,7 +1564,7 @@ contains
         deallocate ( cilevelA )
         deallocate ( CIcore_instance%allIndexConf )
         deallocate ( stringAinB )
-      else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+      else !if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
 
         do spi = 1, numberOfSpecies
           call Vector_destructorInteger ( occA(spi) ) 

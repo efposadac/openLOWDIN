@@ -214,7 +214,7 @@ contains
 
     close(wfnUnit)
 
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+    if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
       if  ( allocated (CIcore_instance%strings ) ) &
       deallocate ( CIcore_instance%strings )
       allocate ( CIcore_instance%strings ( numberOfSpecies ) )

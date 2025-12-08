@@ -6,11 +6,11 @@ END GEOMETRY
 
 TASKS
 	method = "UHF"
-	configurationInteractionLevel ="SCI"
-	!configurationInteractionLevel ="CISD"
+	configurationInteractionLevel ="FCI"
 END TASKS
 
 CONTROL
+	selectiveConfigurationInteractionMethod = "ASCI"
 	readCoefficients=F
 	numberOfCIstates=1	
 	CINaturalOrbitals=T
