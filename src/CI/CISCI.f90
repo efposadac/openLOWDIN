@@ -270,7 +270,7 @@ contains
       call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                  1_8, &
                  eigenValuesTarget, &
-                 eigenVectors, timeAA, timeBB )
+                 eigenVectors, timeAA, timeBB, k )
   
       !! storing energy per SCI iteration
       CISCI_instance%eigenValues%values(k) = eigenValuesTarget%values(1)
@@ -528,7 +528,6 @@ contains
             !call CISCI_binaryToDecimal ( orbB(spi)%values, confCoreConfB(spi) )
             !confCoreConfB(spi)%values = orbB(spi)%values ! save the indexconfB to use later in double inter, because double intra will overwritten it 
             CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
-            print *, CIlevel
 
             if ( CIenergy /= 0.0_8 .and. sum(CIlevel) <= 2 .and. sum(CIlevel(1:2)) <= 1 ) then
             !if ( CIenergy /= 0.0_8 ) then
@@ -640,7 +639,7 @@ contains
           enddo !qi
           orbB(spi)%values(oi1) = orbB(spi)%values(oi1) + 1
         enddo !pi
-       CIlevel(spi) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
+       CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
 
       enddo !spi
       
@@ -677,7 +676,7 @@ contains
 
   end subroutine CISCI_core_amplitudes
 
-  subroutine CISCI_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors, timeA, timeB)
+  subroutine CISCI_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors, timeA, timeB, SCI_k_Iter)
     implicit none
     external DPJDREVCOM
     integer(8) :: maxnev
@@ -685,6 +684,7 @@ contains
     integer(8) :: nproc
     type(Vector8), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
+    integer :: SCI_k_iter
 
 !   N: size of the problem
 !   MAXEIG: max. number of wanteg eig (NEIG<=MAXEIG)
@@ -727,8 +727,6 @@ contains
     IPRINT = 0 !     standard report on standard output
     ISEARCH = 1 !    we want the smallest eigenvalues
     NEIG = maxeig !    number of wanted eigenvalues
-    !NINIT = 0 !    no initial approximate eigenvectors
-    NINIT = NEIG !    initial approximate eigenvectors
     MADSPACE = maxsp !    desired size of the search space
     ITER = 30*NEIG !    maximum number of iteration steps
     TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
@@ -751,10 +749,15 @@ contains
     JA(1) = -1 
     IA(1) = -1 
 
-    ! set initial eigenpairs
-    do j = 1, n 
-      X(j) = eigenVectors%values(j,1)
-    end do
+    if ( SCI_k_iter > 2 ) then
+      NINIT = NEIG !    initial approximate eigenvectors
+      ! set initial eigenpairs
+      do j = 1, n 
+        X(j) = eigenVectors%values(j,1)
+      end do
+    else
+      NINIT = 0 !    no initial approximate eigenvectors
+    endif
 
     do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
       EIGS(i) = eigenValues%values(i)
