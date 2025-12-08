@@ -76,6 +76,13 @@ contains
       enddo
     enddo
 
+    select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+      case ("DSYEVR")
+        totalSize = totalSize + CISCI_instance%targetSpaceSize * CISCI_instance%targetSpaceSize 
+      case ("JADAMILU")
+        totalSize = totalSize + CISCI_instance%targetSpaceSize * CONTROL_instance%CI_MADSPACE
+    end select 
+
     write(6,*) "-----------------------------------------------------------------------"
     write (6,"(T2,A62)") "          SELECTED CONFIGURATION INTERACTION (SCI):          " 
     write (6,"(T2,A62)") "                 Adaptive Sampling CI (ASCI)                 " 
@@ -214,8 +221,7 @@ contains
     real(8) :: timeA(20), timeB(20)
     real(8) :: timeAA, timeBB
     real(8) :: timeAS, timeBS
-    type(Vector8) :: eigenValuesTarget
-    type(Vector) :: eigenValuesTargetb
+    type(Vector) :: eigenValuesTarget
     real(8) :: minValue
     real(8) :: currentEnergy 
     integer :: numberOfSpecies, spi
@@ -225,8 +231,7 @@ contains
     numberOfSpecies = CIcore_instance%numberOfSpecies 
     nproc = CIcore_instance%nproc 
     currentEnergy = HartreeFock_instance%totalEnergy 
-    call Vector_constructor8 ( eigenValuesTarget, int(CONTROL_instance%NUMBER_OF_CI_STATES,8),  0.0_8)
-    call Vector_constructor ( eigenValuesTargetb, int(CONTROL_instance%NUMBER_OF_CI_STATES,4),  0.0_8)
+    call Vector_constructor ( eigenValuesTarget, int(CONTROL_instance%NUMBER_OF_CI_STATES,4),  0.0_8)
 
     !! HF determinant coefficient
     CISCI_instance%coefficientCore%values(1) = 1.0_8
@@ -255,26 +260,29 @@ contains
 
       !! eigenvalue guess
       eigenValuesTarget%values(1) = currentEnergy 
-      !eigenValuesTargetb%values(1) = currentEnergy 
-
-      !!build full matrix and use lapack...
-      !call Matrix_constructor ( hamiltonianMatrix, int(CISCI_instance%targetSpaceSize,8), int(CISCI_instance%targetSpaceSize,8), 0.0_8 )
-      !call CISCI_buildHamiltonian ( hamiltonianMatrix )
-      !call Matrix_eigen_select ( hamiltonianMatrix, eigenValuesTargetb, &
-      !         int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
-      !         eigenVectors =eigenVectors, &
-      !         flags = int(SYMMETRIC,4))
-  
 
       !! diagonalize in target space
-      call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
+      select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+
+      case ("DSYEVR")
+        !!build full matrix and use lapack...
+        call Matrix_constructor ( hamiltonianMatrix, int(CISCI_instance%targetSpaceSize,8), int(CISCI_instance%targetSpaceSize,8), 0.0_8 )
+        call CISCI_buildHamiltonian ( hamiltonianMatrix )
+        call Matrix_eigen_select ( hamiltonianMatrix, eigenValuesTarget, &
+                 int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
+                 eigenVectors =eigenVectors, &
+                 flags = int(SYMMETRIC,4))
+
+      case ("JADAMILU")
+        call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                  1_8, &
                  eigenValuesTarget, &
                  eigenVectors, timeAA, timeBB, k )
+
+      end select
   
       !! storing energy per SCI iteration
       CISCI_instance%eigenValues%values(k) = eigenValuesTarget%values(1)
-      !CISCI_instance%eigenValues%values(k) = eigenValuesTargetb%values(1)
 
       !! convergence criteria
       if ( abs( CISCI_instance%eigenValues%values(k) - currentEnergy ) < 1.0E-5 ) then
@@ -333,7 +341,6 @@ contains
 
       !! updating new reference
       currentEnergy = eigenValuesTarget%values(1)
-      !currentEnergy = eigenValuesTargetb%values(1)
 
     enddo !k
 
@@ -682,7 +689,7 @@ contains
     integer(8) :: maxnev
     real(8) :: CIenergy
     integer(8) :: nproc
-    type(Vector8), intent(inout) :: eigenValues
+    type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
     integer :: SCI_k_iter
 

@@ -400,28 +400,20 @@ contains
     !! -------------------------------- SCI -------------------------------------
     else !if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "SCI" ) then
 
-      select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
-      case ("JADAMILU")
+      call CISCI_show()
 
-        call CISCI_show()
+      write (*,*) "Allocating arrays for SCI ..."
+      call CISCI_constructor( CIcore_instance%numberOfConfigurations )
 
-        write (*,*) "Allocating arrays for SCI ..."
-        call CISCI_constructor( CIcore_instance%numberOfConfigurations )
+      call Matrix_constructor (CIcore_instance%eigenVectors, &
+           int(CIcore_instance%numberOfConfigurations,8), &
+           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
-        call Matrix_constructor (CIcore_instance%eigenVectors, &
-             int(CIcore_instance%numberOfConfigurations,8), &
-             int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+      !!call CISCI_run() old version. still used for developing purposes
+      call CISCI_run( CIcore_instance%eigenVectors )
 
-        !!call CISCI_run() old version. still used for developing purposes
-        call CISCI_run( CIcore_instance%eigenVectors )
-
-        call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )
-      case default
-
-        call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented for SCI")
-
-      end select
+      call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )
 
     end if
 
