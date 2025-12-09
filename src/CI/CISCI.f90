@@ -347,10 +347,10 @@ contains
 
     !! summary of the macro iteration 
     write (6,*)    ""
-    write (6,"(T2,A110 )")    "                                    Selected CI (SCI)  summary                                               "
-    write (6,"(T2,A110 )")    "Iter      Ground-State Energy      Correlation Energy          Energy Diff.        Min coeff.        Time(s) "
+    write (6,"(T2,A107 )")    "                                    Selected CI (SCI)  summary                                            "
+    write (6,"(T2,A107 )")    "Iter      Ground-State Energy      Correlation Energy          Energy Diff.     Min coeff.        Time(s) "
     do k = 2, 20
-       write (6,"(T2,I2, F25.12, F25.12, F25.12,  F16.6, F16.4 )") k-1,  CISCI_instance%eigenValues%values(k),  &
+       write (6,"(T2,I2, F25.12, F25.12, F25.12,  E12.2, F16.4 )") k-1,  CISCI_instance%eigenValues%values(k),  &
                                                           CISCI_instance%eigenValues%values(k) - HartreeFock_instance%totalEnergy, &
                                                           CISCI_instance%eigenValues%values(k) - CISCI_instance%eigenValues%values(k-1), &
                                                           eigenVectors%values(CISCI_instance%targetSpaceSize,1), &
@@ -374,37 +374,94 @@ contains
     implicit none
     type(vector8) :: coefficientCore
     type(IMatrix1) :: confCore(:)
-    type(IVector), allocatable :: orbA(:)
+    type(IVector), allocatable :: orbA(:), occA(:), virA(:)
     integer :: spi, numberOfSpecies
-    integer :: pi
     integer(8) :: m 
     real(8) :: indexConf
+    integer :: pi, qi
+    integer :: oia, via
+    integer :: oi1, vi1
 
     !! Hartree-Fock reference coeff
-    coefficientCore%values(1) = 1.0_8
+    m = 1
+    coefficientCore%values(m) = 0.10_8
 
     !! build orbitals references
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
+    allocate ( occA ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
+    allocate ( virA ( numberOfSpecies ) )
 
     do spi = 1, numberOfSpecies 
-     call Vector_constructorInteger( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0) 
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0) 
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
     
       do pi = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
         orbA(spi)%values(pi) = 1.0
       enddo
 
-      confCore(spi)%values(:,1) = orbA(spi)%values(:)
+      confCore(spi)%values(:,m) = orbA(spi)%values(:)
       !call CISCI_binaryToDecimal ( orbA(spi)%values, indexConf )
       !confCore(spi)%values(spi,m) = indexConf
       
     enddo
 
+    !! add all single excited positronic states, useful for unbound HF references 
+    if ( CIcore_instance%level == "CISD-" ) then 
+
+      singles: do spi = 1, numberOfSpecies 
+        if ( trim(  MolecularSystem_getNameOfSpecies( spi ) ) == "E+" ) then
+
+          oia = 0 
+          via = 0
+
+          !! build the orbital from the index using the bit mapping
+          !call CISCI_decimalToBinary ( confCore%values(spi,a), orbA(spi)%values )
+
+          !! build auxiliary vectors of occupied and virtuals orbitals
+          do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+            if ( orbA(spi)%values(pi) == 1 ) then
+              oia = oia + 1
+              occA(spi)%values(oia) = pi
+            else if ( orbA(spi)%values(pi) == 0 ) then
+              via = via + 1
+              virA(spi)%values(via) = pi
+            end if
+          enddo !pi
+
+          !! single excitations
+          do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+            orbA(spi)%values(oi1) = orbA(spi)%values(oi1) - 1 
+            oi1 = occA(spi)%values(pi)  
+            do qi = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+              vi1 = virA(spi)%values(qi)
+              orbA(spi)%values(vi1) = orbA(spi)%values(vi1) + 1
+              m = m + 1
+              if ( m > CISCI_instance%coreSpaceSize ) exit singles
+
+              !! add the configuration
+              coefficientCore%values(m) = 0.10_8
+              confCore(spi)%values(:,m) = orbA(spi)%values(:)
+
+              orbA(spi)%values(vi1) = orbA(spi)%values(vi1) - 1
+            enddo !qi
+            orbA(spi)%values(oi1) = orbA(spi)%values(oi1) - 1
+          enddo !pi
+
+        endif ! E+
+      enddo singles
+    endif ! CISD-
+
     do spi = 1, numberOfSpecies 
-     call Vector_destructorInteger( orbA(spi)) 
+      call Vector_destructorInteger ( occA(spi) ) 
+      call Vector_destructorInteger ( orbA(spi)) 
+      call Vector_destructorInteger ( virA(spi) )  
     enddo
 
+    deallocate ( occA  )
+    deallocate ( virA  )
     deallocate ( orbA  )
 
   end subroutine CISCI_initialConfigurations
@@ -1494,7 +1551,7 @@ contains
 
 !$  timeB = omp_get_wtime()
 
-!$    write(*,"(E10.3)")  timeB -timeA 
+!$    write(*,"(T2,A,E10.3,A4)") "Time for building CI Hamiltonian ",timeB -timeA, " (S)"
 
   end subroutine CISCI_buildHamiltonian
 
@@ -1776,9 +1833,9 @@ contains
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
     write(6,"(T2,A31)") "Computing SCI-PT2 correction..."
-    write(6,"(T2,A25,F10.6,A5,F10.6)") "Buffer coefficients. Max:", &
+    write(6,"(T2,A26,E8.2,A6,E8.2)") "Buffer coefficients. Max: ", &
                                        CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + 1), &
-                                       "Min:", CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%buffer_amplitudeCoreSize)
+                                       "Min: ", CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%buffer_amplitudeCoreSize)
 !$  timeA = omp_get_wtime()
 
     !$omp parallel &
