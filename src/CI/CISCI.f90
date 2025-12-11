@@ -225,6 +225,7 @@ contains
     real(8) :: minValue
     real(8) :: currentEnergy 
     integer :: numberOfSpecies, spi
+    logical :: use_guess
 
     type(matrix) :: hamiltonianMatrix
 
@@ -236,6 +237,8 @@ contains
     !! HF determinant coefficient
     CISCI_instance%coefficientCore%values(1) = 1.0_8
     CISCI_instance%eigenValues%values(1) = HartreeFock_instance%totalEnergy 
+
+    use_guess = .false. !! usually HF is bad guess
 
     write (6,*)    ""
     write (6,"(T2,A29 )")    "Starting SCI macro iterations "
@@ -266,6 +269,9 @@ contains
       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
       case ("DSYEVR")
+
+        if ( .not. use_guess ) eigenVectors%values = 0.0_8
+
         !!build full matrix and use lapack...
         call Matrix_constructor ( hamiltonianMatrix, int(CISCI_instance%targetSpaceSize,8), int(CISCI_instance%targetSpaceSize,8), 0.0_8 )
         call CISCI_buildHamiltonian ( hamiltonianMatrix )
@@ -278,12 +284,15 @@ contains
         call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                  1_8, &
                  eigenValuesTarget, &
-                 eigenVectors, timeAA, timeBB, k )
+                 eigenVectors, timeAA, timeBB, use_guess )
 
       end select
   
       !! storing energy per SCI iteration
       CISCI_instance%eigenValues%values(k) = eigenValuesTarget%values(1)
+
+      !! if the correlation energy is positive, then don't use the guess
+      if (  CISCI_instance%eigenValues%values(k) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
 
       !! convergence criteria
       if ( abs( CISCI_instance%eigenValues%values(k) - currentEnergy ) < 1.0E-5 ) then
@@ -384,7 +393,7 @@ contains
 
     !! Hartree-Fock reference coeff
     m = 1
-    coefficientCore%values(m) = 0.10_8
+    coefficientCore%values(m) = 0.50_8
 
     !! build orbitals references
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
@@ -409,8 +418,9 @@ contains
     enddo
 
     !! add all single excited positronic states, useful for unbound HF references 
-    if ( CIcore_instance%level == "CISD-" ) then 
+    !if ( CIcore_instance%level == "CISD-" ) then 
 
+      coefficientCore%values(m) = 0.10_8 
       singles: do spi = 1, numberOfSpecies 
         if ( trim(  MolecularSystem_getNameOfSpecies( spi ) ) == "E+" ) then
 
@@ -443,7 +453,11 @@ contains
 
               !! add the configuration
               coefficientCore%values(m) = 0.10_8
-              confCore(spi)%values(:,m) = orbA(spi)%values(:)
+
+              !! save all species
+              do spj = 1, numberOfSpecies 
+                confCore(spj)%values(:,m) = orbA(spj)%values(:)
+              enddo
 
               orbA(spi)%values(vi1) = orbA(spi)%values(vi1) - 1
             enddo !qi
@@ -452,7 +466,7 @@ contains
 
         endif ! E+
       enddo singles
-    endif ! CISD-
+    !endif ! CISD-
 
     do spi = 1, numberOfSpecies 
       call Vector_destructorInteger ( occA(spi) ) 
@@ -1014,7 +1028,7 @@ contains
   end subroutine CISCI_core_amplitudes_cisd
 
 
-  subroutine CISCI_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors, timeA, timeB, SCI_k_Iter)
+  subroutine CISCI_jadamiluInterface(n,  maxeig, eigenValues, eigenVectors, timeA, timeB, use_guess )
     implicit none
     external DPJDREVCOM
     integer(8) :: maxnev
@@ -1022,7 +1036,7 @@ contains
     integer(8) :: nproc
     type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
-    integer :: SCI_k_iter
+    logical :: use_guess
 
 !   N: size of the problem
 !   MAXEIG: max. number of wanteg eig (NEIG<=MAXEIG)
@@ -1087,7 +1101,7 @@ contains
     JA(1) = -1 
     IA(1) = -1 
 
-    if ( SCI_k_iter > 2 ) then
+    if ( use_guess ) then
       NINIT = NEIG !    initial approximate eigenvectors
       ! set initial eigenpairs
       do j = 1, n 
