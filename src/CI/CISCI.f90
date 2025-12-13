@@ -242,11 +242,8 @@ contains
 
     !! initial step
     if ( initialStep ) then
-      !! HF determinant coefficient
-      !currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
 
       use_guess = .false. !! usually HF is bad guess
-
       write (6,*)    ""
       write (6,"(T2,A29 )")    "Starting SCI macro iterations "
       write (6,*)    ""
@@ -383,14 +380,15 @@ contains
     write (6,*)    ""
     write (6,"(T2,A107 )")    "                                    Selected CI (SCI)  summary                                            "
     write (6,"(T2,A107 )")    "Iter      Ground-State Energy      Correlation Energy          Energy Diff.     Min coeff.        Time(s) "
+    !do k = 2, 20
     do k = 2, finalk
        write (6,"(T2,I2, F25.12, F25.12, F25.12,  E12.2, F16.4 )") k-1,  CISCI_instance%eigenValues(k)%values(1),  &
                                                           CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy, &
                                                           CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1), &
                                                           eigenVectors%values(CISCI_instance%targetSpaceSize,1), &
                                                           timeB(k) - timeA(k)
-
     enddo !k
+
 
     !! save final eigenvalues to CIcore instance
     CIcore_instance%eigenvalues%values(1) = CISCI_instance%eigenValues(finalk)%values(1) 
@@ -400,7 +398,7 @@ contains
 
     if ( finalStep ) then
      !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
-     call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CISCI_instance%eigenValues(k)%values(1), CISCI_instance%PT2energy, eigenVectors )
+     call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CIcore_instance%eigenvalues%values(1), CISCI_instance%PT2energy, eigenVectors )
     endif
 
   end subroutine CISCI_run
@@ -1848,7 +1846,7 @@ contains
   
     implicit none
     integer(8) :: SCITargetSpaceSize
-    real(8) :: refEnergy
+    real(8), intent(in) :: refEnergy
     real(8) :: energyCorrection
     type(matrix) :: eigenVectors
     real(8) :: CIEnergy
