@@ -215,14 +215,15 @@ contains
   end subroutine CISCI_constructor
  
   !! main part
-  subroutine CISCI_run( eigenVectors, currentEnergy, initialStep, finalStep )
+  subroutine CISCI_run( eigenVectors, initialEnergy, initialStep, finalStep )
     use sort_
     implicit none
-    type(matrix) :: eigenVectors
+    type(matrix), intent(inout) :: eigenVectors
+    real(8), intent(in) :: initialEnergy 
+    logical, intent(in):: initialStep, finalStep
     real(8) :: currentEnergy 
-    logical :: initialStep, finalStep
     integer(8) :: a, aa, i, j, ii, jj, m
-    integer :: k ! macro SCI iteration
+    integer :: k, finalk ! macro SCI iteration
     integer :: nproc, n
     real(8) :: timeA(20), timeB(20)
     real(8) :: timeAA, timeBB
@@ -236,7 +237,8 @@ contains
     nproc = CIcore_instance%nproc 
 
     k = 1
-    CISCI_instance%eigenValues(k)%values(1) = currentEnergy
+    CISCI_instance%eigenValues(k)%values(1) = initialEnergy
+    currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
 
     !! initial step
     if ( initialStep ) then
@@ -311,9 +313,10 @@ contains
       !! if the correlation energy is positive, then don't use the guess
       if (  CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
 
-      !! convergence criteria
-      if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .or. k == 20  ) then
+      !! convergence criteria. Exit here avoiding matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
+      if ( ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .or. k == 20 ) .and. k > 2 .and. finalStep ) then
         !$  timeB(k) = omp_get_wtime()
+        finalk = k
         exit
       end if
 
@@ -365,6 +368,12 @@ contains
 
 !$  timeB(k) = omp_get_wtime()
 
+      !! Exit here after matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
+      if ( ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .or. k == 20 ) .and. k > 2 .and. .not. finalStep ) then
+        finalk = k
+        exit
+      end if
+
       !! updating new reference
       currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
 
@@ -374,17 +383,18 @@ contains
     write (6,*)    ""
     write (6,"(T2,A107 )")    "                                    Selected CI (SCI)  summary                                            "
     write (6,"(T2,A107 )")    "Iter      Ground-State Energy      Correlation Energy          Energy Diff.     Min coeff.        Time(s) "
-    do k = 2, 20
+    do k = 2, finalk
        write (6,"(T2,I2, F25.12, F25.12, F25.12,  E12.2, F16.4 )") k-1,  CISCI_instance%eigenValues(k)%values(1),  &
                                                           CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy, &
                                                           CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1), &
                                                           eigenVectors%values(CISCI_instance%targetSpaceSize,1), &
                                                           timeB(k) - timeA(k)
-      if ( abs( CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1)  ) < 1.0E-5 ) then 
-        CIcore_instance%eigenvalues%values(1) = CISCI_instance%eigenValues(k)%values(1) 
-        exit
-      endif
+
     enddo !k
+
+    !! save final eigenvalues to CIcore instance
+    CIcore_instance%eigenvalues%values(1) = CISCI_instance%eigenValues(finalk)%values(1) 
+
     write (6,"(T2,A30)") "SCI Energy Convergence : 1E-5 " 
     write (6,*)    ""
 

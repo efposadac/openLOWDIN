@@ -411,10 +411,10 @@ contains
            int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
       if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
-        call CISCI_run( CIcore_instance%eigenVectors, currentEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .false. ) ! do a cisd- first,
-        call CISCI_run( CIcore_instance%eigenVectors, currentEnergy = CIcore_instance%eigenvalues%values(1), initialStep = .false., finalStep = .true. ) ! do a cisd- first,
+        call CISCI_run( CIcore_instance%eigenVectors, initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .false. ) ! do a cisd- first,
+        call CISCI_run( CIcore_instance%eigenVectors, initialEnergy = CIcore_instance%eigenvalues%values(1), initialStep = .false., finalStep = .true. ) ! do a cisd- first,
       else  
-        call CISCI_run( CIcore_instance%eigenVectors, currentEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. ) 
+        call CISCI_run( CIcore_instance%eigenVectors, initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. ) 
       endif
 
       call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )
