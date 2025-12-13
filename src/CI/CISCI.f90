@@ -26,7 +26,7 @@ module CISCI_
     !! storing the CI diagonal matrix elements for Jadamilu preconditioner
     type (Vector8) :: diagonalTarget
     !! eigenvalues per SCI iteration
-    type (Vector8) :: eigenValues
+    type (Vector), allocatable :: eigenValues(:) ! eigenvalues per SCI iteration
     !! length of SCI search vectors
     integer(8) :: coreSpaceSize
     integer(8) :: targetSpaceSize
@@ -131,6 +131,7 @@ contains
     integer :: nproc, n
     integer :: numberOfSpecies
     integer :: m
+    integer :: k
 
     numberOfSpecies = CIcore_instance%numberOfSpecies 
     numberOfConfigurations = CISCI_instance%targetSpaceSize
@@ -185,7 +186,10 @@ contains
     call Vector_constructor8 ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8) 
 
     !! eigenvalues per SCI iteration
-    call Vector_constructor8 ( CISCI_instance%eigenValues, 20_8, 0.0_8) !! store the eigenvalues per macro iterations
+    allocate ( CISCI_instance%eigenValues ( 20 ) )
+    do k = 1, 20
+      call Vector_constructor ( CISCI_instance%eigenValues(k), CONTROL_instance%NUMBER_OF_CI_STATES, 0.0_8) !! store the eigenvalues per macro iterations
+    enddo
 
     !! store the orbitals for each target configurations, to avoid recomputing them 
     !! this is helpful when using bit-masking approach to avoid transforming from bit to decimal multiple times
@@ -211,40 +215,50 @@ contains
   end subroutine CISCI_constructor
  
   !! main part
-  subroutine CISCI_run( eigenVectors )
+  subroutine CISCI_run( eigenVectors, currentEnergy, initialStep, finalStep )
     use sort_
     implicit none
     type(matrix) :: eigenVectors
+    real(8) :: currentEnergy 
+    logical :: initialStep, finalStep
     integer(8) :: a, aa, i, j, ii, jj, m
     integer :: k ! macro SCI iteration
     integer :: nproc, n
     real(8) :: timeA(20), timeB(20)
     real(8) :: timeAA, timeBB
     real(8) :: timeAS, timeBS
-    type(Vector) :: eigenValuesTarget
     real(8) :: minValue
-    real(8) :: currentEnergy 
     integer :: numberOfSpecies, spi
     logical :: use_guess
-
     type(matrix) :: hamiltonianMatrix
 
     numberOfSpecies = CIcore_instance%numberOfSpecies 
     nproc = CIcore_instance%nproc 
-    currentEnergy = HartreeFock_instance%totalEnergy 
-    call Vector_constructor ( eigenValuesTarget, int(CONTROL_instance%NUMBER_OF_CI_STATES,4),  0.0_8)
 
-    !! HF determinant coefficient
-    CISCI_instance%coefficientCore%values(1) = 1.0_8
-    CISCI_instance%eigenValues%values(1) = HartreeFock_instance%totalEnergy 
+    k = 1
+    CISCI_instance%eigenValues(k)%values(1) = currentEnergy
 
-    use_guess = .false. !! usually HF is bad guess
+    !! initial step
+    if ( initialStep ) then
+      !! HF determinant coefficient
+      !currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
 
-    write (6,*)    ""
-    write (6,"(T2,A29 )")    "Starting SCI macro iterations "
-    write (6,*)    ""
+      use_guess = .false. !! usually HF is bad guess
 
-    call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%confCore )
+      write (6,*)    ""
+      write (6,"(T2,A29 )")    "Starting SCI macro iterations "
+      write (6,*)    ""
+      call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%confCore )
+
+    endif
+
+    if ( .not. initialStep ) then
+      use_guess = .true.
+      write (6,*)    ""
+      write (6,"(T2,A29 )")    "Re-starting SCI macro iterations "
+      write (6,*)    ""
+
+    endif
 
     do k = 2, 20
         
@@ -253,8 +267,12 @@ contains
       !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
       CISCI_instance%buffer_amplitudeCore%values = 0.0_8
 
-      if ( CIcore_instance%level == "FCI") call CISCI_core_amplitudes ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
-      if ( CIcore_instance%level == "CISD-" ) call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
+      if ( CIcore_instance%level == "CISD-" .or. .not. finalStep ) then
+        call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
+      endif
+      if ( CIcore_instance%level == "FCI" .and. finalStep ) then
+        call CISCI_core_amplitudes ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
+      endif
 
       !! merge core space with the top amplitude to form a new target space, and save them in saved_conf with coefficients in eigenvectors
       call CISCI_mergeCoreAndTarget( CISCI_instance%saved_confTarget, eigenVectors )
@@ -263,7 +281,7 @@ contains
       call CISCI_buildDiagonal ( )
 
       !! eigenvalue guess
-      eigenValuesTarget%values(1) = currentEnergy 
+      CISCI_instance%eigenValues(k)%values(1) = currentEnergy
 
       !! diagonalize in target space
       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
@@ -275,7 +293,7 @@ contains
         !!build full matrix and use lapack...
         call Matrix_constructor ( hamiltonianMatrix, int(CISCI_instance%targetSpaceSize,8), int(CISCI_instance%targetSpaceSize,8), 0.0_8 )
         call CISCI_buildHamiltonian ( hamiltonianMatrix )
-        call Matrix_eigen_select ( hamiltonianMatrix, eigenValuesTarget, &
+        call Matrix_eigen_select ( hamiltonianMatrix, CISCI_instance%eigenValues(k), &
                  int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
                  eigenVectors =eigenVectors, &
                  flags = int(SYMMETRIC,4))
@@ -283,23 +301,23 @@ contains
       case ("JADAMILU")
         call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                  1_8, &
-                 eigenValuesTarget, &
+                 CISCI_instance%eigenValues(k), &
                  eigenVectors, timeAA, timeBB, use_guess )
 
       end select
   
-      !! storing energy per SCI iteration
-      CISCI_instance%eigenValues%values(k) = eigenValuesTarget%values(1)
+      write (6,"(T2,A10,I4,A8,F25.12)")    "SCI Iter: ", k , " Energy: ", CISCI_instance%eigenValues(k)%values(1)
 
       !! if the correlation energy is positive, then don't use the guess
-      if (  CISCI_instance%eigenValues%values(k) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
+      if (  CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
 
       !! convergence criteria
-      if ( abs( CISCI_instance%eigenValues%values(k) - currentEnergy ) < 1.0E-5 ) then
-        write (6,"(T2,A10,I4,A8,F25.12)")    "SCI Iter: ", k , " Energy: ", CISCI_instance%eigenValues%values(k)
+      if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .or. k == 20  ) then
         !$  timeB(k) = omp_get_wtime()
         exit
       end if
+
+      !! preparation for next iter
 
       !! reset auxindex arrary, for later use in sorting target coeff. global absolute index
       do i = 1, CISCI_instance%buffer_amplitudeCoreSize
@@ -345,12 +363,10 @@ contains
         CISCI_instance%saved_confTarget(spi)%values = -1_1
       enddo 
 
-      write (6,"(T2,A10,I4,A8,F25.12)")    "SCI Iter: ", k , " Energy: ", CISCI_instance%eigenValues%values(k)
-
 !$  timeB(k) = omp_get_wtime()
 
       !! updating new reference
-      currentEnergy = eigenValuesTarget%values(1)
+      currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
 
     enddo !k
 
@@ -359,21 +375,23 @@ contains
     write (6,"(T2,A107 )")    "                                    Selected CI (SCI)  summary                                            "
     write (6,"(T2,A107 )")    "Iter      Ground-State Energy      Correlation Energy          Energy Diff.     Min coeff.        Time(s) "
     do k = 2, 20
-       write (6,"(T2,I2, F25.12, F25.12, F25.12,  E12.2, F16.4 )") k-1,  CISCI_instance%eigenValues%values(k),  &
-                                                          CISCI_instance%eigenValues%values(k) - HartreeFock_instance%totalEnergy, &
-                                                          CISCI_instance%eigenValues%values(k) - CISCI_instance%eigenValues%values(k-1), &
+       write (6,"(T2,I2, F25.12, F25.12, F25.12,  E12.2, F16.4 )") k-1,  CISCI_instance%eigenValues(k)%values(1),  &
+                                                          CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy, &
+                                                          CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1), &
                                                           eigenVectors%values(CISCI_instance%targetSpaceSize,1), &
                                                           timeB(k) - timeA(k)
-      if ( abs( CISCI_instance%eigenValues%values(k) - CISCI_instance%eigenValues%values(k-1)  ) < 1.0E-5 ) then 
-        CIcore_instance%eigenvalues%values(1) = CISCI_instance%eigenValues%values(k) 
+      if ( abs( CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1)  ) < 1.0E-5 ) then 
+        CIcore_instance%eigenvalues%values(1) = CISCI_instance%eigenValues(k)%values(1) 
         exit
       endif
     enddo !k
     write (6,"(T2,A30)") "SCI Energy Convergence : 1E-5 " 
     write (6,*)    ""
 
-    !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
-    call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CISCI_instance%eigenValues%values(k), CISCI_instance%PT2energy, eigenVectors )
+    if ( finalStep ) then
+     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
+     call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CISCI_instance%eigenValues(k)%values(1), CISCI_instance%PT2energy, eigenVectors )
+    endif
 
   end subroutine CISCI_run
 
@@ -384,7 +402,7 @@ contains
     type(vector8) :: coefficientCore
     type(IMatrix1) :: confCore(:)
     type(IVector), allocatable :: orbA(:), occA(:), virA(:)
-    integer :: spi, numberOfSpecies
+    integer :: spi, spj, numberOfSpecies
     integer(8) :: m 
     real(8) :: indexConf
     integer :: pi, qi

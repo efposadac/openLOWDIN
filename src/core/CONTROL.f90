@@ -210,6 +210,7 @@ module CONTROL_
      integer :: CI_SCI_CORE_SPACE
      integer :: CI_SCI_TARGET_SPACE
      integer :: CI_SCI_BUFFER_FACTOR
+     logical :: CI_UNBOUND_REFERENCE
 
      !!***************************************************************************
      !! Non-orthogonal CI
@@ -564,6 +565,7 @@ module CONTROL_
   integer :: LowdinParameters_CISCICoreSpace 
   integer :: LowdinParameters_CISCITargetSpace 
   integer :: LowdinParameters_CISCIBufferFactor
+  logical :: LowdinParameters_CIunboundReference 
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -918,8 +920,7 @@ module CONTROL_
        LowdinParameters_CISCICoreSpace, &
        LowdinParameters_CISCITargetSpace, &
        LowdinParameters_CISCIBufferFactor, &
-
-
+       LowdinParameters_CIunboundReference, &
        
                                 !!***************************************************************************
                                 !! Non-orthogonal CI
@@ -1295,6 +1296,7 @@ contains
     LowdinParameters_CIPrintEigenVectorsFormat = "OCCUPIED"
     LowdinParameters_CIPrintThreshold = 1E-1
     LowdinParameters_CISCIBufferFactor = 8
+    LowdinParameters_CIunboundReference = .false.
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -1647,6 +1649,7 @@ contains
     CONTROL_instance%CI_SCI_CORE_SPACE = 100
     CONTROL_instance%CI_SCI_TARGET_SPACE = 10000
     CONTROL_instance%CI_SCI_BUFFER_FACTOR = 8
+    CONTROL_instance%CI_UNBOUND_REFERENCE = .FALSE.
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2044,14 +2047,13 @@ contains
     CONTROL_instance%CI_JACOBI = LowdinParameters_CIJacobi
     CONTROL_instance%CI_BUILD_FULL_MATRIX = LowdinParameters_CIBuildFullMatrix 
     CONTROL_instance%CI_MADSPACE = LowdinParameters_CIMadSpace
-    CONTROL_instance%CI_NATURAL_ORBITALS= LowdinParameters_CINaturalOrbitals
+    CONTROL_instance%CI_NATURAL_ORBITALS = LowdinParameters_CINaturalOrbitals
     CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT = LowdinParameters_CIPrintEigenVectorsFormat 
     CONTROL_instance%CI_PRINT_THRESHOLD = LowdinParameters_CIPrintThreshold 
     CONTROL_instance%CI_SCI_CORE_SPACE = LowdinParameters_CISCICoreSpace
     CONTROL_instance%CI_SCI_TARGET_SPACE = LowdinParameters_CISCITargetSpace
     CONTROL_instance%CI_SCI_BUFFER_FACTOR = LowdinParameters_CISCIBufferFactor
-
-
+    CONTROL_instance%CI_UNBOUND_REFERENCE = LowdinParameters_CIunboundReference
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2430,6 +2432,7 @@ contains
     LowdinParameters_CISCICoreSpace = CONTROL_instance%CI_SCI_CORE_SPACE 
     LowdinParameters_CISCITargetSpace = CONTROL_instance%CI_SCI_TARGET_SPACE 
     LowdinParameters_CISCIBufferFactor = CONTROL_instance%CI_SCI_BUFFER_FACTOR
+    LowdinParameters_CIunboundReference = CONTROL_instance%CI_UNBOUND_REFERENCE 
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2778,6 +2781,7 @@ contains
     otherThis%CI_SCI_CORE_SPACE = this%CI_SCI_CORE_SPACE 
     otherThis%CI_SCI_TARGET_SPACE = this%CI_SCI_TARGET_SPACE 
     otherThis%CI_SCI_BUFFER_FACTOR = this%CI_SCI_BUFFER_FACTOR
+    otherThis%CI_UNBOUND_REFERENCE = this%CI_UNBOUND_REFERENCE 
 
     !!***************************************************************************
     !! Non-orthogonal CI
