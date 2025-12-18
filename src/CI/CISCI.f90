@@ -366,7 +366,7 @@ contains
 !$  timeB(k) = omp_get_wtime()
 
       !! Exit here after matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
-      if ( ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .or. k == 20 ) .and. k > 2 .and. .not. finalStep ) then
+      if ( ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .or. k == 20 ) .and. k > 8 .and. .not. finalStep ) then
         finalk = k
         exit
       end if

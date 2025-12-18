@@ -384,7 +384,7 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
                                     CIcore_instance%numberOfCoreOrbitals%values(speciesID)
     end if
 
-    if ( CONTROL_instance%READ_NATURAL_ORBITALS ) then
+    if ( CONTROL_instance%READ_NATURAL_ORBITALS .and. InputCI_Instance(speciesID)%activeOrbitals == 0  ) then
 
       wfnUnit = 29
       wfnFile = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
