@@ -1535,7 +1535,18 @@ contains
                 !!end do
                 !!print *, "atomic density matrix from natural orbitals"
                 !!call Matrix_show ( auxdensityEigenVectors)
+
+                write(*,*) ""
+                write(*,*) " Natural orbital occupation for: ", trim( MolecularSystem_instance%species(species)%symbol )
+    
+                write(*,*) ""
+                do u = 1, numberOfContractions                           
+                  write(*,"(T2,I4,F17.12)") u, densityEigenValues%values(u)
+                enddo
+                write(*,*) ""
+
                 write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_instance%species(species)%symbol) , "natural orbital occupations", sum(densityEigenValues%values)
+                write(*,*) ""
 
                 write(*,*) " End of natural orbitals in state: ", state, " for: ", trim(MolecularSystem_instance%species(species)%symbol)
              end do
