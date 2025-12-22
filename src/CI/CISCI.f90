@@ -27,6 +27,7 @@ module CISCI_
     type (Vector8) :: diagonalTarget
     !! eigenvalues per SCI iteration
     type (Vector), allocatable :: eigenValues(:) ! eigenvalues per SCI iteration
+    real(8), allocatable :: minCoeff(:) ! eigenvalues per SCI iteration
     !! length of SCI search vectors
     integer(8) :: coreSpaceSize
     integer(8) :: targetSpaceSize
@@ -187,6 +188,7 @@ contains
 
     !! eigenvalues per SCI iteration
     allocate ( CISCI_instance%eigenValues ( 20 ) )
+    allocate ( CISCI_instance%minCoeff ( 20 ) )
     do k = 1, 20
       call Vector_constructor ( CISCI_instance%eigenValues(k), CONTROL_instance%NUMBER_OF_CI_STATES, 0.0_8) !! store the eigenvalues per macro iterations
     enddo
@@ -371,6 +373,7 @@ contains
 
       !! updating new reference
       currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
+      CISCI_instance%minCoeff(k) = eigenVectors%values(CISCI_instance%targetSpaceSize,1)
 
     enddo !k
 
@@ -383,7 +386,7 @@ contains
        write (6,"(T2,I2, F25.12, F25.12, F25.12,  E12.2, F16.4 )") k-1,  CISCI_instance%eigenValues(k)%values(1),  &
                                                           CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy, &
                                                           CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1), &
-                                                          eigenVectors%values(CISCI_instance%targetSpaceSize,1), &
+                                                          CISCI_instance%minCoeff(k), &
                                                           timeB(k) - timeA(k)
     enddo !k
 
