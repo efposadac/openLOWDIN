@@ -383,7 +383,7 @@ contains
     write (6,"(T2,A107 )")    "Iter      Ground-State Energy      Correlation Energy          Energy Diff.     Min coeff.        Time(s) "
     !do k = 2, 20
     do k = 2, finalk
-       write (6,"(T2,I2, F25.12, F25.12, F25.12,  E12.2, F16.4 )") k-1,  CISCI_instance%eigenValues(k)%values(1),  &
+       write (6,"(T2,I2, F25.12, F25.12, F25.12,  ES12.2, F16.4 )") k-1,  CISCI_instance%eigenValues(k)%values(1),  &
                                                           CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy, &
                                                           CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1), &
                                                           CISCI_instance%minCoeff(k), &
@@ -600,7 +600,7 @@ contains
     n = omp_get_thread_num() + 1
 
     !! loop to find all CI configurtions coupled to core space
-    !$omp do schedule (static) 
+    !$omp do schedule (runtime) 
     do a = 1, nonzero !! coreSpace
       
       ! getting configuration A
@@ -801,7 +801,7 @@ contains
     call CISCI_sortAmplitude( CIcore_instance%nproc + 1 ) 
 
 !$  timeB = omp_get_wtime()
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for calculating SCI amplitudes : ", timeB - timeA ," (s)"
+!$  write(*,"(A,ES10.2,A4)") "** TOTAL Elapsed Time for calculating SCI amplitudes : ", timeB - timeA ," (s)"
 
   end subroutine CISCI_core_amplitudes
 
@@ -872,7 +872,7 @@ contains
     n = omp_get_thread_num() + 1
 
     !! loop to find all CI configurtions coupled to core space
-    !$omp do schedule (static) 
+    !$omp do schedule (runtime) 
     do a = 1, nonzero !! coreSpace
       
       ! getting configuration A
@@ -1076,7 +1076,7 @@ contains
     call CISCI_sortAmplitude( CIcore_instance%nproc + 1 ) 
 
 !$  timeB = omp_get_wtime()
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for calculating SCI amplitudes : ", timeB - timeA ," (s)"
+!$  write(*,"(A,ES10.2,A4)") "** TOTAL Elapsed Time for calculating SCI amplitudes : ", timeB - timeA ," (s)"
 
   end subroutine CISCI_core_amplitudes_cisd
 
@@ -1282,7 +1282,7 @@ contains
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
-    !$omp do schedule (static) 
+    !$omp do schedule (runtime) 
     aloop: do aa = 1, nonzero
 
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -1433,7 +1433,7 @@ contains
        if ( abs(w(a) ) >= tol) nonzerow = nonzerow + 1
     end do
 
-!$    write(*,"(A,I2,A,E10.3,A2,I12,I12)") "  ", iter, "  ", timeB -timeA ,"  ", nonzero, nonzerow
+!$    write(*,"(A,I2,A,ES10.2,A2,I12,I12)") "  ", iter, "  ", timeB -timeA ,"  ", nonzero, nonzerow
     return
 
   end subroutine CISCI_matvec
@@ -1487,7 +1487,7 @@ contains
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
-    !$omp do schedule (static) 
+    !$omp do schedule (runtime) 
     aloop: do aa = 1, CISCI_instance%targetSpaceSize 
 
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -1618,7 +1618,7 @@ contains
 
 !$  timeB = omp_get_wtime()
 
-!$    write(*,"(T2,A,E10.3,A4)") "Time for building CI Hamiltonian ",timeB -timeA, " (S)"
+!$    write(*,"(T2,A,ES10.2,A4)") "Time for building CI Hamiltonian ",timeB -timeA, " (S)"
 
   end subroutine CISCI_buildHamiltonian
 
@@ -1899,10 +1899,18 @@ contains
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
+    nonzero = 0
+    do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
+      a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
+      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1) exit
+      nonzero = nonzero + 1
+    enddo
+
     write(6,"(T2,A31)") "Computing SCI-PT2 correction..."
-    write(6,"(T2,A26,E8.2,A6,E8.2)") "Buffer coefficients. Max: ", &
+    write(6,"(T2,A26,ES10.2,A6,ES10.2,A9,I8)") "Buffer coefficients. Max: ", &
                                        CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + 1), &
-                                       "Min: ", CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%buffer_amplitudeCoreSize)
+                                       "Min: ", CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + nonzero), &
+                                       "Nonzero: ", nonzero
 !$  timeA = omp_get_wtime()
 
     !$omp parallel &
@@ -1922,10 +1930,11 @@ contains
 
     energyCorrection = 0.0_8
     
-    !$omp do schedule (static),  reduction (+:energyCorrection)
+    !$omp do schedule (runtime),  reduction (+:energyCorrection)
     aloop: do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
 
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
+
       !a = aa ! if index_amplitude is sorted
       if (CISCI_instance%confAmplitudeCore(1,a) == -1_1) cycle ! cycle or exit?
       !if (CISCI_instance%confAmplitudeCore(1)%values(1,a) == -1_1) cycle ! cycle or exit?
@@ -2419,7 +2428,7 @@ contains
     enddo targetSpace
 
 !$  timeB = omp_get_wtime()
-!$  write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for merging core and new amplitudes : ", timeB - timeA ," (s)"
+!$  write(*,"(A,ES10.2,A4)") "** TOTAL Elapsed Time for merging core and new amplitudes : ", timeB - timeA ," (s)"
 
   end subroutine CISCI_mergeCoreAndTarget
 
