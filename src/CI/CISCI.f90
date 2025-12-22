@@ -222,7 +222,7 @@ contains
     real(8), intent(in) :: initialEnergy 
     logical, intent(in):: initialStep, finalStep
     real(8) :: currentEnergy 
-    integer(8) :: a, aa, i, j, ii, jj, m
+    integer(8) :: a, aa, i, j, ii, jj, m, m1, m2
     integer :: k, finalk ! macro SCI iteration
     integer :: nproc, n
     real(8) :: timeA(20), timeB(20)
@@ -262,6 +262,11 @@ contains
     do k = 2, 20
         
 !$  timeA(k) = omp_get_wtime()
+
+      !! reset save conf ( core + target) 
+      do spi = 1, numberOfSpecies
+        CISCI_instance%saved_confTarget(spi)%values = -1_1
+      enddo 
 
       !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
       CISCI_instance%buffer_amplitudeCore%values = 0.0_8
@@ -310,13 +315,6 @@ contains
       !! if the correlation energy is positive, then don't use the guess
       if (  CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
 
-      !! convergence criteria. Exit here avoiding matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
-      if ( ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .or. k == 20 ) .and. k > 2 .and. finalStep ) then
-        !$  timeB(k) = omp_get_wtime()
-        finalk = k
-        exit
-      end if
-
       !! preparation for next iter
 
       !! reset auxindex arrary, for later use in sorting target coeff. global absolute index
@@ -360,13 +358,13 @@ contains
       CISCI_instance%buffer_amplitudeCore%values = 0.0_8
       do spi = 1, numberOfSpecies
         CISCI_instance%confAmplitudeCore = -1_1
-        CISCI_instance%saved_confTarget(spi)%values = -1_1
+!        CISCI_instance%saved_confTarget(spi)%values = -1_1
       enddo 
 
 !$  timeB(k) = omp_get_wtime()
 
-      !! Exit here after matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
-      if ( ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .or. k == 20 ) .and. k > 8 .and. .not. finalStep ) then
+      !! convergence criteria. Exit here avoiding matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
+      if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .and. k > 2  ) then
         finalk = k
         exit
       end if
@@ -396,10 +394,36 @@ contains
     write (6,"(T2,A30)") "SCI Energy Convergence : 1E-5 " 
     write (6,*)    ""
 
+    !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
     if ( finalStep ) then
-     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
-     call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CIcore_instance%eigenvalues%values(1), CISCI_instance%PT2energy, eigenVectors )
+
+
+      !! add the final target configurations at the beggining of the array. in such way, only the non-duplicated connected configurations will be added
+      do n = 1, CIcore_instance%nproc 
+        m1 = CISCI_instance%omp_targetInterval(1, n ) !! position to add 
+        m2 = m1 + CISCI_instance%targetSpaceSize / CIcore_instance%nproc - 1 !! number of conf added
+
+        CISCI_instance%omp_target_iterator_m(n) = m2
+        CISCI_instance%buffer_amplitudeCore%values(m1:m2) = 1E6 !! big number to ensure this conf won't be discarded after sorting
+        do spi = 1, numberOfSpecies
+          do m = 1, m2 - m1 + 1
+            CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), m + m1 - 1)  = CISCI_instance%saved_confTarget(spi)%values(:,m)
+          enddo
+        enddo
+      enddo
+
+      !! recompute amplitudes, but now from target space not core, in this way all connected conf are saved in buffer
+      if ( CIcore_instance%level == "CISD-" ) then
+        call CISCI_core_amplitudes_cisd (  eigenVectors%values(:,1), CISCI_instance%saved_ConfTarget, CISCI_instance%targetSpaceSize, currentEnergy )
+      endif
+      if ( CIcore_instance%level == "FCI" ) then
+        call CISCI_core_amplitudes ( eigenVectors%values(:,1), CISCI_instance%saved_ConfTarget, CISCI_instance%targetSpaceSize, currentEnergy )
+      endif
+
+      !! the real PT2 calculation
+      call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CIcore_instance%eigenvalues%values(1), CISCI_instance%PT2energy, eigenVectors )
     endif
+
 
   end subroutine CISCI_run
 
@@ -616,7 +640,7 @@ contains
           oi1 = occA(spi)%values(pi)  
           orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1 
 
-          do qi = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+          do qi = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) !! occ or core???
             vi1 = virA(spi)%values(qi)
             orbB(spi)%values(vi1) = orbB(spi)%values(vi1) + 1
             occB(spi)%values(pi) = vi1
