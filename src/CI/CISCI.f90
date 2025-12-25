@@ -396,7 +396,7 @@ contains
     CIcore_instance%eigenvalues%values(1) = CISCI_instance%eigenValues(finalk)%values(1) 
 
     write (6,"(T2,A30)") "SCI Energy Convergence : 1E-5 " 
-    write (6,"(T2,A,ES12.4)") "Minimum coefficient in target space: ", CISCI_instance%minCoeff(k) 
+    write (6,"(T2,A,ES12.4)") "Minimum coefficient in target space: ", CISCI_instance%minCoeff(finalk) 
     write (6,*)    ""
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
