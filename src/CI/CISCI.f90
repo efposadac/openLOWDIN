@@ -329,6 +329,8 @@ contains
                                      CISCI_instance%index_amplitudeCore%values(1:CISCI_instance%targetSpaceSize), & 
                                      1_8,  int(CISCI_instance%targetSpaceSize,8)  )
     
+      CISCI_instance%minCoeff(k) = eigenVectors%values(CISCI_instance%targetSpaceSize,1)
+
       !! storing only the largest coefficients, and rearraing the next eigenvector guess 
       do i = 1,  CISCI_instance%coreSpaceSize
         CISCI_instance%coefficientCore%values(i) = eigenVectors%values(i,1)
@@ -373,7 +375,6 @@ contains
 
       !! updating new reference
       currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
-      CISCI_instance%minCoeff(k) = eigenVectors%values(CISCI_instance%targetSpaceSize,1)
 
     enddo !k
 
@@ -395,6 +396,7 @@ contains
     CIcore_instance%eigenvalues%values(1) = CISCI_instance%eigenValues(finalk)%values(1) 
 
     write (6,"(T2,A30)") "SCI Energy Convergence : 1E-5 " 
+    write (6,"(T2,A,ES12.4)") "Minimum coefficient in target space: ", CISCI_instance%minCoeff(k) 
     write (6,*)    ""
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
@@ -571,7 +573,7 @@ contains
     !! work only with non-zero conf
     nonzero = 0
     do a = 1, SCICoreSpaceSize  
-      if ( confCore(1)%values(1,a) == -1_1 ) exit
+      if ( confCore(1)%values(1,a) == -1_1 .or. abs(coefficientCore(a)) <= 1E-10 ) exit
       nonzero = nonzero + 1
     enddo
 
@@ -1902,15 +1904,15 @@ contains
     nonzero = 0
     do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1) exit
+      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-7   ) exit
       nonzero = nonzero + 1
     enddo
 
     write(6,"(T2,A31)") "Computing SCI-PT2 correction..."
-    write(6,"(T2,A26,ES10.2,A6,ES10.2,A9,I8)") "Buffer coefficients. Max: ", &
+    write(6,"(T2,A26,ES10.2,A5,ES10.2,A9,I8)") "Buffer coefficients. Max: ", &
                                        CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + 1), &
-                                       "Min: ", CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + nonzero), &
-                                       "Nonzero: ", nonzero
+                                       " Min: ", CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + nonzero), &
+                                       " Nonzero: ", nonzero
 !$  timeA = omp_get_wtime()
 
     !$omp parallel &
@@ -1931,12 +1933,12 @@ contains
     energyCorrection = 0.0_8
     
     !$omp do schedule (runtime),  reduction (+:energyCorrection)
-    aloop: do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
+    aloop: do aa = CISCI_instance%targetSpaceSize + 1, nonzero
 
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
 
       !a = aa ! if index_amplitude is sorted
-      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1) cycle ! cycle or exit?
+      !if (CISCI_instance%confAmplitudeCore(1,a) == -1_1) cycle ! cycle or exit?
       !if (CISCI_instance%confAmplitudeCore(1)%values(1,a) == -1_1) cycle ! cycle or exit?
 
       ! getting configuration A
@@ -2055,7 +2057,7 @@ contains
 
 !$  timeB = omp_get_wtime()
     write (6,"(T2,A,F25.12)") "CI-PT2 energy correction :", energyCorrection
-!$  write(*,"(A,E10.3)") "Time for CI-PT2 correction: ", timeB -timeA
+!$  write(*,"(A,ES10.2)") "Time for CI-PT2 correction: ", timeB -timeA
 
   end subroutine CISCI_PT2
 
@@ -2119,7 +2121,7 @@ contains
     close(unitFile)
 
 !$  timeB = omp_get_wtime()
-!$  write(*,"(A,E10.3)") "Time for saving SCI eigenVector: ", timeB -timeA
+!$  write(*,"(A,ES10.2)") "Time for saving SCI eigenVector: ", timeB -timeA
 
   end subroutine CISCI_saveEigenVector
 
