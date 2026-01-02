@@ -475,6 +475,7 @@ contains
     !! add all single excited positronic states, useful for unbound HF references 
     !if ( CIcore_instance%level == "CISD-" ) then 
 
+    if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
       coefficientCore%values(m) = 0.10_8 
       singles: do spi = 1, numberOfSpecies 
         if ( trim(  MolecularSystem_getNameOfSpecies( spi ) ) == "E+" ) then
@@ -521,6 +522,7 @@ contains
 
         endif ! E+
       enddo singles
+    endif
     !endif ! CISD-
 
     do spi = 1, numberOfSpecies 
@@ -567,7 +569,7 @@ contains
     integer :: nonzero
 
 !$  timeA = omp_get_wtime()
-    shift = 1E-4 !! to avoid divergence
+    shift = 1E-8 !! to avoid divergence
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
     !! work only with non-zero conf
@@ -1904,7 +1906,7 @@ contains
     nonzero = 0
     do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-7   ) exit
+      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-9  ) exit
       nonzero = nonzero + 1
     enddo
 
@@ -2353,12 +2355,12 @@ contains
       auxm = auxm  ! change from relative to absolute position
 
       !! discard the last two quarters of tmp_ampltitude for next run, if not keep it fot PT2 corr
-      CISCI_instance%buffer_amplitudeCore%values( halfm + 1 : m2 ) = 0.0_8
-      do spi = 1, CIcore_instance%numberOfSpecies 
-        CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), &
-                                         halfm + 1 : m2) = -1_1
-
-      enddo
+      !CISCI_instance%buffer_amplitudeCore%values( halfm + 1 : m2 ) = 0.0_8
+      !do spi = 1, CIcore_instance%numberOfSpecies 
+      !  CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), &
+      !                                   halfm + 1 : m2) = -1_1
+      ! 
+      !enddo
     endif
 
   end subroutine CISCI_sortAmplitude

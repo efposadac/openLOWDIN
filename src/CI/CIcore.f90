@@ -405,7 +405,7 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
       end do
 
       do i = 1, canonicalNumberOfOrbitals 
-        if ( orbital_occupations%values(i) < 5E-5 ) then
+        if ( orbital_occupations%values(i) < 1E-8 ) then
           CIcore_instance%numberOfOrbitals%values(speciesID) = i 
           exit
         endif
