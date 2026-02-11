@@ -110,9 +110,6 @@ contains
     print *, "For pairs with lower overlap, setting H(I,II)=0, S(I,II)=0"
     print *, ""
 
-    prescreenedElements=0
-    overlapScreenedElements=0
-
     matrixUnit=290
     matrixFile= trim(CONTROL_instance%INPUT_FILE)//"NOCI-Matrix.ci"
 
