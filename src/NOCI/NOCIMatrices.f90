@@ -111,7 +111,6 @@ contains
     print *, ""
 
     prescreenedElements=0
-    overlapScreenedElements=0
 
     matrixUnit=290
     matrixFile= trim(CONTROL_instance%INPUT_FILE)//"NOCI-Matrix.ci"
