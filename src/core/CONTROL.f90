@@ -211,6 +211,7 @@ module CONTROL_
      integer :: CI_SCI_TARGET_SPACE
      integer :: CI_SCI_BUFFER_FACTOR
      logical :: CI_UNBOUND_REFERENCE
+     integer :: CI_SCI_NUMBER_OF_SETS
 
      !!***************************************************************************
      !! Non-orthogonal CI
@@ -566,6 +567,7 @@ module CONTROL_
   integer :: LowdinParameters_CISCITargetSpace 
   integer :: LowdinParameters_CISCIBufferFactor
   logical :: LowdinParameters_CIunboundReference 
+  integer :: LowdinParameters_CISCINumberOfSets
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -921,6 +923,7 @@ module CONTROL_
        LowdinParameters_CISCITargetSpace, &
        LowdinParameters_CISCIBufferFactor, &
        LowdinParameters_CIunboundReference, &
+       LowdinParameters_CISCINumberOfSets, &
        
                                 !!***************************************************************************
                                 !! Non-orthogonal CI
@@ -1297,6 +1300,7 @@ contains
     LowdinParameters_CIPrintThreshold = 1E-1
     LowdinParameters_CISCIBufferFactor = 8
     LowdinParameters_CIunboundReference = .false.
+    LowdinParameters_CISCINumberOfSets = 1
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -1650,6 +1654,7 @@ contains
     CONTROL_instance%CI_SCI_TARGET_SPACE = 10000
     CONTROL_instance%CI_SCI_BUFFER_FACTOR = 8
     CONTROL_instance%CI_UNBOUND_REFERENCE = .FALSE.
+    CONTROL_instance%CI_SCI_NUMBER_OF_SETS = 1
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2054,6 +2059,7 @@ contains
     CONTROL_instance%CI_SCI_TARGET_SPACE = LowdinParameters_CISCITargetSpace
     CONTROL_instance%CI_SCI_BUFFER_FACTOR = LowdinParameters_CISCIBufferFactor
     CONTROL_instance%CI_UNBOUND_REFERENCE = LowdinParameters_CIunboundReference
+    CONTROL_instance%CI_SCI_NUMBER_OF_SETS = LowdinParameters_CISCINumberOfSets
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2433,6 +2439,7 @@ contains
     LowdinParameters_CISCITargetSpace = CONTROL_instance%CI_SCI_TARGET_SPACE 
     LowdinParameters_CISCIBufferFactor = CONTROL_instance%CI_SCI_BUFFER_FACTOR
     LowdinParameters_CIunboundReference = CONTROL_instance%CI_UNBOUND_REFERENCE 
+    LowdinParameters_CISCINumberOfSets = CONTROL_instance%CI_SCI_NUMBER_OF_SETS
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2782,6 +2789,7 @@ contains
     otherThis%CI_SCI_TARGET_SPACE = this%CI_SCI_TARGET_SPACE 
     otherThis%CI_SCI_BUFFER_FACTOR = this%CI_SCI_BUFFER_FACTOR
     otherThis%CI_UNBOUND_REFERENCE = this%CI_UNBOUND_REFERENCE 
+    otherThis%CI_SCI_NUMBER_OF_SETS = this%CI_SCI_NUMBER_OF_SETS
 
     !!***************************************************************************
     !! Non-orthogonal CI

@@ -432,6 +432,53 @@ contains
 
   end subroutine CISCI_run
 
+  !! reset buffer and other temporary arrays for a next SCI iteration
+  subroutine CISCI_resetBuffer()
+    implicit none
+    integer :: n, m, i
+    integer :: spi
+
+    !! auxiliary arrays to store the position of the target space for each omp thread within the big arrays 
+    !CISCI_instance%omp_targetInterval ! reminder: this one is fixed
+    !CISCI_instance%omp_target_iterator_m ! reminder: this one is variable
+
+    m = 0_8
+    do n = 1, CIcore_instance%nproc 
+      CISCI_instance%omp_targetInterval(1, n ) = m + 1_8
+      CISCI_instance%omp_targetInterval(2, n ) = m + CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
+      m = m + CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
+      CISCI_instance%omp_target_iterator_m(n) = CISCI_instance%omp_targetInterval(1, n ) - 1
+    enddo
+
+    CISCI_instance%omp_targetInterval(1, CIcore_instance%nproc + 1 ) = 1_8
+    CISCI_instance%omp_targetInterval(2, CIcore_instance%nproc + 1 ) = CISCI_instance%buffer_amplitudeCoreSize 
+    CISCI_instance%omp_target_iterator_m( CIcore_instance%nproc + 1 ) = 0_8
+
+    !! reset iterators for next ier
+    do n = 1, CIcore_instance%nproc 
+      CISCI_instance%omp_target_iterator_m(n) = CISCI_instance%omp_targetInterval(1, n ) - 1
+    enddo
+
+    !! reset auxindex array. relative indexes, this index is relative for each omp thread to simplify internal usage during sorting
+    i = 1
+    do n = 1, CIcore_instance%nproc 
+      do m = 1, CISCI_instance%omp_targetInterval(2, n ) - CISCI_instance%omp_targetInterval(1, n ) + 1  
+         CISCI_instance%index_amplitudeCore%values(i) = m
+         i = i + 1
+      enddo
+    enddo
+
+    !! restart amplitudes for next run, except when exiting to do PT2 corr
+    CISCI_instance%buffer_amplitudeCore%values = 0.0_8
+    do spi = 1, CIcore_instance%numberOfSpecies
+      CISCI_instance%confAmplitudeCore = -1_1
+      !CISCI_instance%saved_confTarget(spi)%values = -1_1
+    enddo 
+
+
+  end subroutine CISCI_resetBuffer
+  
+
   !! compute the reference configuration, the HF 
   subroutine CISCI_initialConfigurations ( coefficientCore, confCore )
 
