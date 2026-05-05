@@ -17,16 +17,16 @@ usage(){
     echo "Usage:"
     echo "   $ ./configure [-f compiler] [-o options] [-n name] [-p path/to/install] [-s path/to/scratch] [-l lapack libs] [-d] [-h] "
     echo ""
-    echo "   -f"
-    echo "      gfortran/ifort/ifx"
-    echo "   -o"
-    echo "      Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level"   
     echo "   -n"
     echo "      executable name"
     echo "   -p"
     echo "      Path to install openLOWDIN"
     echo "   -s"
     echo "      Path for scratch"
+    echo "   -f"
+    echo "      gfortran/ifort/ifx"
+    echo "   -o"
+    echo "      Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level"   
     echo "   -l"
     echo "      Lapack libraries to be used"
     echo "   -d"
@@ -34,7 +34,7 @@ usage(){
     echo "   -h"
     echo "      Print this message"
     echo ""
-    echo "Example: ./configure -f gfortran -o 1 -n openlowdin -p /usr/local -s /tmp -l \"-llapack -lblas -latlas\""
+    echo "Example: ./configure -n openlowdin -p /usr/local -s /tmp -f gfortran -o 1 -l \"-llapack -lblas -latlas\""
     echo ""
 }
 
@@ -43,11 +43,11 @@ TOPDIR=`pwd`
 ###########################################
 #            SET DEFAULTS
 ###########################################
-FC="gfortran"
-FLAGS="1"
 EXENAME="openlowdin"
 PREFIX="/usr/local"
 SCRATCH='/tmp'
+FC="gfortran"
+FLAGS="1"
 CUDAFLAGS="no"
 INLINEOPT='F'
 SED=sed
@@ -65,14 +65,6 @@ do
             EXENAME=$OPTARG
             INLINEOPT='T'
             ;;
-        f)
-            FC=$OPTARG
-            INLINEOPT='T'
-            ;;
-        o)
-	    FLAGS=$OPTARG
-            INLINEOPT='T'
-            ;;
         p)
             PREFIX=$OPTARG
             INLINEOPT='T'
@@ -81,12 +73,20 @@ do
             SCRATCH=$OPTARG
             INLINEOPT='T'
             ;;
+        f)
+            FC=$OPTARG
+            INLINEOPT='T'
+            ;;
+        o)
+	    FLAGS=$OPTARG
+            INLINEOPT='T'
+            ;;
         d)
             INLINEOPT='T'
             ;;
         l)  
             LAPACK_LIBS=$OPTARG
-            ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
+            #ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
             INLINEOPT='T'
             ;;
         h)
@@ -99,24 +99,24 @@ done
 if [[ $INLINEOPT == 'T' ]]; then
     echo 'INFO: Using default configuration and inline options!'
 else
-    echo 'INFO: Interactive configuration options'
+    echo 'INFO: Interactive openlowdin configuration options'
     ###############################################################################
     #                            LOAD OLD CONFIG
     ###############################################################################
     if [ -e CONFIG ] ; then
-        FC=`awk '{if($1 == "FC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print  $i}}' CONFIG`
 	EXENAME=`awk '{if($1 == "EXENAME" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         PREFIX=`awk '{if($1 == "PREFIX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         SCRATCH=`awk '{if($1 == "SCRATCH" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
-        CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        FC=`awk '{if($1 == "FC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
+        FLAGS=`awk '{if($1 == "FLAGS" ) {for(i=3;i<=NF;i++) print  $i}}' CONFIG`
+        FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CXX=`awk '{if($1 == "CXX" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
         CC=`awk '{if($1 == "CC" ) {for(i=3;i<=NF;i++) print $i}}' CONFIG`
-        CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print "%s ", $i}}' CONFIG`
         CFLAGS=`awk '{if($1 == "CFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CPPFLAGS=`awk '{if($1 == "CPPFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
-        FCFLAGS=`awk '{if($1 == "FCFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print "%s ", $i}}' CONFIG`
+        CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
@@ -125,6 +125,46 @@ else
         CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         # ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
     fi
+fi
+
+###############################################################################
+#                       SPECIFIC INSTALLATION DIRECTORIES
+###############################################################################
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Executable name? default=openlowdin [current=$EXENAME]"
+    read NAME
+fi
+if [ "$NAME" = "" ] ; then
+    NAME=$EXENAME
+fi
+EXENAME=$NAME
+
+#----------------------------------------------------------------------------
+
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Installation directory? (default=/usr/local) [current=$PREFIX]"
+    read BINDIR
+fi
+if [ "$BINDIR" = "" ] ; then
+    BINDIR=$PREFIX
+fi
+PREFIX=$BINDIR
+if [ ! -d $(bash -c "echo $PREFIX") ] ; then
+    echo "WARNING! Folder $PREFIX does not exist"
+fi
+
+#----------------------------------------------------------------------------
+
+if [[ $INLINEOPT == 'F' ]]; then
+    echo "Local temporary files directory? (default=/tmp) [current=$SCRATCH]"
+    read SCRDIR
+fi
+if [ "$SCRDIR" = "" ] ; then
+    SCRDIR=$SCRATCH
+fi
+SCRATCH=$SCRDIR
+if [ ! -d $(bash -c "echo $SCRATCH") ] ; then
+    echo "WARNING! Scratch folder $SCRATCH does not exist"
 fi
 	
 ###############################################################################
@@ -158,6 +198,25 @@ else
     CFLAGS="-g -O2 -fopenmp -D gfortran"
     CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11"
 fi
+
+#----------------------------------------------------------------------------
+# checking compiler
+#----------------------------------------------------------------------------
+for COMPILER in $FC $CXX $CC; do
+    if [[ -n $COMPILER ]]; then
+	if command -v "$COMPILER" &> /dev/null; then
+	    COMPILER_VERSION=`($COMPILER --version 2>&1 | head -n 1)`
+	    if [[ -n $COMPILER_VERSION ]]; then
+	        echo "$COMPILER compiler found: $COMPILER_VERSION"
+            fi
+	else
+	    echo "Error: Cannot find a compiler for $COMPILER"
+            exit 1
+        fi
+    fi
+done
+echo ""
+#----------------------------------------------------------------------------
 
 if [[ $INLINEOPT == 'F' ]]; then
     echo "Compiler Options: (1) regular, default,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level [current=$FLAGS]"
@@ -247,37 +306,40 @@ fi
 GSL_LIBS="-lgsl -lgslcblas"
 LIBINT_LIBS="-lr12 -lderiv -lint -lint2"
 LIBXC_LIBS="-lxcf03 -lxc"
-ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS $CUDA_LIBS"
 
-###############################################################################
-#                       SPECIFIC INSTALLATION DIRECTORIES
-###############################################################################
-if [[ $INLINEOPT == 'F' ]]; then
-    echo "Executable name? default=openlowdin [current=$EXENAME]"
-    read NAME
-fi
-if [ "$NAME" = "" ] ; then
-    NAME=$EXENAME
-fi
-EXENAME=$NAME
+#------------------------------------------------------------------------------
+# checking libraries
+CHECK_LIST="LAPACK_LIBS LIBINT_LIBS LIBXC_LIBS GSL_LIBS STDCPP_LIBS CUDA_LIBS"
 
-if [[ $INLINEOPT == 'F' ]]; then
-    echo "Installation directory? default=/usr/local [current=$PREFIX]"
-    read BINDIR
-fi
-if [ "$BINDIR" = "" ] ; then
-    BINDIR=$PREFIX
-fi
-PREFIX=$BINDIR
+for VAR_NAME in $CHECK_LIST; do
+    FLAGS=${!VAR_NAME}
 
-if [[ $INLINEOPT == 'F' ]]; then
-    echo "Local temporary files directory (Scratch)? default=/tmp [current=$SCRATCH]"
-    read SCRDIR
-fi
-if [ "$SCRDIR" = "" ] ; then
-    SCRDIR=$SCRATCH
-fi
-SCRATCH=$SCRDIR
+    # Loop through each flag in the set
+    for FLAG in $FLAGS; do
+        # Convert '-lxxx' to 'libxxx.so' for searching
+        LIB_FILE_DYNAMIC="lib${FLAG#-l}.so"
+        LIB_FILE_STATIC="lib${FLAG#-l}.a"
+
+	LIB_PATH_DYNAMIC=$($FC -print-file-name=$LIB_FILE_DYNAMIC)
+	LIB_PATH_STATIC=$($FC -print-file-name=$LIB_FILE_STATIC) 
+
+	if [ $LIB_PATH_DYNAMIC != $LIB_FILE_DYNAMIC ] ; then
+        	echo "$FLAG library found: $LIB_PATH_DYNAMIC"
+	elif [ $LIB_PATH_STATIC != $LIB_FILE_STATIC ] ; then
+        	echo "$FLAG library found: $LIB_PATH_STATIC"
+	else
+        	echo "$FLAG library not found"
+		exit 1
+        fi
+    done
+done
+echo ""
+
+# saving variable for makefile
+ALL_LIBS=""
+for VAR in $CHECK_LIST; do
+    ALL_LIBS+="\$($VAR) "
+done
 
 ###############################################################################
 #                       ADDITIONAL UTILITIES
@@ -287,19 +349,19 @@ SCRATCH=$SCRDIR
 #                       SAVING OPTIONS
 ###############################################################################
 
-echo "FC = $FC" > CONFIG
-echo "FLAGS = $FLAGS" >> CONFIG
-echo "EXENAME = $EXENAME" >> CONFIG
+echo "EXENAME = $EXENAME" > CONFIG
 echo "PREFIX = $PREFIX" >> CONFIG
 echo "SCRATCH = $SCRATCH" >> CONFIG
-echo "CUBAFLAGS = $CUBAFFLAGS" >> CONFIG
-echo "CUDAFLAGS = $CUDAFLAGS" >> CONFIG
+echo "FLAGS = $FLAGS" >> CONFIG
+echo "FC = $FC" >> CONFIG
+echo "FCFLAGS = $FCFLAGS"  >> CONFIG
 echo "CXX = $CXX"  >> CONFIG
 echo "CC = $CC"  >> CONFIG
 echo "CU = $CU"  >> CONFIG
 echo "CFLAGS = $CFLAGS"  >> CONFIG
 echo "CPPFLAGS = $CPPFLAGS"  >> CONFIG
-echo "FCFLAGS = $FCFLAGS"  >> CONFIG
+echo "CUBAFLAGS = $CUBAFFLAGS" >> CONFIG
+echo "CUDAFLAGS = $CUDAFLAGS" >> CONFIG
 echo "LAPACK_LIBS = $LAPACK_LIBS"  >> CONFIG
 echo "STDCPP_LIBS = $STDCPP_LIBS"  >> CONFIG
 echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG
