@@ -7,9 +7,16 @@
 *.a
 *.swp
 *.dSYM
-CONFIG
+CONFIG*
 makefile
 __pycache__
 *.vec
 *~
+test/testResults_openlowdin/
+utilities/erkale/armadillo
+utilities/erkale/armadillo-code/
+utilities/erkale/build/
+utilities/erkale/erkale/
+utilities/erkale/hdf5/
+utilities/erkale/sources/
 

@@ -16,6 +16,9 @@ echo $date
 echo "Testing with executable:" $EXENAME
 echo "Saving outputs to " testResults_$EXENAME
 
+# copy fchk files. All tests/*fchk will be deleted with make clean
+cp fchk/*fchk .
+
 for testfile in `ls *.py`; do
     #Run test
     testName=`echo $testfile | gawk '{print substr($1,1,length($1)-3)}'`
