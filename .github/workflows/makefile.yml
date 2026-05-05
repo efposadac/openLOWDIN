@@ -39,7 +39,7 @@ jobs:
         # # Build libint2
         # git clone https://github.com/evaleev/libint.git
         # cd libint
-        # git checkout 668b10c4bdca5876984058742d4212675eb93f3f
+	# git checkout v2.6.0
         # ./autogen.sh
         # mkdir ../libint2
         # cd ../libint2
