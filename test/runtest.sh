@@ -11,10 +11,12 @@ fi
 
 mkdir -p testResults_$EXENAME
 
+
 date=$(date '+%Y-%m-%d_%H-%M-%S')
 echo $date
 echo "Testing with executable:" $EXENAME
 echo "Saving outputs to " testResults_$EXENAME
+RESULTS_LOG="testResults_$EXENAME/maketest_$date.log"
 
 # copy fchk files. All tests/*fchk will be deleted with make clean
 cp fchk/*fchk .
@@ -22,9 +24,20 @@ cp fchk/*fchk .
 for testfile in `ls *.py`; do
     #Run test
     testName=`echo $testfile | gawk '{print substr($1,1,length($1)-3)}'`
-    #python3 $testName.py $EXENAME | tee -a testResults_$EXENAME/maketest_$date.log
-    /usr/bin/time -o time.log -f "%e" python3 $testName.py $EXENAME > testResults_$EXENAME/maketest_$date.log && printf "%-60s \t %s sec \n" "$(cat testResults_$EXENAME/maketest_$date.log)" $(cat time.log) 
-    #/usr/bin/time -o time.log -f "%e" python3 $testName.py $EXENAME | tee -a testResults_$EXENAME/maketest_$date.log && printf "%-60s \t %s sec \n" "$(cat testResults_$EXENAME/maketest_$date.log)" $(cat time.log) 
+
+    output=$( time -f "%e" -o time.log python3 "$testName.py" "$EXENAME" 2> error.log )
+    error=$( cat error.log ) 
+    duration=$( cat time.log ) 
+ 
+    if [ -z "$error" ]; then
+         printf "%-60s \t %s sec \n" "$output" "$duration" | tee -a "$RESULTS_LOG" 
+    else 
+         printf "%-60s \t %s sec \n %s \n" "$output" "$duration" "$error"  | tee -a "$RESULTS_LOG" 
+    fi
+
+    rm -f error.log 
+    rm -f time.log 
+
     #Save results 
     find . -maxdepth 1 -name $testName.out -exec mv -t testResults_$EXENAME {} \;
     find . -maxdepth 1 -name $testName"*molden" -exec mv -t testResults_$EXENAME {} \;

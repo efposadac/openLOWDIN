@@ -124,6 +124,7 @@ else
         LIBXC_LIBS=`awk '{if($1 == "LIBXC_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         # ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+
     fi
 fi
 
@@ -149,8 +150,10 @@ if [ "$BINDIR" = "" ] ; then
     BINDIR=$PREFIX
 fi
 PREFIX=$BINDIR
-if [ ! -d $(bash -c "echo $PREFIX") ] ; then
-    echo "WARNING! Folder $PREFIX does not exist"
+AUX_PREFIX="${PREFIX//\(/}" 
+AUX_PREFIX="${AUX_PREFIX//\)/}" 
+if [ ! -d $(bash -c "echo $AUX_PREFIX") ] ; then
+    echo "WARNING! Folder $AUX_PREFIX does not exist"
 fi
 
 #----------------------------------------------------------------------------
@@ -163,8 +166,11 @@ if [ "$SCRDIR" = "" ] ; then
     SCRDIR=$SCRATCH
 fi
 SCRATCH=$SCRDIR
-if [ ! -d $(bash -c "echo $SCRATCH") ] ; then
-    echo "WARNING! Scratch folder $SCRATCH does not exist"
+AUX_SCRATCH="${SCRATCH//\(/}" 
+AUX_SCRATCH="${AUX_SCRATCH//\)/}" 
+
+if [ ! -d $(bash -c "echo $AUX_SCRATCH") ] ; then
+    echo "WARNING! Scratch folder $AUX_SCRATCH does not exist"
 fi
 	
 ###############################################################################
@@ -278,7 +284,7 @@ if [ "$FLAGS" = "5" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp  $addflagsCuda " 
     else
-    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check D gfortran $addflagsCuda"
+    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -D gfortran $addflagsCuda"
     fi
 fi
 
@@ -309,35 +315,35 @@ LIBXC_LIBS="-lxcf03 -lxc"
 
 #------------------------------------------------------------------------------
 # checking libraries
-CHECK_LIST="LAPACK_LIBS LIBINT_LIBS LIBXC_LIBS GSL_LIBS STDCPP_LIBS CUDA_LIBS"
+ALL_LIBS_TYPES="LAPACK_LIBS LIBINT_LIBS LIBXC_LIBS GSL_LIBS STDCPP_LIBS CUDA_LIBS"
 
-for VAR_NAME in $CHECK_LIST; do
-    FLAGS=${!VAR_NAME}
+for LIB_TYPE in $ALL_LIBS_TYPES; do
+    LIB_FLAGS=${!LIB_TYPE}
 
     # Loop through each flag in the set
-    for FLAG in $FLAGS; do
+    for LIB_FLAG in $LIB_FLAGS; do
         # Convert '-lxxx' to 'libxxx.so' for searching
-        LIB_FILE_DYNAMIC="lib${FLAG#-l}.so"
-        LIB_FILE_STATIC="lib${FLAG#-l}.a"
+        LIB_FILE_DYNAMIC="lib${LIB_FLAG#-l}.so"
+        LIB_FILE_STATIC="lib${LIB_FLAG#-l}.a"
 
 	LIB_PATH_DYNAMIC=$($FC -print-file-name=$LIB_FILE_DYNAMIC)
 	LIB_PATH_STATIC=$($FC -print-file-name=$LIB_FILE_STATIC) 
 
 	if [ $LIB_PATH_DYNAMIC != $LIB_FILE_DYNAMIC ] ; then
-        	echo "$FLAG library found: $LIB_PATH_DYNAMIC"
+        	echo "$LIB_FLAG library found: $LIB_PATH_DYNAMIC"
 	elif [ $LIB_PATH_STATIC != $LIB_FILE_STATIC ] ; then
-        	echo "$FLAG library found: $LIB_PATH_STATIC"
+        	echo "$LIB_FLAG library found: $LIB_PATH_STATIC"
 	else
-        	echo "$FLAG library not found"
+        	echo "$LIB_FLAG library not found"
 		exit 1
         fi
     done
 done
 echo ""
 
-# saving variable for makefile
+# saving variables for makefile
 ALL_LIBS=""
-for VAR in $CHECK_LIST; do
+for VAR in $ALL_LIBS_TYPES; do
     ALL_LIBS+="\$($VAR) "
 done
 
