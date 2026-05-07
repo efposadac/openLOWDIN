@@ -225,7 +225,7 @@ echo ""
 #----------------------------------------------------------------------------
 
 if [[ $INLINEOPT == 'F' ]]; then
-    echo "Compiler Options: (1) regular, default,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level [current=$FLAGS]"
+    echo "Compiler Options: (1) regular, balanced (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) full debug, (5) fastest, production level, (6) profiling  [current=$FLAGS]"
     read FFLAGS
 fi
 if [ "$FFLAGS" = "" ] ; then
@@ -249,17 +249,17 @@ fi
 
 if [ "$FLAGS" = "1" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp  $addflagsCuda"
+    	FCFLAGS="-O2 -xHost -fpic -qopenmp -fpp -Dintel -free -warn all  $addflagsCuda"
     else
-    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz  -fno-range-check -D gfortran $addflagsCuda"
+    	FCFLAGS="-O2 -march=native -ftree-vectorize -fstack-arrays -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fallow-invalid-boz -fno-range-check $addflagsCuda"
     fi
 fi
 
 if [ "$FLAGS" = "2" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+    	FCFLAGS="-O0 -g -traceback -check bounds -fpic -qopenmp -fpp -Dintel -free -debug extended $addflagsCuda " 
     else
-    	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fbacktrace -Wunused -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-Og -g -fbacktrace -fcheck=bounds -fstack-arrays -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fno-range-check -Wunused $addflagsCuda"
     fi
 fi
 
@@ -274,19 +274,31 @@ fi
 
 if [ "$FLAGS" = "4" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-O2 -D intel -fpic -qopenmp -fpp -traceback -g -debug extended  $addflagsCuda " 
+    	FCFLAGS="-O0 -g -traceback -check all -fpe0 -init=snan,arrays -fpic -qopenmp -fpp -Dintel -free -debug extended -warn all  $addflagsCuda " 
     else
-    	FCFLAGS="-O2 -Wall -Wextra -Warray-temporaries -Wconversion -fimplicit-none -ffree-line-length-0 -ffpe-trap=zero,overflow,underflow -finit-real=nan -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fno-range-check -fallow-invalid-boz -fbacktrace -fcheck=all -g -D gfortran $addflagsCuda"
+    	FCFLAGS="-O0 -g -fbacktrace -fcheck=all -fsanitize=address -fno-omit-frame-pointer -finit-real=nan -ffpe-trap=zero,overflow -fimplicit-none -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fallow-invalid-boz -fno-range-check -Wall -Wextra -Warray-temporaries -Wconversion $addflagsCuda"
     fi
 fi
 
 if [ "$FLAGS" = "5" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-Ofast -D intel -fpic -qopenmp -fpp  $addflagsCuda " 
+    	FCFLAGS="-O3 -xHost -ipo -prec-div -prec-sqrt -fpic -qopenmp -fpp -Dintel -free  $addflagsCuda " 
     else
-    	FCFLAGS="-Ofast -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -D gfortran $addflagsCuda"
+    	FCFLAGS="-Ofast -march=native -fstack-arrays -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fallow-invalid-boz -fno-range-check $addflagsCuda"
     fi
 fi
+
+if [ "$FLAGS" = "6" ] ; then
+    if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
+    	FCFLAGS="-O2 -g -p -fno-omit-frame-pointer -xHost -fpic -qopenmp -fpp -Dintel -free  $addflagsCuda " 
+    else
+    	FCFLAGS="-O2 -g -pg -fno-omit-frame-pointer -march=native -fstack-arrays -fopenmp -cpp -Dgfortran -ffree-line-length-none $addflagsCuda"
+    fi
+fi
+
+
+
+
 
 ###############################################################################
 #                   LIBRARIES CONFIGURATION
