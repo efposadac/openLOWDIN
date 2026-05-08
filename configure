@@ -99,7 +99,7 @@ done
 if [[ $INLINEOPT == 'T' ]]; then
     echo 'INFO: Using default configuration and inline options!'
 else
-    echo 'INFO: Interactive openlowdin configuration options'
+    echo -e 'INFO: Interactive openlowdin configuration options\n'
     ###############################################################################
     #                            LOAD OLD CONFIG
     ###############################################################################
@@ -132,7 +132,7 @@ fi
 #                       SPECIFIC INSTALLATION DIRECTORIES
 ###############################################################################
 if [[ $INLINEOPT == 'F' ]]; then
-    echo "Executable name? default=openlowdin [current=$EXENAME]"
+    echo -e "1. Executable name? (default=openlowdin) \n (current=$EXENAME)"
     read NAME
 fi
 if [ "$NAME" = "" ] ; then
@@ -143,7 +143,7 @@ EXENAME=$NAME
 #----------------------------------------------------------------------------
 
 if [[ $INLINEOPT == 'F' ]]; then
-    echo "Installation directory? (default=/usr/local) [current=$PREFIX]"
+    echo -e "2. Installation directory? (default=/usr/local) \n (current=$PREFIX)"
     read BINDIR
 fi
 if [ "$BINDIR" = "" ] ; then
@@ -159,7 +159,7 @@ fi
 #----------------------------------------------------------------------------
 
 if [[ $INLINEOPT == 'F' ]]; then
-    echo "Local temporary files directory? (default=/tmp) [current=$SCRATCH]"
+    echo -e "3. Local temporary files directory? (default=/tmp) \n (current=$SCRATCH)"
     read SCRDIR
 fi
 if [ "$SCRDIR" = "" ] ; then
@@ -177,7 +177,7 @@ fi
 #                        OPTIONS FOR FORTRAN COMPILER
 ###############################################################################
 if [[ $INLINEOPT == 'F' ]]; then
-    echo "Fortran Compiler command? gfortran(default) or ifort/ifx [current=$FC]"
+    echo -e "4. Fortran Compiler command? \n [gfortran] GNU compiler (default) \n [ifort]/[ifx] Intel compiler \n (current=$FC)"
     read FCOMP
 fi
 if [ "$FCOMP" = "" ] ; then
@@ -225,7 +225,7 @@ echo ""
 #----------------------------------------------------------------------------
 
 if [[ $INLINEOPT == 'F' ]]; then
-    echo "Compiler Options: (1) regular, balanced (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) full debug, (5) fastest, production level, (6) profiling  [current=$FLAGS]"
+    echo -e "5. Compiler Options: \n [1] regular, balanced (default) \n [2] fastest, production level \n [3] backtrace and debug \n [4] full debug \n [5] profiling \n [6] static (for intel fortran compiler only) \n (current=$FLAGS)"
     read FFLAGS
 fi
 if [ "$FFLAGS" = "" ] ; then
@@ -234,7 +234,7 @@ fi
 FLAGS=$FFLAGS
 
 if [[ $INLINEOPT == 'F' ]]; then
-    echo "Speed up on GPUs? (you need to have already installed CUDA and Magma libraries): yes/no [current=$CUDAFLAGS]"
+    echo -e "6. Speed up on GPUs? (you need to have already installed CUDA and Magma libraries): \n [yes] \n [no] \n (current=$CUDAFLAGS)"
     read FCUDAFLAGS
 fi
 if [ "$FCUDAFLAGS" = "" ] ; then
