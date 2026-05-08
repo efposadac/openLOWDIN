@@ -293,7 +293,7 @@ if [ "$FLAGS" = "5" ] ; then
 fi
 
 # [6] static
-if [ "$FLAGS" = "3" ] ; then
+if [ "$FLAGS" = "6" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -qopenmp -traceback -g -debug extended  $addflagsCuda"
     else

@@ -56,16 +56,18 @@ def checkAndSetRefVec(testName):
 def runLowdinCalculation(lowdinbin,testName):
 
     cmd = [lowdinbin, "-i", f"{testName}.lowdin"]
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True)
+
         status, reason = check_for_specific_errors(result.stderr)
-        if (status == "CRASHED" ) :
+        if (status == "WARNING" ) :
+            return reason
+        elif (status == "CRASHED" ) :
             print( str_red(" ... CRASHED: ") + reason )
             sys.exit(1)
-        elif (status == "WARNING" ) :
-            return reason
         else :
-            return status # no error found
+            return "FINISHED"
 
     except Exception as error:
             print( str_red(" ... PYTHON ERROR: ") + error )
@@ -74,17 +76,18 @@ def runLowdinCalculation(lowdinbin,testName):
 def check_for_specific_errors(stderr_output):
     # A list of common "signatures" of a Fortran crash
     error_signatures = {
-        "SIGABRT": "Abort Signal (check assertions/stops)",
-        "SIGSEGV": "Segmentation Fault (check array bounds)",
-        "SIGFPE": "Math Error (check division by zero)",
-        "Index out of bounds": "Array Index Error",
-        "end-of-file": "Input File was too short",
-        "allocation would exceed memory": "Out of Memory"
+        "SIGABRT",
+        "SIGSEGV",
+        "SIGFPE",
+        "Index out of bounds",
+        "end-of-file",
+        "allocation would exceed memory",
+        "Fortran runtime error" 
     }
 
-    for sig, description in error_signatures.items():
+    for sig in error_signatures:
         if sig in stderr_output:
-            return "CRASHED", description
+            return "CRASHED", sig
 
     warning_signatures = (
     "IEEE_INVALID_FLAG",
