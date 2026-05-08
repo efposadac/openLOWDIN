@@ -3,6 +3,7 @@
 #Felix Moncada, Mar/2025
 import os
 import sys
+import subprocess
 
 def performTest(testName,setRefValuesFunc,getTestValuesFunc):
 
@@ -12,26 +13,30 @@ def performTest(testName,setRefValuesFunc,getTestValuesFunc):
         lowdinbin = sys.argv[1]
     else:
         lowdinbin = getDefaultLowdinBin()
-    runLowdinCalculation(lowdinbin,testName)
+
+    status = runLowdinCalculation(lowdinbin,testName)
 
     # Get reference values and tolerance
     refValues=setRefValuesFunc()
 
     # Get Test results
     testValues = dict(refValues) #copy 
-    for value in testValues: 
+    for value in testValues:
         testValues[value] = 0 #reset
     getTestValuesFunc(testValues,testName)
 
     # Check results and finish, return error if test fail
     passTest=verifyResults(refValues,testValues)
-    exitPrintResults(passTest,testName)
+    exitPrintResults(passTest,testName,status)
 
 def str_green(string):
     return chr(27) + "[1;32m" + string + chr(27) + "[0m"
 
 def str_red(string):
     return chr(27) + "[1;31m" + string + chr(27) + "[0m"
+
+def str_yellow(string):
+    return chr(27) + "[1;33m" + string + chr(27) + "[0m"
 
 def getDefaultLowdinBin():
     lowdinbin = "openlowdin"
@@ -49,16 +54,57 @@ def checkAndSetRefVec(testName):
     return
 
 def runLowdinCalculation(lowdinbin,testName):
-    status = os.system(lowdinbin + " -i " + testName+".lowdin")
-    if status:
-        print(testName + str_red(" ... NOT OK"))
-        sys.exit(1)
+
+    cmd = [lowdinbin, "-i", f"{testName}.lowdin"]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        status, reason = check_for_specific_errors(result.stderr)
+        if (status == "CRASHED" ) :
+            print( str_red(" ... CRASHED: ") + reason )
+            sys.exit(1)
+        elif (status == "WARNING" ) :
+            return reason
+        else :
+            return status # no error found
+
+    except Exception as error:
+            print( str_red(" ... PYTHON ERROR: ") + error )
+            sys.exit(1)
+
+def check_for_specific_errors(stderr_output):
+    # A list of common "signatures" of a Fortran crash
+    error_signatures = {
+        "SIGABRT": "Abort Signal (check assertions/stops)",
+        "SIGSEGV": "Segmentation Fault (check array bounds)",
+        "SIGFPE": "Math Error (check division by zero)",
+        "Index out of bounds": "Array Index Error",
+        "end-of-file": "Input File was too short",
+        "allocation would exceed memory": "Out of Memory"
+    }
+
+    for sig, description in error_signatures.items():
+        if sig in stderr_output:
+            return "CRASHED", description
+
+    warning_signatures = (
+    "IEEE_INVALID_FLAG",
+    "IEEE_DIVIDE_BY_ZERO",
+    "IEEE_OVERFLOW_FLAG",
+    "IEEE_UNDERFLOW_FLAG",
+    "IEEE_DENORMAL"
+    )
+
+    for sig in warning_signatures:
+        if sig in stderr_output:
+            return "WARNING", sig
+
+    return "FINISHED", "No error found"
 
 def verifyResults(refValues,testValues):
     passTest = True
 
     for value in refValues:
-        diffValue = abs(refValues[value][0] - testValues[value]) 
+        diffValue = abs(refValues[value][0] - testValues[value])
         if ( diffValue <= refValues[value][1] ):
             passTest = passTest * True
         else :
@@ -67,12 +113,15 @@ def verifyResults(refValues,testValues):
 
     return passTest
 
-def exitPrintResults(passTest,testName):
-    if passTest:
-        print(testName + str_green(" ... OK"))
+def exitPrintResults(passTest,testName,status):
+    if passTest and status == "FINISHED" :
+        print( str_green(" ... OK"))
+        sys.exit(0)
+    elif passTest and status != "FINISHED":
+        print( str_yellow(" ... WARNING: " + status ))
         sys.exit(0)
     else:
-        print(testName + str_red(" ... NOT OK"))
+        print( str_red(" ... NOT OK"))
         sys.exit(1)
 
 def getSCFTotalEnergy(testName):
@@ -642,7 +691,7 @@ def getParticlesInOrbCube(testName,species,number):
 def getP3results(testName,species,number):
     output = open(testName+".out", "r")
     outputRead = output.readlines()
-    eigenval=[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]    
+    eigenval=[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     for i in range(0,len(outputRead)):
         line = outputRead[i]
         if "SUMMARY OF PROPAGATOR RESULTS FOR THE SPIN-ORBITAL: "+str(number)+"  OF SPECIES:"+species in line:
@@ -672,7 +721,7 @@ def getNaturalOrbOcc(testName,species,number):
 def getNaturalOrb(testName,species,number):
     output = open(testName+".out", "r")
     outputRead = output.readlines()
-    eigenvec=[]    
+    eigenvec=[]
     for i in range(0,len(outputRead)):
         line = outputRead[i]
         if "  Natural Orbitals in state:            "+str(number)+"  for: "+species in line:
@@ -806,7 +855,7 @@ def getTrCIEnergyContribution(testName,typ,species1,species2):
         query=species1+"/"+species2+" "+typ+" element"
     else:
         query=typ+" element"
-            
+
     for i in range(0,len(outputRead)):
         line = outputRead[i]
         if "Overlap element" in line:

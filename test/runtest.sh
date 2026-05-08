@@ -16,25 +16,33 @@ date=$(date '+%Y-%m-%d_%H-%M-%S')
 echo $date
 echo "Testing with executable:" $EXENAME
 echo "Saving outputs to " testResults_$EXENAME
+echo "| ----------------------------------- | ------- | --------------------------------------- |  "
+echo "| Testname                            | Time(s) | Status + Message (optional)             |  "
+echo "| ----------------------------------- | ------- | --------------------------------------- |  "
+
 RESULTS_LOG="testResults_$EXENAME/maketest_$date.log"
 
 # copy fchk files. All tests/*fchk will be deleted with make clean
 cp fchk/*fchk .
 
 for testfile in `ls *.py`; do
+
+    if [ "$testfile" = "lowdinTestFunctions.py" ]; then
+       continue
+    fi
+
     #Run test
     testName=`echo $testfile | gawk '{print substr($1,1,length($1)-3)}'`
 
-    output=$( time -f "%e" -o time.log python3 "$testName.py" "$EXENAME" 2> error.log )
+    /usr/bin/time -f "%e" -o time.log python3 "$testName.py" "$EXENAME" > output.log 2> error.log 
+    output=$( cat output.log )
     error=$( cat error.log ) 
+    sed -i '/[a-zA-Z]/d' time.log #remove additional printing...
     duration=$( cat time.log ) 
- 
-    if [ -z "$error" ]; then
-         printf "%-60s \t %s sec \n" "$output" "$duration" | tee -a "$RESULTS_LOG" 
-    else 
-         printf "%-60s \t %s sec \n %s \n" "$output" "$duration" "$error"  | tee -a "$RESULTS_LOG" 
-    fi
 
+    printf "| %-35.35s | %-7.7s | %-50.50s |\n" "$testName" "$duration" "$output" | tee -a "$RESULTS_LOG" 
+
+    rm -f output.log 
     rm -f error.log 
     rm -f time.log 
 
@@ -46,12 +54,20 @@ for testfile in `ls *.py`; do
     find . -maxdepth 1 -name $testName"*orb*" -exec mv -t testResults_$EXENAME {} \;
 done
 
-status=`grep -c "NOT OK" testResults_$EXENAME/maketest_$date.log`
+failed=$(grep -ch "NOT OK" $RESULTS_LOG)
+crashed=$(grep -ch "CRASHED" $RESULTS_LOG)
 
-if [ $status -gt 0 ]; then     
-    echo $status "tests failed"
-else
-    echo "All tests completed successfully"
+if [ "$failed" -gt 0 ] ; then     
+    echo $failed "tests failed, check output"
+    exit $failed
+fi
+if [ "$crashed" -gt 0 ] ; then     
+    echo "$crashed" "tests crashed, check output"
+    exit $crashed
 fi
 
-exit $status
+if [ "$failed" = 0 ] && [ "$crashed" = 0 ] ; then     
+    echo "All tests completed successfully"
+    exit 0
+fi
+
