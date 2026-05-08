@@ -1067,11 +1067,12 @@ contains
              point=point+1
              auxFinder%values(point,1)=i
              auxFinder%values(point,2)=k
-             ! print *, i, j, k
+             !print *, i, j, k
              ! print *, grid%values(i,1:3), otherGrid%values(k,1:3)
+             if(k+1.ge.otherGridSize) k=0
              exit
           end if
-          if(k.ge.otherGridSize) k=0
+          if(k+1.ge.otherGridSize) k=0
        end do
        if(point .ge. max(gridSize,otherGridSize)) exit
     end do
