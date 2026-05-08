@@ -658,7 +658,7 @@ contains
 
     type(Exception) :: ex
 
-    character(1) :: indexCode(0:this%angularMoment) !< Codigo para solo un indice de momento angular
+    character(1) :: indexCode(0:this%angularMoment + 1) !< Codigo para solo un indice de momento angular
     character(1) :: shellCode(0:8) !< Codigo para una capa dada
     character(1) :: coordCode(3) !< Codigo de las coordenadas cartesianas
     integer :: nx, ny, nz !< Indices de momento angular
