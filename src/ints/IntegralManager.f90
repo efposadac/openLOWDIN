@@ -426,7 +426,7 @@ contains
     character(100) :: cosmoIntegralFile
     character(100) :: cosmoQuantumChargeFile
     character(100) :: cosmoClasicalChargeFile
-
+    character(50) :: symbolOfSpecies
 
     type(Matrix) :: cmatin
     ! real(8) ::  cosmoPotInt
@@ -474,6 +474,8 @@ contains
 
        do f = 1, size(MolecularSystem_instance%species)
           write(40) MolecularSystem_instance%species(f)%name
+          symbolOfSpecies = MolecularSystem_instance%species(f)%symbol
+
           total_aux=0
 
           cosmoIntegralFile="cosmo"//trim( MolecularSystem_getNameOfSpecies( f ) )//".opints"
@@ -532,7 +534,7 @@ contains
 
                          !Calculating integrals for shell
                          call AttractionIntegrals_computeShell( MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue, f, "NONE")
+                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue, f, symbolOfSpecies)
                          m=0
 
                          do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
@@ -638,7 +640,7 @@ contains
 
        end if
 
-
+    !! regular attraction
     else
 
        numberOfPointCharges = MolecularSystem_instance%numberOfPointCharges

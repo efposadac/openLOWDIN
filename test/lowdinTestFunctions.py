@@ -64,13 +64,13 @@ def runLowdinCalculation(lowdinbin,testName):
         if (status == "WARNING" ) :
             return reason
         elif (status == "CRASHED" ) :
-            print( str_red(" ... CRASHED: ") + reason )
+            print( str_red(" ... CRASHED: " + reason ) )
             sys.exit(1)
         else :
             return "FINISHED"
 
     except Exception as error:
-            print( str_red(" ... PYTHON ERROR: ") + error )
+            print( str_red(" ... PYTHON ERROR: " + error ) )
             sys.exit(1)
 
 def check_for_specific_errors(stderr_output):
