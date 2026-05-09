@@ -150,6 +150,7 @@ contains
        areCoincidence=.true.
        do j=2,len(substring)
           k=mark(i)+j-1
+          if ( k > len(inputString) ) exit
           if( inputString(k:k)/=substring(j:j) ) then
              areCoincidence=.false.
              exit
