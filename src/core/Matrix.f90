@@ -54,6 +54,7 @@ module Matrix_
   use String_
   use omp_lib
   use, intrinsic :: iso_c_binding
+  use, intrinsic :: ieee_exceptions
   implicit none
 
   
@@ -104,6 +105,11 @@ module Matrix_
   !> enum Matrix_jobs {
   character, parameter, public :: COMPUTE_EIGENVALUES = 'N'
   character, parameter, public :: COMPUTE_EIGENVALUES_AND_EIGENVECTORS = 'V'
+  !> }
+
+  !> enum Matrix_range {
+  character, parameter, public :: ALL_EIGENVALUES = 'A'
+  character, parameter, public :: SELECTED_EIGENVALUES = 'I'
   !> }
 
   !> enum Matrix_storedFlags {
@@ -2065,7 +2071,7 @@ contains
     !type(Vector8), intent(inout) :: eigenValues
     type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
-    integer(8), intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
+    integer(4), intent(in) :: smallestEigenValue, largestEigenValue  !! The indices (in ascending order)
     !! of the eigenvalues to be computed. Start at 1
     integer, intent(in), optional :: flags
     integer, intent(in), optional :: dm
@@ -2082,10 +2088,19 @@ contains
     integer :: m_dsyevr   !! The total number of eigenvalues found.
     integer, allocatable :: isuppz(:)
     integer, allocatable :: iwork(:)
-    character(1) :: mode
+    character(1) :: rangeMode
+    logical :: halt_zero, halt_overflow
+
+    !! Query and SAVE current strict settings
+    call ieee_get_halting_mode(ieee_divide_by_zero, halt_zero)
+    call ieee_get_halting_mode(ieee_overflow, halt_overflow)
+
+    !! Temporarily DISABLE the traps so LAPACK can run its tests
+    call ieee_set_halting_mode(ieee_divide_by_zero, .false.)
+    call ieee_set_halting_mode(ieee_overflow, .false.)
 
     !!Negative ABSTOL means using the default value
-    abstol = -1.0
+    abstol = 0.0_8
 
     vl = 0.0_8
     vu = 0.0_8
@@ -2099,19 +2114,24 @@ contains
     if (allocated (iwork) ) deallocate (iwork)
     allocate( iwork( matrixSize*10 ) )
 
-    mode = "A"
-    if ( largestEigenValue - smallestEigenValue < matrixSize ) mode = "I"
+    !! Determine the initial lenght of workspace
+    lengthWorkSpace=26*matrixSize
+
+    !! alocate work space
+    if (allocated (workSpace) ) deallocate (workSpace)
+    allocate( workSpace( lengthWorkSpace ) )
+
+    lengthWorkSpace = -1
+    lengthiwork = -1
+    infoProcess = 0
+
+    rangeMode = ALL_EIGENVALUES
+    if ( largestEigenValue - smallestEigenValue < matrixSize ) rangeMode = SELECTED_EIGENVALUES
 
 !    call omp_set_num_threads(omp_get_max_threads())
 !    call omp_set_num_threads (OMP_GET_NUM_THREADS())
 
     if( flags == SYMMETRIC ) then
-
-      !! Determina la longitud adecuada del vector de trabajo
-      lengthWorkSpace=3*matrixSize-1
-
-      !! Crea el vector de trabajo
-      allocate( workSpace( lengthWorkSpace ) )
 
       if( present( eigenVectors ) ) then
 
@@ -2123,13 +2143,10 @@ contains
 
          end if
          
-         lengthWorkSpace = -1
-         lengthiwork = -1
-
          !! calculates the optimal size of the WORK array
          call dsyevr( &
               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
-              mode, & !! A: All, I: select
+              rangeMode, & 
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2161,7 +2178,7 @@ contains
          !! Calcula valores propios de la matriz de entrada
          call dsyevr( &
               COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
-              mode, & !! A: All, I: select
+              ALL_EIGENVALUES, & 
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2190,7 +2207,7 @@ contains
          !! calculates the optimal size of the WORK array
          call dsyevr( &
               COMPUTE_EIGENVALUES, &
-              mode, &
+              rangeMode, &
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2224,7 +2241,7 @@ contains
          !! Calcula valores propios de la matriz de entrada
          call dsyevr( &
               COMPUTE_EIGENVALUES, &
-              mode, &
+              rangeMode, &
               UPPER_TRIANGLE_IS_STORED, &
               matrixSize, &
               this%values, &
@@ -2267,6 +2284,10 @@ contains
       deallocate( iwork )
 
     end if
+
+    !!RESTORE your strict settings immediately after
+    call ieee_set_halting_mode(ieee_divide_by_zero, halt_zero)
+    call ieee_set_halting_mode(ieee_overflow, halt_overflow)
 
   end subroutine Matrix_eigen_dsyevr
 
