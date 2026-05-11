@@ -1707,6 +1707,8 @@ contains
              end do
           end do
        end if
+
+      close(10)
     end do
     ! end do
   end subroutine OutputBuilder_writeFchkFile
