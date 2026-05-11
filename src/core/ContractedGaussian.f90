@@ -396,16 +396,11 @@ contains
     
     call ContractedGaussian_overlapIntegral( this , this, integralValue )
 
-    !print*,  "integralValue", integralValue
-    
-    m = 0
-    do i=1, this%numCartesianOrbital
-       do j = 1, this%numCartesianOrbital
-          m = m + 1
-          if (j == i) then
-             this%contNormalization(i) = 1.0_8 / sqrt( integralValue(m))
-          end if
-       end do
+    do i = 1, this%numCartesianOrbital
+      m = (i - 1) * this%numCartesianOrbital + i
+      if ( integralValue(m) /= 0.0_8 ) then !! for external potential the coefficient could be zero, but that should be avoided
+        this%contNormalization(i) = 1.0_8 / sqrt(integralValue(m))
+      end if
     end do
     
   end subroutine ContractedGaussian_normalizeContraction
