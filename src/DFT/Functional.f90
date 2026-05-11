@@ -311,13 +311,13 @@ contains
 
     do speciesID=1, numberOfSpecies
       call xc_f03_func_end( these(speciesID,speciesID)%xc1)
-      !call xc_f03_func_end( these(speciesID,speciesID)%xc2)
+      call xc_f03_func_end( these(speciesID,speciesID)%xc2)
     end do
 
     do speciesID=1, numberOfSpecies-1
       do otherSpeciesID=speciesID+1, numberOfSpecies  
         call xc_f03_func_end( these(speciesID,otherSpeciesID)%xc1)
-        !call xc_f03_func_end( these(speciesID,otherSpeciesID)%xc1)
+        call xc_f03_func_end( these(speciesID,otherSpeciesID)%xc2)
       end do
     end do
     
