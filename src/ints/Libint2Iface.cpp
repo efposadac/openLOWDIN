@@ -904,14 +904,14 @@ void LibintInterface::compute_2body_directIT(const Matrix &D, const Matrix &C,
     engines[t].print_timers();
 #endif
 
-  // do I really have to free this memory?
-  for ( int i = 0; i < n; i++)
-    {
-      for ( int j = 0; j < n; j++) 
-	delete(GG[i][j]);
-      delete(GG[i]);
+  // do I really have to free this memory? Yes
+  for ( int i = 0; i < n; i++) {
+		for ( int j = 0; j < n; j++) {
+			delete[] GG[i][j];
     }
-  delete(GG);
+  	delete[] GG[i];
+	}
+	delete[] GG;
   // std::cout << " Number of unique integrals for species: " << speciesID << "
   // = "
   //           << num_ints_computed << std::endl;
@@ -1604,14 +1604,15 @@ void LibintInterface::compute_coupling_directIT(LibintInterface &other,
     engines[t].print_timers();
 #endif
 
-  // do I really have to free this memory?
-  for ( int i = 0; i < nn1; i++)
-    {
-      for ( int j = 0; j < nn2; j++) 
-	delete(GG[i][j]);
-      delete(GG[i]);
+  // do I really have to free this memory? Yes
+  for ( int i = 0; i < nn1; i++) {
+		for ( int j = 0; j < nn2; j++) {
+			delete[] GG[i][j];
     }
-  delete(GG);
+  	delete[] GG[i];
+	}
+	delete[] GG;
+
 
   // std::cout << " Number of unique integrals for species: " << speciesID << "
   // / "
