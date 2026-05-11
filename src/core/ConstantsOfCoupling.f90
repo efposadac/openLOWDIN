@@ -74,7 +74,7 @@ contains
     if ( .not. existFile ) call ConstantsOfCoupling_exception( ERROR, "LOWDIN library not found!! please export lowdinvars.sh file.", "In ConstantsOfCoupling at load function.")
     
     !! Open library
-    open(unit=10, file=trim(CONTROL_instance%DATA_DIRECTORY)//"/dataBases/constantsOfCoupling.lib", status="old", form="formatted" )
+    open(unit=12, file=trim(CONTROL_instance%DATA_DIRECTORY)//"/dataBases/constantsOfCoupling.lib", status="old", form="formatted" )
 
     !! Read information
     symbol = "NONE"
@@ -95,7 +95,7 @@ contains
           exit
        end if
 
-       read(10,NML=specie, iostat=stat)
+       read(12,NML=specie, iostat=stat)
 
        if (stat > 0 ) then
 
@@ -116,7 +116,7 @@ contains
     !! Debug information.
     ! call ConstantsOfCoupling_show(this)
 
-    close(10)
+    close(12)
        
     !! Done
     
