@@ -279,7 +279,7 @@ if [ "$FLAGS" = "4" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-O0 -g -traceback -check all -fpe0 -init=snan,arrays -fpic -qopenmp -fpp -Dintel -free -debug extended -warn all  $addflagsCuda " 
     else
-    	FCFLAGS="-O0 -g -fbacktrace -fcheck=all -fsanitize=address -fno-omit-frame-pointer -finit-real=nan -ffpe-trap=zero,overflow -fimplicit-none -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fallow-invalid-boz -fno-range-check -Wall -Wextra -Warray-temporaries -Wconversion $addflagsCuda"
+    	FCFLAGS="-O0 -g -fbacktrace -fcheck=all -fsanitize=address -fno-omit-frame-pointer -finit-real=nan -ffpe-trap=zero,overflow -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fallow-invalid-boz -fno-range-check -Wall -Wextra -Warray-temporaries -Wconversion $addflagsCuda"
     fi
 fi
 
