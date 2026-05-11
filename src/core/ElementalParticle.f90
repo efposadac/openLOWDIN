@@ -86,7 +86,7 @@ contains
     if ( .not. existFile ) call ElementalParticle_exception( ERROR, "LOWDIN library not found!! please export lowdinvars.sh file.", "In ElementalParticle at load function.")
 
     !! Open library
-    open(unit=10, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), status="old", form="formatted" )
+    open(unit=11, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), status="old", form="formatted" )
 
     !! Read information
     symbol = "NONE"
@@ -117,7 +117,7 @@ contains
           
        end if
 
-       read(10,NML=particle, iostat=stat)
+       read(11,NML=particle, iostat=stat)
 
        if (stat > 0 ) then
 
@@ -139,7 +139,7 @@ contains
     !! Debug information.
     ! call ElementalParticle_show(this)
 
-    close(10)
+    close(11)
        
     !! Done
     
