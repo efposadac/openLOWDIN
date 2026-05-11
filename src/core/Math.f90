@@ -172,7 +172,7 @@ contains
     integer, intent(in) :: i
     logical:: output
 
-    output = .not.btest(0,i)
+    output = .not.btest(i,0)
 
   end function Math_isEven
 
@@ -183,7 +183,7 @@ contains
     integer, intent(in) :: i
     logical:: output
 
-    output = btest(0,i)
+    output = btest(i,0)
 
   end function Math_isOdd
 
