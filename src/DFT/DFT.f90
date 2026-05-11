@@ -169,6 +169,10 @@ program DFT
   end do
   close(unit=excUnit)
 
+  deallocate( densityMatrix , numberOfParticles, &
+       exchangeCorrelationMatrix)
+  deallocate(grids)
+  deallocate(gridsCommonPoints)
   
 end program DFT
 

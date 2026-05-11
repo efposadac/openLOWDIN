@@ -91,6 +91,8 @@ contains
     ! call Stopwatch_stop(lowdin_stopwatch)     
     ! write(*,"(A,F10.3,A4)") "** Building and writing grids and atomic orbitals:", lowdin_stopwatch%enlapsetTime ," (s)"
 
+    call Functional_destroyFunctionals(Functionals,numberOfSpecies)
+
   end subroutine DensityFunctionalTheory_buildSCFGrid
 
   subroutine DensityFunctionalTheory_buildFinalGrid(finalGrids,finalGridsCommonPoints,system)
@@ -129,6 +131,8 @@ contains
     else
        call GridManager_atomicOrbitals(finalGrids,finalGridsCommonPoints,"COMPUTE","FINAL" )
     end if
+
+    call Functional_destroyFunctionals(Functionals,numberOfSpecies)
 
   end subroutine DensityFunctionalTheory_buildFinalGrid
 
@@ -186,6 +190,8 @@ contains
 
     ! call Stopwatch_stop(lowdin_stopwatch)    
     ! write(*,"(A,F10.3,A4)") "** Calculating energy and potential:", lowdin_stopwatch%enlapsetTime ," (s)"
+    call Functional_destroyFunctionals(Functionals,numberOfSpecies)
+
   end subroutine DensityFunctionalTheory_SCFDFT
 
   subroutine DensityFunctionalTheory_finalDFT(finalGrids,finalGridsCommonPoints,densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
@@ -295,6 +301,8 @@ contains
 
     ! call Stopwatch_stop(lowdin_stopwatch)    
     ! write(*,"(A,F10.3,A4)") "** Calculating energy and potential:", lowdin_stopwatch%enlapsetTime ," (s)"
+    call Functional_destroyFunctionals(Functionals,numberOfSpecies)
+
     if(CONTROL_instance%PRINT_LEVEL .gt. 0 ) print *, "END DFT FINAL GRID INTEGRATION"
 
   end subroutine DensityFunctionalTheory_finalDFT

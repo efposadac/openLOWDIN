@@ -1505,8 +1505,11 @@ contains
   subroutine xc_f03_func_end(p)
     type(xc_f03_func_t), intent(inout) :: p
 
-    call xc_func_end(p%ptr)
-    call xc_func_free(p%ptr)
+    if (c_associated(p%ptr)) then
+      call xc_func_end(p%ptr)
+      call xc_func_free(p%ptr)
+      p%ptr = c_null_ptr  ! CRITICAL: Nullify so a second call does nothing
+    end if 
 
   end subroutine xc_f03_func_end
 

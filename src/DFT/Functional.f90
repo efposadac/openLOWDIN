@@ -44,6 +44,7 @@ module Functional_
   public :: &
        Functional_createFunctionals, &
        Functional_constructor, &
+       Functional_destroyFunctionals, &
        Functional_show, &
        Functional_getExchangeFraction, &
        Functional_libxcEvaluate, &
@@ -105,7 +106,6 @@ contains
 
   end subroutine Functional_createFunctionals
 
-  
   subroutine Functional_constructor(this, speciesID, otherSpeciesID, molSys)
     implicit none
     type(Functional) :: this 
@@ -302,6 +302,28 @@ contains
     end if
 
   end subroutine Functional_constructor
+
+  subroutine Functional_destroyFunctionals(these,numberOfSpecies)
+    implicit none
+    type(Functional) :: these(:,:)
+    integer :: numberOfSpecies
+    integer :: speciesID, otherSpeciesID
+
+    do speciesID=1, numberOfSpecies
+      call xc_f03_func_end( these(speciesID,speciesID)%xc1)
+      !call xc_f03_func_end( these(speciesID,speciesID)%xc2)
+    end do
+
+    do speciesID=1, numberOfSpecies-1
+      do otherSpeciesID=speciesID+1, numberOfSpecies  
+        call xc_f03_func_end( these(speciesID,otherSpeciesID)%xc1)
+        !call xc_f03_func_end( these(speciesID,otherSpeciesID)%xc1)
+      end do
+    end do
+    
+  end subroutine Functional_destroyFunctionals
+
+
 
   subroutine Functional_show(these)
     implicit none
