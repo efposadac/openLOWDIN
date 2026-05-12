@@ -324,7 +324,7 @@ contains
             end do
   
             call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-                   1_8, int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &  
+                   1_4, int(CONTROL_instance%NUMBER_OF_CI_STATES,4), &  
                    eigenVectors = CIcore_instance%eigenVectors, &
                    flags = SYMMETRIC)
   
@@ -388,7 +388,7 @@ contains
             !$ write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
     
           call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-               1_8, int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &  
+               1_4, int(CONTROL_instance%NUMBER_OF_CI_STATES,4), &  
                eigenVectors = CIcore_instance%eigenVectors, &
                flags = SYMMETRIC)
   

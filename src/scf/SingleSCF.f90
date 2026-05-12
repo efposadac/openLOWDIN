@@ -202,7 +202,7 @@ contains
 
     !! Calcula valores y vectores propios de matriz de Fock transformada.
     call Matrix_eigen_dsyevr( fockMatrixTransformed, wfObject%molecularOrbitalsEnergy, &
-         1_8, numberOfContractions, &
+         1_4, int(numberOfContractions,4), &
          wfObject%waveFunctionCoefficients, SYMMETRIC )
 
     !! Calcula los  vectores propios para matriz de Fock       
