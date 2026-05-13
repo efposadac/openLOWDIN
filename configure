@@ -270,7 +270,7 @@ if [ "$FLAGS" = "3" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
     	FCFLAGS="-O0 -g -traceback -check bounds -fpic -qopenmp -fpp -Dintel -free -debug extended $addflagsCuda " 
     else
-    	FCFLAGS="-Og -g -fbacktrace -fcheck=bounds -fstack-arrays -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fno-range-check -Wunused $addflagsCuda"
+        FCFLAGS="-O2 -g -fbacktrace -fcheck=bounds -fstack-arrays -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fno-range-check -Wunused $addflagsCuda"
     fi
 fi
 
