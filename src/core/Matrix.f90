@@ -120,12 +120,12 @@ module Matrix_
   !> enum Matrix_type {
   !! @todo Hay que definir bien cules son los tipos de matrices a utilizar
   !! @todo Hay que intentar que sea posible mezclarlar, por ejemplo utilizando codigos binarios para su definicion
-  integer, parameter, public :: SYMMETRIC		= 1
-  integer, parameter, public :: DIAGONAL		= 2
-  integer, parameter, public :: BIDIAGONAL		= 3
-  integer, parameter, public :: TRIDIAGONAL		= 4
-  integer, parameter, public :: TRIANGULAR		= 5
-  integer, parameter, public :: UNKNOWN			= 6
+  integer, parameter, public :: SYMMETRIC     = 1
+  integer, parameter, public :: DIAGONAL      = 2
+  integer, parameter, public :: BIDIAGONAL    = 3
+  integer, parameter, public :: TRIDIAGONAL   = 4
+  integer, parameter, public :: TRIANGULAR    = 5
+  integer, parameter, public :: UNKNOWN       = 6
   !> }
 
   public :: &
@@ -1721,10 +1721,8 @@ contains
 
           if (present ( dm ) ) then
              eigenvectors%values = m
-          else	
-
+          else
              eigenVectors%values=this%values
-             
           end if
 
           !! Calcula valores propios de la matriz de entrada
@@ -1813,10 +1811,8 @@ contains
 
           if (present ( dm ) ) then
              eigenvectors%values = m
-          else	
-
+          else
              eigenVectors%values=this%values
-             
           end if
 
           !! Calcula valores propios de la matriz de entrada
@@ -1916,7 +1912,7 @@ contains
     if (allocated (iwork) ) deallocate (iwork)
     allocate( iwork( 5*matrixSize ) )
 
-    call omp_set_num_threads(omp_get_max_threads())
+!    call omp_set_num_threads(omp_get_max_threads())
 !    call omp_set_num_threads (OMP_GET_NUM_THREADS())
 
     if( flags == SYMMETRIC ) then
@@ -2166,7 +2162,7 @@ contains
 
          lengthWorkSpace = int(workSpace(1))
          lengthiwork = int(iwork(1))
-         
+
          !! Crea el vector de trabajo
          if (allocated(workSpace)) deallocate(workSpace)
          allocate( workSpace( lengthWorkSpace ) )
@@ -2195,8 +2191,7 @@ contains
               iwork, &
               lengthiwork, &
               infoProcess )
-
-      else
+      else ! no eigenvectors
 
          !! Crea la matriz que almacenara los vectores propios
          call Matrix_copyConstructor( eigenVectorsTmp, this )
@@ -2278,16 +2273,16 @@ contains
         end if
       end do
 
-      !! libera memoria separada para vector de trabajo
-      deallocate(workSpace)
-      deallocate( isuppz )
-      deallocate( iwork )
-
     end if
 
-    !!RESTORE your strict settings immediately after
-    call ieee_set_halting_mode(ieee_divide_by_zero, halt_zero)
-    call ieee_set_halting_mode(ieee_overflow, halt_overflow)
+    !! deallocate work memory
+    deallocate( workSpace )
+    deallocate( isuppz )
+    deallocate( iwork )
+
+    !!RESTORE IEEE settings
+   call ieee_set_halting_mode(ieee_divide_by_zero, halt_zero)
+   call ieee_set_halting_mode(ieee_overflow, halt_overflow)
 
   end subroutine Matrix_eigen_dsyevr
 
@@ -3274,7 +3269,7 @@ contains
     tmp1%values = m
 
     call Matrix_eigen(tmp1, eigenValues, eigenVectors, SYMMETRIC, m,dm )
-   	m = eigenVectors%values	
+    m = eigenVectors%values
 
     eig(1:dm) = eigenValues%values(1:dm)
 

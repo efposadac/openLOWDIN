@@ -95,7 +95,6 @@ contains
     integer :: i,j,m, numberOfSpecies
     integer :: a, ms
     real(8) :: timeA, timeB
-    real(8), allocatable :: eigenValues(:) 
     real(8) :: ecorr
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
@@ -166,18 +165,6 @@ contains
     write (*,*) ""
     write (*,*) " "
 
-    !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
-    write (*,*) "Getting transformed integrals..."
-    call CImod_getTransformedIntegrals()
-    write (*,*) " "
-
-    !! setting the requested CI level
-    write (*,*) "Setting CI level..."
-    call CIOrder_settingCILevel()
-
-    !! just a rough estimate of the number of configurations in FCI. Just for ino
-    call CIOrder_estimate_FCI_numberOfConf()
-
     !! printing header of the diagonalizers
     select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
@@ -190,15 +177,14 @@ contains
         write(*,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
 
       case ("DSYEVX")
-
         write(*,*) ""
         write(*,*) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
         write(*,*) "LAPACK (Linear Algebra Package), standard software library for numerical linear algebra  "
         write(*,*) "https://netlib.org/lapack/"
         write(*,*) "DSYEVX computes the eigenvalues and, optionally, the left and/or right eigenvectors for SY matrices"
         write (6,*) ""
-      case ("DSYEVR")
 
+      case ("DSYEVR")
         write(*,*) ""
         write(*,*) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
         write(*,*) "LAPACK (Linear Algebra Package), standard software library for numerical linear algebra  "
@@ -206,19 +192,24 @@ contains
         write(*,*) "DSYEVR computes the eigenvalues and, optionally, the left and/or right eigenvectors for SY matrices"
         write (6,*) ""
 
-
       case default
 
         call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented")
 
       end select
 
-    !! allocating eigenvalues array
-    write (*,*) ""
-    call Vector_constructor ( CIcore_instance%eigenvalues, &
-                              int(CONTROL_instance%NUMBER_OF_CI_STATES,4), 0.0_8 )
 
-    !! start the calculation
+    !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
+    write (*,*) "Getting transformed integrals..."
+    call CImod_getTransformedIntegrals()
+    write (*,*) " "
+
+    !! setting the requested CI level
+    write (*,*) "Setting CI level..."
+    call CIOrder_settingCILevel()
+
+    !! just a rough estimate of the number of configurations in FCI. Just for info
+    call CIOrder_estimate_FCI_numberOfConf()
 
     !! -------------------------------- Standard CI -------------------------------------
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
@@ -235,7 +226,7 @@ contains
         call CIJadamilu_buildCouplingOrderList()
       endif
 
-      write (*,*) "Building diagonal..."
+      write (*,*) "Building diagonal..." !! and get number of configurations
       call CIDiag_buildDiagonal()
 
       if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU"  ) then
@@ -244,6 +235,26 @@ contains
         call CIInitial_buildInitialCIMatrix2()
       endif
 
+      !! allocating eigenValues array
+      select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+
+        case ("JADAMILU")
+          call Vector_constructor ( CIcore_instance%eigenValues, &
+                                 int(CONTROL_instance%NUMBER_OF_CI_STATES,4), 0.0_8 )
+        case ("DSYEVX")
+          call Vector_constructor (CIcore_instance%eigenValues, &
+           int(CIcore_instance%numberOfConfigurations,4), 0.0_8 )
+
+        case ("DSYEVR")
+          call Vector_constructor (CIcore_instance%eigenValues, &
+           int(CIcore_instance%numberOfConfigurations,4), 0.0_8 )
+
+        case default
+          call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented")
+
+      end select
+
+      !! allocating eigenVector array
       call Matrix_constructor (CIcore_instance%eigenVectors, &
            int(CIcore_instance%numberOfConfigurations,8), &
            int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
@@ -285,7 +296,7 @@ contains
   
             call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
                int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
-               CIcore_instance%eigenvalues, &
+               CIcore_instance%eigenValues, &
                CIcore_instance%eigenVectors, timeA, timeB)
   
             !! restore the original diagonal
@@ -296,7 +307,7 @@ contains
           case ("DSYEVX")
   
             write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-            float((CIcore_instance%numberOfConfigurations**2 + 2 )*8)/(1024**3) , " GB"
+            float((CIcore_instance%numberOfConfigurations**2 + 3 )*8)/(1024**3) , " GB"
             write (6,*) ""
 
             call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
@@ -306,7 +317,7 @@ contains
               CIcore_instance%hamiltonianMatrix%values(a,a) = CIcore_instance%hamiltonianMatrix%values(a,a) + ecorr
             end do
   
-            call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
+            call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
                int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
                eigenVectors = CIcore_instance%eigenVectors, &
                flags = int(SYMMETRIC,4))
@@ -314,7 +325,7 @@ contains
           case ("DSYEVR")
 
             write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-            float((CIcore_instance%numberOfConfigurations**2 + 2 )*8)/(1024**3) , " GB"
+            float((CIcore_instance%numberOfConfigurations**2 + 3 )*8)/(1024**3) , " GB"
             write (6,*) ""
 
             call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
@@ -323,15 +334,15 @@ contains
               CIcore_instance%hamiltonianMatrix%values(a,a) = CIcore_instance%hamiltonianMatrix%values(a,a) + ecorr
             end do
   
-            call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
+            call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
                    1_4, int(CONTROL_instance%NUMBER_OF_CI_STATES,4), &  
                    eigenVectors = CIcore_instance%eigenVectors, &
                    flags = SYMMETRIC)
   
           end select
   
-          ecorr = CIcore_instance%eigenvalues%values(1)   - HartreeFock_instance%totalEnergy
-          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenvalues%values(1) 
+          ecorr = CIcore_instance%eigenValues%values(1)   - HartreeFock_instance%totalEnergy
+          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenValues%values(1)
           CIcore_instance%DDCISDTiming%values(i) = timeB - timeA
   
           write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , timeB - timeA
@@ -365,7 +376,7 @@ contains
   
           call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
                int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
-               CIcore_instance%eigenvalues, &
+               CIcore_instance%eigenValues, &
                CIcore_instance%eigenVectors, timeA, timeB )
   
           if ( CONTROL_instance%CI_SAVE_EIGENVECTOR ) then 
@@ -377,7 +388,7 @@ contains
           call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
           !$ write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
     
-          call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
+          call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
                  int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
                  eigenVectors = CIcore_instance%eigenVectors, &
                  flags = int(SYMMETRIC,4))
@@ -387,7 +398,7 @@ contains
           call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
             !$ write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
     
-          call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
+          call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
                1_4, int(CONTROL_instance%NUMBER_OF_CI_STATES,4), &  
                eigenVectors = CIcore_instance%eigenVectors, &
                flags = SYMMETRIC)
@@ -408,11 +419,13 @@ contains
         write (*,*) "Allocating arrays for SCI ..."
         call CISCI_constructor( CIcore_instance%numberOfConfigurations )
 
+        call Vector_constructor ( CIcore_instance%eigenValues, &
+                                 int(CONTROL_instance%NUMBER_OF_CI_STATES,4), 0.0_8 )
+
         call Matrix_constructor (CIcore_instance%eigenVectors, &
              int(CIcore_instance%numberOfConfigurations,8), &
              int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
 
-        !!call CISCI_run() old version. still used for developing purposes
         call CISCI_run( CIcore_instance%eigenVectors )
 
         call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )
@@ -470,7 +483,6 @@ contains
     real(8) :: otherSpeciesCharge
 
     integer :: ssize1, ssize2
-    type(Matrix) :: externalPotential
 
     character(50) :: wfnFile
     character(50) :: arguments(20)
@@ -595,6 +607,7 @@ contains
      end do
      close (wfnUnit)
      call Matrix_destructor (hcoreMatrix)
+     call Matrix_destructor (coefficients)
 
   end subroutine CImod_getTransformedIntegrals
 
@@ -748,8 +761,7 @@ contains
 
     if ( CIcore_instance%isInstanced ) then
 
-      CIcorrection = CIcore_instance%eigenvalues%values(1) - &
-               HartreeFock_instance%totalEnergy
+      CIcorrection = CIcore_instance%eigenValues%values(1) - HartreeFock_instance%totalEnergy
 
       write(*,"(A)") " SUMMARY OF                       "
       write(*,"(A)") " POST HARTREE-FOCK CALCULATION    "
@@ -761,7 +773,7 @@ contains
       write (6,"(T4,A34, F25.12)") "HF ENERGY = ", HartreeFock_instance%totalEnergy
       write (6,"(T4,A34, F25.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
       do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-       write (6,"(T18,A7,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenvalues%values(i)
+       write (6,"(T18,A7,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenValues%values(i)
       end do
       write(*,"(A)") ""
 
@@ -787,7 +799,7 @@ contains
         write (6,"(T2,A34)") "EPSTEIN-NESBET PT2 CORRECTION:"
         write(*,"(A)") ""
         write (6,"(T8,A19, F25.12)") "E_PT2 :", CISCI_instance%PT2energy 
-        write (6,"(T8,A19, F25.12)") "E_SCI + E_PT2 :",  CIcore_instance%eigenvalues%values(1) + CISCI_instance%PT2energy 
+        write (6,"(T8,A19, F25.12)") "E_SCI + E_PT2 :",  CIcore_instance%eigenValues%values(1) + CISCI_instance%PT2energy
       endif
 
       MR = 0.0_8
@@ -840,8 +852,8 @@ contains
     if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
 
       allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
-      allocate ( ciLevel ( numberOfSpecies ) )
       allocate ( indexConf ( numberOfSpecies ) )
+      allocate ( ciLevel ( numberOfSpecies ) )
       ciLevel = 0
       CIcore_instance%allIndexConf = 0
       indexConf = 0
@@ -1540,6 +1552,15 @@ contains
                 write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_instance%species(species)%symbol) , "natural orbital occupations", sum(densityEigenValues%values)
 
                 write(*,*) " End of natural orbitals in state: ", state, " for: ", trim(MolecularSystem_instance%species(species)%symbol)
+
+
+                call Vector_destructor ( auxdensityEigenValues )
+                call Matrix_destructor ( auxdensityEigenVectors )
+                call Vector_destructor ( densityEigenValues )
+                call Matrix_destructor ( densityEigenVectors )
+
+
+
              end do
           end do
 
@@ -1551,6 +1572,25 @@ contains
        end if
    
       close(unit)
+
+      do species=1, numberOfSpecies
+        do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+          call Matrix_destructor ( atomicDensityMatrix(species,state) )
+          call Matrix_destructor ( ciDensityMatrix(species,state) )
+        enddo
+
+        call Matrix_destructor( coefficients (species))
+        call Matrix_destructor( kineticMatrix(species))
+        call Matrix_destructor( attractionMatrix(species))
+        call Matrix_destructor( externalPotMatrix(species))
+
+         do n=1, CIcore_instance%nproc
+            call Matrix_destructor ( auxDensMatrix(species,n) )
+         enddo
+
+      enddo
+
+      deallocate( coefficients, atomicDensityMatrix, ciDensityMatrix )
 
 
       if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
@@ -1569,8 +1609,6 @@ contains
         deallocate ( orbB )
         deallocate ( couplingS )
       endif
-
-      deallocate( coefficients, atomicDensityMatrix, ciDensityMatrix )
 
       !$  timeDB = omp_get_wtime()
       !$  write(*,"(A,F10.4,A4)") "** TOTAL Elapsed Time for Building density matrices: ", timeDB - timeDA ," (s)"
@@ -1624,17 +1662,20 @@ contains
       if (allocated(CIcore_instance%configurations)) deallocate(CIcore_instance%configurations)
     end if
 
+
+    call Vector_destructor8 ( CIcore_instance%diagonalHamiltonianMatrix2 )
     call Matrix_destructor(CIcore_instance%hamiltonianMatrix)
     call Vector_destructorInteger (CIcore_instance%numberOfOccupiedOrbitals)
     call Vector_destructorInteger (CIcore_instance%numberOfOrbitals)
     call Vector_destructor (CIcore_instance%lambda)
 
-    deallocate(CIcore_instance%twoCenterIntegrals )
-    deallocate(CIcore_instance%fourCenterIntegrals )
+    call Matrix_destructor (CIcore_instance%eigenVectors)
+    call Vector_destructor (CIcore_instance%eigenValues)
 
-    deallocate(CIcore_instance%twoIndexArray )
-    deallocate(CIcore_instance%fourIndexArray )
-
+    if ( allocated(CIcore_instance%twoCenterIntegrals ) ) deallocate(CIcore_instance%twoCenterIntegrals )
+    if ( allocated(CIcore_instance%fourCenterIntegrals ) ) deallocate(CIcore_instance%fourCenterIntegrals )
+    if ( allocated(CIcore_instance%twoIndexArray ) ) deallocate(CIcore_instance%twoIndexArray )
+    if ( allocated(CIcore_instance%fourIndexArray ) ) deallocate(CIcore_instance%fourIndexArray )
 
     CIcore_instance%isInstanced=.false.
 
