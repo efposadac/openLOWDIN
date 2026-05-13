@@ -19,4 +19,6 @@ utilities/erkale/build/
 utilities/erkale/erkale/
 utilities/erkale/hdf5/
 utilities/erkale/sources/
-
+.vscode/
+*.code-workspace
+ 
