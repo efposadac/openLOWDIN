@@ -184,11 +184,11 @@ contains
     this%axisLabel(1:3)=""
     this%minValue=0.0_8
     this%minValue=0.0_8
-    call Vector_constructor(this%point1, 3, 0.0_8 )
-    call Vector_constructor(this%point2, 3, 0.0_8 )
-    call Vector_constructor(this%point3, 3, 0.0_8 )
-    call Vector_constructor(this%step1, 3, 0.0_8 )
-    call Vector_constructor(this%step2, 3, 0.0_8 )
+    call Vector_constructor(this%point1, 3_8, 0.0_8 )
+    call Vector_constructor(this%point2, 3_8, 0.0_8 )
+    call Vector_constructor(this%point3, 3_8, 0.0_8 )
+    call Vector_constructor(this%step1, 3_8, 0.0_8 )
+    call Vector_constructor(this%step2, 3_8, 0.0_8 )
 
     if( present(state)) this%state=state
     if( present(orbital)) this%orbital=orbital
@@ -776,8 +776,8 @@ contains
 
        arguments(1) = "COEFFICIENTS"
        coefficientsOfcombination = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+            columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
        !! Build a vector of labels of contractions
        call MolecularSystem_changeOrbitalOrder(coefficientsOfcombination,l,"LOWDIN","GAMESS")
@@ -1132,8 +1132,8 @@ contains
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(specieID)
        arguments(2) = MolecularSystem_getNameOfSpecies(specieID)
        arguments(1) = "COEFFICIENTS"
-       coefficientsOfcombination = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+       coefficientsOfcombination = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+            columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
        do i =1, numberOfContractions
           do j =1, numberOfContractions
@@ -1339,7 +1339,7 @@ contains
        arguments(2) = MolecularSystem_getNameOfSpecies(specieID)
 
        arguments(1) = "ORBITALS"
-       call Vector_getFromFile( elementsNum = numberOfContractions, &
+       call Vector_getFromFile( elementsNum = int(numberOfContractions,8) , &
             unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
             output = energyOfMolecularOrbital )
 
@@ -1423,11 +1423,11 @@ contains
        arguments(2) = MolecularSystem_getNameOfSpecies(l)
        arguments(1) = "COEFFICIENTS"
        coefficientsOfcombination = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-            columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+            Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+            columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
        arguments(1) = "ORBITALS"
-       call Vector_getFromFile( elementsNum = numberOfContractions, &
+       call Vector_getFromFile( elementsNum = int(numberOfContractions,8) , &
             unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
             output = energyOfMolecularOrbital )
 

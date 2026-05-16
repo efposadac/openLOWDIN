@@ -31,7 +31,7 @@ module Grid_
      type(MolecularSystem), pointer :: molSys
      
      character(30) :: nameOfSpecies
-     integer :: totalSize
+     integer(8) :: totalSize
      type(Matrix) :: points !! x,y,z,weight
      type(Matrix), allocatable :: orbitalsWithGradient(:) !!x,y,z per orbital
      type(Vector) :: potential
@@ -65,7 +65,8 @@ contains
     
     type(Matrix) :: atomicGrid, molecularGrid
     integer :: numberOfSpecies, numberOfCenters
-    integer :: radialSize, angularSize, numberOfShells, initialGridSize, molecularGridSize
+    integer :: radialSize, angularSize, numberOfShells, initialGridSize
+    integer(8) :: molecularGridSize
     integer :: particleID, particleID2, particleID3, point, i
     real(8) :: cutoff, sum, r, w, mu
     real(8), allocatable :: origins(:,:), distance(:),factor(:)
@@ -267,7 +268,7 @@ contains
     ! Felix Moncada, 2017
     implicit none
     type(matrix) :: molecularGrid, finalGrid !molecular=input, final=output
-    integer :: molecularGridSize, finalGridSize
+    integer(8) :: molecularGridSize, finalGridSize
     integer :: speciesID, particleID
     integer :: weightCutOff
 

@@ -132,7 +132,7 @@ contains
     
     call Matrix_constructor(output, 3_8, 3_8, 0.0_8)
     call Matrix_constructor(inertiaMatrix, 3_8, 3_8, 0.0_8)
-    call Vector_constructor(eigenValues,3,0.0_8)
+    call Vector_constructor(eigenValues,int(3,8) ,0.0_8)
     
     call MecanicProperties_getCenterOfMass(this)
     
@@ -231,7 +231,7 @@ contains
     integer :: i
     integer :: j
 
-    call Vector_constructor(coordinates, 3*this%numberOfPoints)
+    call Vector_constructor(coordinates, int(3*this%numberOfPoints,8) )
 
     !!**************************************************************************
     !!   Calcula el centro de masa unitario y desplaza la coordenadas
@@ -417,7 +417,7 @@ contains
     
     totallyAsymmetricTensor = MecanicProperties_getTotallyAsymmetricTensor(this)
     
-    call Vector_constructor(coordinates, 3*this%numberOfPoints)
+    call Vector_constructor(coordinates, int( 3*this%numberOfPoints, 8)  )  
     call Matrix_constructor(output,3_8*this%numberOfPoints,3_8*this%numberOfPoints,0.0_8)
     call Matrix_constructor(molecularInertiaTensor,3_8,3_8,0.0_8)
     

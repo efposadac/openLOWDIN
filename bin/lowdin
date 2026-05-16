@@ -43,7 +43,6 @@ printOut="F"
 saveWfn="F"
 singleton="F"
 version=".x"
-runTest="F"
 keepScratch="F"
 
 while getopts   "i:pt:sv:n:hwk" OPTNAME

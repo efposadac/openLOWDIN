@@ -35,7 +35,7 @@ contains
     if ( allocated( unoccupiedCode ) ) deallocate( unoccupiedCode )
     allocate (unoccupiedCode ( numberOfSpecies ) )
 
-    call Vector_constructorInteger (order, numberOfSpecies, 0 )
+    call Vector_constructorInteger (order, int(numberOfSpecies,8) , 0 )
     order%values = 0
 
     s = 0
@@ -50,8 +50,8 @@ contains
 
       do cilevel = 1,CIcore_instance%CILevel(i) 
 
-        call Vector_constructor (occupiedCode(i), cilevel, real(CIcore_instance%numberOfCoreOrbitals%values(i),8) )
-        call Vector_constructor (unoccupiedCode(i), cilevel, 0.0_8)
+        call Vector_constructor (occupiedCode(i), int(cilevel,8), real(CIcore_instance%numberOfCoreOrbitals%values(i),8) )
+        call Vector_constructor (unoccupiedCode(i), int(cilevel,8), 0.0_8)
 
         unoccupiedCode(i)%values = CIcore_instance%numberOfOccupiedOrbitals%values(i)  ! it's also a lower bound in a for loop
 
@@ -87,10 +87,10 @@ contains
       end if
 
       !! zero, build the reference
-      call Vector_constructorInteger (order, numberOfSpecies, 0 )
+      call Vector_constructorInteger (order, int(numberOfSpecies,8) , 0 )
 
-      call Vector_constructor (occupiedCode(i), 1, 0.0_8) !! initialize in zero
-      call Vector_constructor (unoccupiedCode(i), 1, 0.0_8)
+      call Vector_constructor (occupiedCode(i), 1_8, 0.0_8) !! initialize in zero
+      call Vector_constructor (unoccupiedCode(i), 1_8, 0.0_8)
 
       c = 0 
       c = c + 1
@@ -100,11 +100,11 @@ contains
       !! now build the strings
       do cilevel = 1,CIcore_instance%CILevel(i) 
 
-        call Vector_constructorInteger (order, numberOfSpecies, 0 )
+        call Vector_constructorInteger (order, int(numberOfSpecies,8 ) , 0 )
         order%values(i) = cilevel
 
-        call Vector_constructor (occupiedCode(i), cilevel, real(CIcore_instance%numberOfCoreOrbitals%values(i),8) )
-        call Vector_constructor (unoccupiedCode(i), cilevel, 0.0_8)
+        call Vector_constructor (occupiedCode(i), int(cilevel, 8), real(CIcore_instance%numberOfCoreOrbitals%values(i),8) )
+        call Vector_constructor (unoccupiedCode(i), int(cilevel, 8), 0.0_8)
 
         unoccupiedCode(i)%values = CIcore_instance%numberOfOccupiedOrbitals%values(i)  ! it's also a lower bound in a for loop
 

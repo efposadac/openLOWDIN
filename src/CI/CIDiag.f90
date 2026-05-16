@@ -65,7 +65,7 @@ contains
 
     end do
 
-    call Vector_constructor8 ( CIcore_instance%diagonalHamiltonianMatrix2, &
+    call Vector_constructor ( CIcore_instance%diagonalHamiltonianMatrix2, &
                               numberOfConfigurations, 0.0_8 ) 
 
     CIcore_instance%numberOfConfigurations = numberOfConfigurations 

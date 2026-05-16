@@ -374,7 +374,7 @@ recursive  function CIOrder_getIndexSize(s, c, auxcilevel) result (os)
   !! Estimate the number of configurations for FCI
   function CIOrder_log_combinations(n, r ) result(log_combinations)
     implicit none
-    integer, intent(in) :: n, r !! basis size, number of particles
+    integer(8), intent(in) :: n, r !! basis size, number of particles
     real(kind=16) :: log_combinations, log_fact_n, log_fact_r, log_fact_n_r
 
     if (r < 0 .or. r > n) then

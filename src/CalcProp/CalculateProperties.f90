@@ -151,8 +151,8 @@ contains
           auxstring="1" !ground state
           arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
           arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
-          this%densityMatrix(speciesID)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfcontractions,4), &
-               columns= int(numberOfcontractions,4), binary=.false., arguments=arguments(1:2))
+          this%densityMatrix(speciesID)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfcontractions,8), &
+               columns= int(numberOfcontractions,8), binary=.false., arguments=arguments(1:2))
        end do
        close(occupationsUnit)     
     else if( existFile) then
@@ -163,8 +163,8 @@ contains
                " in the HF/KS ground state"
           arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
           arguments(1) = "DENSITY"
-          this%densityMatrix(speciesID) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          this%densityMatrix(speciesID) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+               columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
        end do
        close(wfnUnit)     
     else
@@ -182,45 +182,45 @@ contains
           ! Overlap matrix
           arguments(2) = MolecularSystem_getNameOfSpecies(speciesID)
           arguments(1) = "OVERLAP"
-          this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,4), &
-               columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          this%overlapMatrix(speciesID) = Matrix_getFromFile(unit=integralsUnit, rows= int(numberOfContractions,8), &
+               columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
           !! Load moment Matrices
           arguments(1) = "MOMENTX0"    
-          this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,1) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
           arguments(1) = "MOMENTY0"    
-          this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,2) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
           arguments(1) = "MOMENTZ0"    
-          this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,3) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
           !! Load moment Matrices
           arguments(1) = "MOMENTXX"    
-          this%momentMatrices(speciesID,4) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,4) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
           arguments(1) = "MOMENTYY"    
-          this%momentMatrices(speciesID,5) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,5) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
           arguments(1) = "MOMENTZZ"    
-          this%momentMatrices(speciesID,6) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,6) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
           !! Load moment Matrices
           arguments(1) = "MOMENTXY"    
-          this%momentMatrices(speciesID,7) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,7) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
           arguments(1) = "MOMENTXZ"    
-          this%momentMatrices(speciesID,8) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,8) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
 
           arguments(1) = "MOMENTYZ"    
-          this%momentMatrices(speciesID,9) = Matrix_getFromFile(rows=numberOfContractions, columns=numberOfContractions, &
+          this%momentMatrices(speciesID,9) = Matrix_getFromFile(rows=int(numberOfContractions,8), columns=int(numberOfContractions,8), &
                unit=integralsUnit, binary=.true., arguments=arguments(1:2))
        end do
        close(integralsUnit)

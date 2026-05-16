@@ -123,10 +123,10 @@ contains
     open(unit = nociUnit, file=trim(nociFile), status="old", form="unformatted")
 
     arguments(1) = "NOCI-NUMBEROFSPECIES"
-    call Vector_getFromFileInteger(1,unit=nociUnit, binary=.true., value=numberOfSpecies, arguments=arguments(1:1) )
+    call Vector_getFromFileInteger(1_8,unit=nociUnit, binary=.true., value=numberOfSpecies, arguments=arguments(1:1) )
 
     arguments(1) = "NOCI-NUMBEROFDISPLACEDSYSTEMS"
-    call Vector_getFromFileInteger(1,unit=nociUnit, binary=.true., value=numberOfDisplacedSystems, arguments=arguments(1:1) )
+    call Vector_getFromFileInteger(1_8,unit=nociUnit, binary=.true., value=numberOfDisplacedSystems, arguments=arguments(1:1) )
 
     allocate(auxCoefficients(numberOfSpecies))           
     allocate(sysListCur(numberOfDisplacedSystems,numberOfSpecies),sysListRef(numberOfDisplacedSystems,numberOfSpecies))
@@ -136,17 +136,17 @@ contains
     allocate(franckCondonMatrix(numberOfSpecies),transitionDipoleMatrix(numberOfSpecies+1,3),refCurOverlapMatrix(numberOfSpecies),refCurMomentMatrix(numberOfSpecies,3))
     
     arguments(1) = "NOCI-CONFIGURATIONCOEFFICIENTS"
-    ciCoefficients = Matrix_getFromFile(numberOfDisplacedSystems,numberOfDisplacedSystems,nociUnit,binary=.true.,arguments=arguments(1:1) )       
+    ciCoefficients = Matrix_getFromFile(int(numberOfDisplacedSystems,8),int(numberOfDisplacedSystems,8),nociUnit,binary=.true.,arguments=arguments(1:1) )       
     
     arguments(1:1) = "NOCI-CONFIGURATIONENERGIES"
-    call Vector_getFromFile(numberOfDisplacedSystems, nociUnit, output=ciEnergies, binary=.true., arguments=arguments(1:1) )
+    call Vector_getFromFile(int(numberOfDisplacedSystems,8), nociUnit, output=ciEnergies, binary=.true., arguments=arguments(1:1) )
     
     arguments(1) = "MERGEDCOEFFICIENTS"
     do speciesID=1, numberOfSpecies
        numberOfContractions=molecularSystem_getTotalNumberOfContractions(speciesID)
        dim2=max(MolecularSystem_getTotalNumberOfContractions(speciesID),MolecularSystem_getOcupationNumber(speciesID))
        arguments(2) = trim(MolecularSystem_instance%species(speciesID)%name)
-       auxCoefficients(speciesID) = Matrix_getFromFile(numberOfContractions,dim2,nociUnit,binary=.true.,arguments=arguments(1:2) )       
+       auxCoefficients(speciesID) = Matrix_getFromFile(int(numberOfContractions,8),int(dim2,8),nociUnit,binary=.true.,arguments=arguments(1:2) )       
     end do
 
     do sysI=1, numberOfDisplacedSystems
@@ -155,7 +155,7 @@ contains
           write(auxString,*) sysI
           arguments(1) = "SYSBASISLIST"//trim(auxString) 
           arguments(2) = trim(MolecularSystem_instance%species(speciesID)%name)
-          call Vector_getFromFileInteger(numberOfContractions, nociUnit, output=sysListRef(sysI,speciesID), binary=.true., arguments=arguments(1:2) )
+          call Vector_getFromFileInteger(int(numberOfContractions,8), nociUnit, output=sysListRef(sysI,speciesID), binary=.true., arguments=arguments(1:2) )
        end do
     end do
 
@@ -186,7 +186,7 @@ contains
        ! call Vector_showInteger(orbListI(speciesID))
        do sysI=1, this%numberOfDisplacedSystems
           call Vector_copyConstructorInteger(auxIVector,this%sysBasisList(speciesID,sysI))
-          call Vector_constructorInteger(sysListCur(sysI,speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,superMergedMolecularSystem), 0)           
+          call Vector_constructorInteger(sysListCur(sysI,speciesID), int(MolecularSystem_getTotalNumberOfContractions(speciesID,superMergedMolecularSystem),8), 0)
           do i=1, size(auxIVector%values)
              if(orbListI(speciesID)%values(i) .eq. 0) cycle
              sysListCur(sysI,speciesID)%values(i)=auxIVector%values(orbListI(speciesID)%values(i))
@@ -202,7 +202,7 @@ contains
        ! call Vector_showInteger(orbListII(speciesID))
        do sysII=1, numberOfDisplacedSystems
           call Vector_copyConstructorInteger(auxIVector,sysListRef(sysII,speciesID))
-          call Vector_constructorInteger(sysListRef(sysII,speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,superMergedMolecularSystem), 0)           
+          call Vector_constructorInteger(sysListRef(sysII,speciesID), int(MolecularSystem_getTotalNumberOfContractions(speciesID,superMergedMolecularSystem),8), 0)
           do i=1, size(orbListII(speciesID)%values)
              if(orbListII(speciesID)%values(i) .eq. 0) cycle
              sysListRef(sysII,speciesID)%values(i)=auxIVector%values(orbListII(speciesID)%values(i))

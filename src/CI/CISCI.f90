@@ -14,9 +14,9 @@ module CISCI_
 
   type, public :: CISCI
     !! arrays for storing coefficients
-    type (Vector8) :: buffer_amplitudeCore
-    type (Vector8) :: coefficientCore
-    type (Vector8) :: auxcoefficientTarget
+    type (Vector) :: buffer_amplitudeCore
+    type (Vector) :: coefficientCore
+    type (Vector) :: auxcoefficientTarget
     !! auxiliary array to trace the original elements in array sorting
     type (ivector8) :: index_amplitudeCore
     !! arrays for storing CI configurations, species, orbitals, vector size
@@ -24,10 +24,10 @@ module CISCI_
     integer(1), allocatable :: confAmplitudeCore(:,:)
     type (IMatrix1), allocatable :: saved_confTarget(:)
     !! storing the CI diagonal matrix elements for Jadamilu preconditioner
-    type (Vector8) :: diagonalCore
-    type (Vector8) :: diagonalTarget
+    type (Vector) :: diagonalCore
+    type (Vector) :: diagonalTarget
     !! eigenvalues per SCI iteration
-    type (Vector8) :: eigenValues
+    type (Vector) :: eigenValues
     !! length of SCI search vectors
     integer(8) :: coreSpaceSize
     integer(8) :: targetSpaceSize
@@ -158,9 +158,9 @@ contains
     CISCI_instance%omp_target_iterator_m( CIcore_instance%nproc + 1 ) = 0_8
 
     !! arrays for storing coefficients
-    call Vector_constructor8 ( CISCI_instance%buffer_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize,8),  0.0_8)
-    call Vector_constructor8 ( CISCI_instance%coefficientCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
-    call Vector_constructor8 ( CISCI_instance%auxcoefficientTarget, int(CISCI_instance%targetSpaceSize,8), 0.0_8) !! meh... just to avoid changing everything from matrix to vector format
+    call Vector_constructor ( CISCI_instance%buffer_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize,8),  0.0_8)
+    call Vector_constructor ( CISCI_instance%coefficientCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
+    call Vector_constructor ( CISCI_instance%auxcoefficientTarget, int(CISCI_instance%targetSpaceSize,8), 0.0_8) !! meh... just to avoid changing everything from matrix to vector format
 
     !! auxiliary array to trace the original elements in array sorting
     call Vector_constructorInteger8 ( CISCI_instance%index_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize,8),  0_8)
@@ -179,11 +179,11 @@ contains
     CISCI_instance%confAmplitudeCore = -1_1
 
     !! storing the CI diagonal matrix elements for Jadamilu preconditioner
-    call Vector_constructor8 ( CISCI_instance%diagonalCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
-    call Vector_constructor8 ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8) 
+    call Vector_constructor ( CISCI_instance%diagonalCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
+    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8) 
 
     !! eigenvalues per SCI iteration
-    call Vector_constructor8 ( CISCI_instance%eigenValues, 20_8, 0.0_8) !! store the eigenvalues per macro iterations
+    call Vector_constructor ( CISCI_instance%eigenValues, 20_8, 0.0_8) !! store the eigenvalues per macro iterations
 
     !! store the orbitals for each target configurations, to avoid recomputing them 
     !! this is helpful when using bit-masking approach to avoid transforming from bit to decimal multiple times
@@ -219,7 +219,7 @@ contains
     real(8) :: timeA(20), timeB(20)
     real(8) :: timeAA, timeBB
     real(8) :: timeAS, timeBS
-    type(Vector8) :: eigenValuesTarget
+    type(Vector) :: eigenValuesTarget
     real(8) :: minValue
     real(8) :: currentEnergy 
     integer :: numberOfSpecies, spi
@@ -227,7 +227,7 @@ contains
     numberOfSpecies = CIcore_instance%numberOfSpecies 
     nproc = CIcore_instance%nproc 
     currentEnergy = HartreeFock_instance%totalEnergy 
-    call Vector_constructor8 ( eigenValuesTarget, int(CONTROL_instance%NUMBER_OF_CI_STATES,8),  0.0_8)
+    call Vector_constructor ( eigenValuesTarget, int(CONTROL_instance%NUMBER_OF_CI_STATES,8),  0.0_8)
 
     !! HF determinant coefficient
     CISCI_instance%coefficientCore%values(1) = 1.0_8
@@ -373,7 +373,7 @@ contains
   subroutine CISCI_initialConfigurations ( coefficientCore, confCore )
 
     implicit none
-    type(vector8) :: coefficientCore
+    type(Vector) :: coefficientCore
     type(IMatrix1) :: confCore(:)
     type(IVector), allocatable :: orbA(:)
     integer :: spi, numberOfSpecies
@@ -749,7 +749,7 @@ contains
     integer(8) :: maxnev
     real(8) :: CIenergy
     integer(8) :: nproc
-    type(Vector8), intent(inout) :: eigenValues
+    type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout) :: eigenVectors
 
 !   N: size of the problem

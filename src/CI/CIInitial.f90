@@ -18,7 +18,7 @@ contains
     implicit none
 
     type(Configuration) :: auxConfigurationA, auxConfigurationB
-    type (Vector8) :: diagonalHamiltonianMatrix
+    type (Vector) :: diagonalHamiltonianMatrix
     integer :: a,b,c,aa,bb,i
     real(8) :: timeA, timeB
     real(8) :: CIenergy
@@ -39,14 +39,14 @@ contains
     end do
 
    !! save the unsorted diagonal Matrix
-    call Vector_constructor8 ( CIcore_instance%diagonalHamiltonianMatrix, &
+    call Vector_constructor ( CIcore_instance%diagonalHamiltonianMatrix, &
                               CIcore_instance%numberOfConfigurations, 0.0_8 ) 
 
 
     CIcore_instance%diagonalHamiltonianMatrix%values = CIcore_instance%diagonalHamiltonianMatrix2%values
 
    !! To get only the lowest 300 values.
-   call Vector_reverseSortElements8( CIcore_instance%diagonalHamiltonianMatrix2, &
+   call Vector_reverseSortElements( CIcore_instance%diagonalHamiltonianMatrix2, &
           CIcore_instance%auxIndexCIMatrix, int(initialCIMatrixSize,8))
 
    call Matrix_constructor ( CIcore_instance%initialHamiltonianMatrix, int(initialCIMatrixSize,8) , &
@@ -58,7 +58,7 @@ contains
     call CIInitial_calculateInitialCIMatrix()
 
     !! diagonalize the initial matrix
-    call Vector_constructor ( CIcore_instance%initialEigenValues, int(CONTROL_instance%NUMBER_OF_CI_STATES,4),  0.0_8)
+    call Vector_constructor ( CIcore_instance%initialEigenValues, int(CONTROL_instance%NUMBER_OF_CI_STATES,8),  0.0_8)
 
     call Matrix_constructor (CIcore_instance%initialEigenVectors, &
           int(initialCIMatrixSize,8), &
@@ -75,7 +75,7 @@ contains
       write (*,*)  i, CIcore_instance%initialEigenValues%values(i)
     end do
 
-    call Vector_destructor8 ( CIcore_instance%diagonalHamiltonianMatrix2 )
+    call Vector_destructor ( CIcore_instance%diagonalHamiltonianMatrix2 )
 
 !$    timeB = omp_get_wtime()
 !$    write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time for Solving Initial CI : ", timeB - timeA ," (s)"

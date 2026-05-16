@@ -558,7 +558,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: n !!nuclear gridSize
+    integer(8) :: n !!nuclear gridSize
     real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
@@ -614,7 +614,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: n !!nuclear gridSize
+    integer(8) :: n !!nuclear gridSize
     real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
@@ -682,7 +682,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: n !!nuclear gridSize
+    integer(8) :: n !!nuclear gridSize
     real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
@@ -754,7 +754,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: n !!nuclear gridSize
+    integer(8) :: n !!nuclear gridSize
     real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
@@ -826,7 +826,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: n !!nuclear gridSize
+    integer(8) :: n !!nuclear gridSize
     real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
@@ -901,7 +901,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: npoints !!nuclear gridSize
+    integer(8) :: npoints !!nuclear gridSize
     real(8) :: rhoE(*), rhoN(*) !! electron and nuclear Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcN(*) !! Potentials - output   
@@ -1092,7 +1092,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: npoints !!nuclear gridSize
+    integer(8) :: npoints !!nuclear gridSize
     real(8) :: rhoE(*), rhoP(*) !! electron and positive particle Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcP(*) !! Potentials - output   
@@ -1233,7 +1233,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: npoints !!nuclear gridSize
+    integer(8) :: npoints !!nuclear gridSize
     type(Vector) :: electronDensity, positronDensity !! electron and nuclear Densities - input
     type(Vector) :: electronGradient(3), positronGradient(3) !! electron and nuclear gradient - input
     type(Vector) :: ec !! Energy density - output, per electron density 
@@ -1769,7 +1769,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: n !!nuclear gridSize
+    integer(8) :: n !!nuclear gridSize
     real(8) :: rhoE(*), rhoP(*) !! electron and nuclear Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcP(*) !! Potentials - output   
@@ -1868,7 +1868,7 @@ contains
     implicit none
     type(Functional):: this !!type of functional
     real(8) :: mass !!nuclear mass
-    integer :: n !!nuclear gridSize
+    integer(8) :: n !!nuclear gridSize
     real(8) :: rhoE(*), rhoP(*) !! electron and positron Densities - input
     real(8) :: ec(*) !! Energy density - output
     real(8) :: vcE(*), vcP(*) !! Potentials - output   
@@ -2011,7 +2011,7 @@ contains
     ! Evaluates Dirac exchange and VWN correlation functionals
     ! Roberto Flores-Moreno, May 2009
     implicit none
-    integer :: n !!gridSize
+    integer(8) :: n !!gridSize
     real(8) :: rhoA(*), rhoB(*) !!Alpha and beta Densities - input
     real(8) :: exc(*), vxcA(*) !! Energy density and potential - output   
     real(8) , optional :: vxcB(*) !! Energy density and potential - output   
@@ -2049,7 +2049,7 @@ contains
     ! Evaluates Dirac exchange functional
     ! Roberto Flores-Moreno, May 2009
     implicit none
-    integer n
+    integer(8) n
     real(8) rho(*),ex(*)
 
     real(8) factor
@@ -2065,7 +2065,7 @@ contains
     ! Evaluates Dirac exchange potential
     ! Roberto Flores-Moreno, May 2009
     implicit none
-    integer n
+    integer(8) n
     real(8) rho(*),vx(*)
 
     vx(1:n) = -((3.0/pi())**(1.0/3.0))*(2.0*rho(1:n))**(1.0/3.0)
@@ -2106,7 +2106,7 @@ contains
     ! Evaluates VWN correlation energy functional
     ! Roberto Flores-Moreno, Jun 2010
     implicit none
-    integer n
+    integer(8) :: n
     real(8) rhoa(*),rhob(*),ec(*)
 
     integer i
@@ -2138,7 +2138,7 @@ contains
     ! Evaluates VWN correlation potential
     ! Roberto Flores-Moreno, Jun 2010
     implicit none
-    integer n
+    integer(8) :: n
     real(8) rhoa(*),rhob(*),vca(*),vcb(*)
 
     integer i

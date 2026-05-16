@@ -803,7 +803,7 @@ contains
 
     end do
 
-    call Vector_constructor(output, k)
+    call Vector_constructor(output, int(k,8) )
     output%values = auxVector(1:k)
     ! if( .not.allocated( ParticleManager_instance%centersOfOptimization)) allocate( ParticleManager_instance%centersOfOptimization(k,2) )
     ! ParticleManager_instance%centersOfOptimization = auxCentersOfOptimization(1:k,:)

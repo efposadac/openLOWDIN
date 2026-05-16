@@ -1030,12 +1030,12 @@ contains
     type(Matrix) :: grid
     type(Matrix) :: orbital    
     type(Matrix) :: orbitaldX, orbitaldY, orbitaldZ
-    integer :: gridSize
+    integer(8) :: gridSize
 
     integer :: h
     integer :: nx, ny, nz !< indices de momento angular
     integer :: i, j, m, w
-    integer :: point
+    integer(8) :: point
     real(8) :: coordinate(3)
     real(8) :: exponential, dx, dy, dz
     real(8) :: auxOutput(this%numCartesianOrbital,4)

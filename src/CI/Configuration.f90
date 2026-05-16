@@ -105,11 +105,11 @@ contains
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOccupiedOrbitals, numberOfSpecies, 0 )
-    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfCoreOrbitals, numberOfSpecies, 0 )
-    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOrbitals, numberOfSpecies, 0 )
-    call Vector_constructorInteger ( GlobalConfiguration_instance%lambda, numberOfSpecies, 0 )
-    call Vector_constructorInteger ( GlobalConfiguration_instance%excitationType, numberOfSpecies, 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOccupiedOrbitals, int(numberOfSpecies,8), 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfCoreOrbitals, int(numberOfSpecies,8), 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%numberOfOrbitals, int(numberOfSpecies,8), 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%lambda, int(numberOfSpecies,8), 0 )
+    call Vector_constructorInteger ( GlobalConfiguration_instance%excitationType, int(numberOfSpecies,8), 0 )
 
     
     do i=1, numberOfSpecies

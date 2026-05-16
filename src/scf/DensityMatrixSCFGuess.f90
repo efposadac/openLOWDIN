@@ -92,8 +92,8 @@ contains
        inquire(FILE = wfnFile, EXIST = existPlain )
        if ( existPlain ) then
           open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-          orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
-               columns= int(orderOfMatrix,4), binary=.false., arguments=arguments(1:2),failContinue=.true.)
+          orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,8), &
+               columns= int(orderOfMatrix,8), binary=.false., arguments=arguments(1:2),failContinue=.true.)
           readSuccess=orbitals%wasRead
           close(wfnUnit)
        else
@@ -101,8 +101,8 @@ contains
           inquire(FILE = wfnFile, EXIST = existBinnary )
           if ( existBinnary ) then
              open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
-             orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
-                  columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2),failContinue=.true.)
+             orbitals = Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,8), &
+                  columns= int(orderOfMatrix,8), binary=.true., arguments=arguments(1:2),failContinue=.true.)
              readSuccess=orbitals%wasRead
              close(wfnUnit)             
           end if
@@ -199,7 +199,7 @@ contains
     end if
     
     call Matrix_constructor(hcoreTransformed, orderOfMatrix, orderOfMatrix )
-    call Vector_constructor(eigenValues, int( orderOfMatrix ) )
+    call Vector_constructor(eigenValues, orderOfMatrix )
     
     hcoreTransformed%values = matmul( matmul( transpose(transformation%values ) , hcore%values ) , transformation%values )
 

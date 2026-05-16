@@ -234,7 +234,7 @@ contains
     end do
 
     call MatrixInteger_constructor( output, ListInteger_size(currentAtom), 2,0 )
-    call Vector_constructor(this%distanceBondValue,ListInteger_size(currentAtom) )
+    call Vector_constructor(this%distanceBondValue, int(ListInteger_size(currentAtom),8) )
     output%values(:,1) = currentAtom%data(:)
     output%values(:,2) = otherAtom%data(:)
     this%distanceBondValue%values = bondDistance%data
@@ -294,8 +294,8 @@ contains
           call ListInteger_constructor( atomForDefineAngle, ssize=-1 )
           call List_constructor( anglesOfBond, ssize=-1 )
 
-          call Vector_constructor( vectorA, 3 )
-          call Vector_constructor( vectorB, 3 )
+          call Vector_constructor( vectorA, int(3,8) )
+          call Vector_constructor( vectorB, int(3,8) )
 
           this%numberOfBonds = size(this%connectionMatrixForBonds%values, dim=1)
 
@@ -351,7 +351,7 @@ contains
           end do
 
           call MatrixInteger_constructor( output, ListInteger_size(currentAtom), 3,0 )
-          call Vector_constructor( this%angleOfBondValue, ListInteger_size(currentAtom) )
+          call Vector_constructor( this%angleOfBondValue, int(ListInteger_size(currentAtom),8) )
           output%values(:,1) = currentAtom%data(:)
           output%values(:,2) = otherAtom%data(:)
           output%values(:,3) = atomForDefineAngle%data(:)
@@ -482,9 +482,9 @@ contains
           call ListInteger_constructor( atomForDefineDihedral, ssize=-1)
           call List_constructor( dihedralAngles, ssize=-1 )
 
-          call Vector_constructor( vectorA, 3 )
-          call Vector_constructor( vectorB, 3 )
-          call Vector_constructor( auxVector, 3)
+          call Vector_constructor( vectorA, int(3,8) )
+          call Vector_constructor( vectorB, int(3,8) )
+          call Vector_constructor( auxVector, int(3,8) )
 
           this%numberOfAnglesOfBond = size(this%connectionMatrixForAngles%values, dim=1)
 
@@ -568,7 +568,7 @@ contains
           end do
 
           call MatrixInteger_constructor( output, ListInteger_size(currentAtom), 4,0 )
-          call Vector_constructor( this%dihedralsAngleValue, ListInteger_size(currentAtom) )
+          call Vector_constructor( this%dihedralsAngleValue, int(ListInteger_size(currentAtom),8) )
           output%values(:,1) = currentAtom%data(:)
           output%values(:,2) = otherAtom%data(:)
           output%values(:,3) = atomForDefineAngle%data(:)
@@ -773,7 +773,7 @@ contains
     if (  allocated(this%symmetricGMatrix%values) ) then
 
        numberOfNonredundantCoordinates = size(this%symmetricGMatrix%values,dim=1)
-       call Vector_constructor( eigenValues, numberOfNonredundantCoordinates )
+       call Vector_constructor( eigenValues, int(numberOfNonredundantCoordinates,8) )
        call Matrix_constructor( output, int(numberOfNonredundantCoordinates,8), int(numberOfNonredundantCoordinates,8) )
 
        call Matrix_eigen( this%symmetricGMatrix, eigenValues, output, SYMMETRIC  )
@@ -813,7 +813,7 @@ contains
     if  ( allocated( this%nonRedundantEigenvectors%values) ) then
 
        ssize = size(this%nonRedundantEigenvectors%values, dim=1 )
-       call Vector_constructor( output, ssize )
+       call Vector_constructor( output, int(ssize,8) )
 
        output%values= 0.0_8
 
@@ -1387,8 +1387,8 @@ contains
     !!
     if ( allocated(this%connectionMatrixForAngles%values) ) then
 
-       call Vector_constructor( originAtomOne, 3)
-       call Vector_constructor( originAtomTwo, 3)
+       call Vector_constructor( originAtomOne, int(3,8) )
+       call Vector_constructor( originAtomTwo, int(3,8) )
 
        do i = 1, this%numberOfAnglesOfBond
           j=0
@@ -1457,18 +1457,18 @@ contains
     !!
     if ( allocated(this%connectionMatrixForDihedrals%values) ) then
 
-       call Vector_constructor( originAtomOne, 3)
-       call Vector_constructor( originAtomTwo, 3)
-       call Vector_constructor( originAtomThree, 3)
-       call Vector_constructor( originAtomFour, 3)
+       call Vector_constructor( originAtomOne, int(3, 8) )
+       call Vector_constructor( originAtomTwo, int(3, 8) )
+       call Vector_constructor( originAtomThree, int(3, 8) )
+       call Vector_constructor( originAtomFour, int(3, 8) )
 
        do i = 1, this%numberOfDihedrals
           j=0
           k= this%numberOfBonds + this%numberOfAnglesOfBond + i
-          originAtomOne%values = 	this%cartesianCoordinates%values(this%connectionMatrixForDihedrals%values(i,1), : )
-          originAtomTwo%values = 	this%cartesianCoordinates%values(this%connectionMatrixForDihedrals%values(i,2), : )
-          originAtomThree%values = 	this%cartesianCoordinates%values(this%connectionMatrixForDihedrals%values(i,3), : )
-          originAtomFour%values = 	this%cartesianCoordinates%values(this%connectionMatrixForDihedrals%values(i,4), : )
+          originAtomOne%values = this%cartesianCoordinates%values(this%connectionMatrixForDihedrals%values(i,1), : )
+          originAtomTwo%values = this%cartesianCoordinates%values(this%connectionMatrixForDihedrals%values(i,2), : )
+          originAtomThree%values = this%cartesianCoordinates%values(this%connectionMatrixForDihedrals%values(i,3), : )
+          originAtomFour%values = this%cartesianCoordinates%values(this%connectionMatrixForDihedrals%values(i,4), : )
           ssign = sign( 1.0_8, this%dihedralsAngleValue%values(i) )
 
           do atom =1, this%numberOfCenterOfOptimization

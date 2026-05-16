@@ -53,8 +53,8 @@ program IntegralsTransformation
   character(50) :: job
   integer :: i, j, z
   integer :: speciesID, otherSpeciesID
-  integer :: numberOfContractions
-  integer :: numberOfContractionsOfOtherSpecie
+  integer(8) :: numberOfContractions
+  integer(8) :: numberOfContractionsOfOtherSpecie
   integer :: occupation, otherOccupation
   character(10) :: nameOfSpecies, symbolOfSpecies
   character(10) :: nameOfOtherSpecies , symbolOfOtherSpecies
@@ -199,12 +199,12 @@ program IntegralsTransformation
            arguments(2) = MolecularSystem_getNameOfSpecies(i)
   
            arguments(1) = "COEFFICIENTS"
-           eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-                columns= int(max(numberOfContractions,occupation),4), binary=.true., arguments=arguments(1:2))
+           eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+                columns= int(max(numberOfContractions,occupation),8), binary=.true., arguments=arguments(1:2))
 
            arguments(1) = "DENSITY"
-           densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-                columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+           densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+                columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
  
           arguments(1) = "ORBITALS"
            call Vector_getFromFile( elementsNum = numberOfContractions, &
@@ -286,8 +286,8 @@ program IntegralsTransformation
 
                           arguments(1) = "COEFFICIENTS"
                           eigenVecOtherSpecie = &
-                                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
-                                  columns= int(max(numberOfContractionsOfOtherSpecie,otherOccupation),4), binary=.true., arguments=arguments(1:2))
+                                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,8), &
+                                  columns= int(max(numberOfContractionsOfOtherSpecie,otherOccupation),8), binary=.true., arguments=arguments(1:2))
 
                           arguments(1) = "ORBITALS"
                           call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
@@ -295,8 +295,8 @@ program IntegralsTransformation
                                output = eigenValuesOfOtherSpecie )     
 
                           arguments(1) = "DENSITY"
-                          otherdensityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
-                          columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+                          otherdensityMatrix = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,8), &
+                          columns= int(numberOfContractionsOfOtherSpecie,8), binary=.true., arguments=arguments(1:2))
                           close(wfnUnit)
            
                           otherSpeciesID = j

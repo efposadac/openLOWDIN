@@ -855,7 +855,7 @@ contains
     !!Initialize overlap
     this%configurationOverlapMatrix%values(sysI,sysII)=1.0
        
-    call Vector_constructor(overlapDeterminant, mergedMolecularSystem%numberOfQuantumSpecies, 0.0_8)        
+    call Vector_constructor(overlapDeterminant, int(mergedMolecularSystem%numberOfQuantumSpecies,8), 0.0_8)
     
 !!!!Overlap first
     do speciesID = 1, this%MolecularSystems(sysI)%numberOfQuantumSpecies
@@ -1266,7 +1266,7 @@ contains
     !$  timeA = omp_get_wtime()
 
     call Matrix_constructor(this%configurationCoefficients, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
-    call Vector_constructor(this%statesEigenvalues, this%numberOfDisplacedSystems, 0.0_8)
+    call Vector_constructor(this%statesEigenvalues, int(this%numberOfDisplacedSystems,8), 0.0_8)
 
     ! print *, "non orthogonal CI overlap Matrix "
     ! call Matrix_show(this%configurationOverlapMatrix)
@@ -1280,7 +1280,7 @@ contains
     call Matrix_constructor(transformationMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8) , 0.0_8)
     call Matrix_constructor(transformedHamiltonianMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8) , 0.0_8)
 
-    call Vector_constructor( eigenValues, this%numberOfDisplacedSystems )
+    call Vector_constructor( eigenValues, int(this%numberOfDisplacedSystems,8) )
     call Matrix_constructor( eigenVectors,int(this%numberOfDisplacedSystems,8),int(this%numberOfDisplacedSystems,8))
 
     !!****************************************************************

@@ -311,7 +311,7 @@ contains
     !! Invierte la orientacion sobre el eje Z
     matrixOfCoordinates%values(:,3)=-1.0*matrixOfCoordinates%values(:,3)
     
-    call Vector_constructor( vectorOfCoordinates, size( matrixOfCoordinates%values,dim=1)*3 )
+    call Vector_constructor( vectorOfCoordinates, int(size( matrixOfCoordinates%values,dim=1)*3,8) )
     do i=1, size(matrixOfCoordinates%values,dim=1)
        vectorOfCoordinates%values(3*i-2:3*i)=matrixOfCoordinates%values(i,:)
     end do
@@ -2602,8 +2602,8 @@ contains
     
     !!Fill the basis set lists
     do speciesID = 1, mergedThis%numberOfQuantumSpecies
-       call Vector_constructorInteger(sysAbasisList(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 0 )
-       call Vector_constructorInteger(sysBbasisList(speciesID), MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 0 )
+       call Vector_constructorInteger(sysAbasisList(speciesID), int(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 8), 0 )
+       call Vector_constructorInteger(sysBbasisList(speciesID), int(MolecularSystem_getTotalNumberOfContractions(speciesID,mergedThis), 8), 0 )
        
        if(allocated(auxMuPositions)) deallocate(auxMuPositions)
        allocate(auxMuPositions(size(mergedThis%species(speciesID)%particles)+1))
@@ -2699,7 +2699,7 @@ contains
     ! print *, "max distance between equivalent particles of systems", thisA%description, thisB%description
     do speciesID=1, thisA%numberOfQuantumSpecies
        nparticles=size(thisA%species(speciesID)%particles)
-       call Vector_constructor(displacementVector(speciesID),nparticles,0.0_8)
+       call Vector_constructor(displacementVector(speciesID), int(nparticles,8) ,0.0_8)
        call Vector_constructorInteger1(skip,int(nparticles,8),0_1)
        do i=1, size(thisA%species(speciesID)%particles) !ParticlesSystemA          
           minDistance=1.0E8

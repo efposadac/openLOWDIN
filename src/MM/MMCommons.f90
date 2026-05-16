@@ -331,7 +331,7 @@ contains
        end do
     end do
 
-    call Vector_constructor( bonds, edgesSize )
+    call Vector_constructor( bonds, int(edgesSize,8) )
     do i=1,edgesSize
        do j=1,2
           bonds%values(i) = this%intCoordinates%distanceBondValue%values(i) * ANGSTROM
@@ -450,7 +450,7 @@ contains
 
     edgesSize = size(this%intCoordinates%distanceBondValue%values)
 
-    call Vector_constructor( neighbor, connectivity )
+    call Vector_constructor( neighbor, int(connectivity,8) )
 
     row = 1
     do i=1,edgesSize

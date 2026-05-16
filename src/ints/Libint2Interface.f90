@@ -612,8 +612,8 @@ contains
 
     labels(1) = "DENSITY"
     labels(2) = trim(MolecularSystem_getNameOfSpecies(speciesID))
-    aux_dens = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-         columns= int(numberOfContractions,4), binary=.true., arguments=labels)
+    aux_dens = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+         columns= int(numberOfContractions,8), binary=.true., arguments=labels)
 
     ssize = size(aux_dens%values, DIM=1)
     allocate(density(ssize, ssize))

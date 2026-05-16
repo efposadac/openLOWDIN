@@ -401,7 +401,7 @@ contains
        call MatrixInteger_constructor( auxBonds(i), 1, 2 )
     end do
 
-    call Vector_constructor( bonds, numberOfEdges )
+    call Vector_constructor( bonds, int(numberOfEdges,8) )
     do i=1,numberOfEdges
        do j=1,2
           bonds%values(i) = MolecularSystem_instance%intCoordinates%distanceBondValue%values(i) * ANGSTROM

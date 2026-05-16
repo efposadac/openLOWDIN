@@ -372,7 +372,7 @@ contains
     !Or when an orbital is selected for partial ionization 
     if(CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF) then
        activeOrbitals = MolecularSystem_getOcupationNumber(wfObject%species,wfObject%molSys)
-       call Vector_constructorInteger(orbitalsVector,activeOrbitals)
+       call Vector_constructorInteger(orbitalsVector, int(activeOrbitals,8) )
        do i=1,activeOrbitals
           orbitalsVector%values(i)=i
        end do
@@ -382,7 +382,7 @@ contains
        do i= 1, size(CONTROL_instance%IONIZE_MO)
           if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8 ) activeOrbitals=activeOrbitals+1
        end do
-       call Vector_constructorInteger(orbitalsVector,activeOrbitals)
+       call Vector_constructorInteger(orbitalsVector,int(activeOrbitals,8) )
        ii=0
        do i= 1, size(CONTROL_instance%IONIZE_MO)
           if(CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8 ) then
@@ -421,7 +421,7 @@ contains
        call Matrix_show (matchingMatrix)
     end if
     
-    call Vector_constructor (deltaVector,astrayOrbitals)
+    call Vector_constructor (deltaVector, int( astrayOrbitals,8 ) )
     
     jj=0
     do i= 1, activeOrbitals
@@ -529,7 +529,7 @@ contains
           open(unit=wfnUnit, file=trim(wfnFile), status="old", form="formatted")
 
           wfObject%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-               rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.false.,  & 
+               rows= int(numberOfContractions,8), columns= int(numberOfContractions,8), binary=.false.,  & 
                arguments=arguments(1:2))
 
           close(wfnUnit)
@@ -542,7 +542,7 @@ contains
              open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
              wfObject%waveFunctionCoefficients = Matrix_getFromFile(unit=wfnUnit, &
-                  rows= int(numberOfContractions,4), columns= int(numberOfContractions,4), binary=.true., & 
+                  rows= int(numberOfContractions,8), columns= int(numberOfContractions,8), binary=.true., & 
                   arguments=arguments(1:2))
 
              close(wfnUnit)

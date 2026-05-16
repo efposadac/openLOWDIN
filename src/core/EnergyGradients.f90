@@ -1010,8 +1010,8 @@ contains
 
        arguments(1) = "DENSITY"
        densityMatrix = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
-            columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,8), &
+            columns= int(orderOfMatrix,8), binary=.true., arguments=arguments(1:2))
 
        ! write(*,*) "Matriz densidad"
        ! call Matrix_show(densityMatrix)
@@ -1019,8 +1019,8 @@ contains
 
        arguments(1) = "COEFFICIENTS"
        matrixOfEigenvectors = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
-            columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,8), &
+            columns= int(orderOfMatrix,8), binary=.true., arguments=arguments(1:2))
 
        ! arguments(1) = "COUPLING"
        ! twoParticles = &
@@ -1028,7 +1028,7 @@ contains
        !      columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
 
        arguments(1) = "ORBITALS"
-       call Vector_getFromFile( elementsNum = int(orderOfMatrix,4), &
+       call Vector_getFromFile( elementsNum = int(orderOfMatrix,8), &
             unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
             output = vectorOfEigenvalues )
 
@@ -1898,8 +1898,8 @@ contains
 
        arguments(1) = "DENSITY"
        densityMatrix = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
-            columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,8), &
+            columns= int(orderOfMatrix,8), binary=.true., arguments=arguments(1:2))
 
        charge = MolecularSystem_getCharge(specieIterator)
        lambda = MolecularSystem_getLambda(specieIterator)
@@ -1928,8 +1928,8 @@ contains
 
           otherArguments(1) = "DENSITY"
           otherDensityMatrix = &
-               Matrix_getFromFile(unit=wfnUnit, rows= int(otherOrderOfMatrix,4), &
-               columns= int(otherOrderOfMatrix,4), binary=.true., arguments=otherArguments(1:2))
+               Matrix_getFromFile(unit=wfnUnit, rows= int(otherOrderOfMatrix,8), &
+               columns= int(otherOrderOfMatrix,8), binary=.true., arguments=otherArguments(1:2))
 
           otherCharge = MolecularSystem_getCharge(otherSpecieIterator)
           otherLambda = MolecularSystem_getLambda(otherSpecieIterator)

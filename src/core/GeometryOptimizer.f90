@@ -200,7 +200,7 @@ contains
        write (6,"(T18,A35)") "------------------------------------------"
        write(6,*) ""
 
-       call Vector_constructor( geometry, size(coordinates) )
+       call Vector_constructor( geometry, int(size(coordinates),8) )
        geometry%values = coordinates
 
        !! Ajusta el origen de las particulas presentes en el sistema
@@ -274,7 +274,7 @@ contains
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
-    call Vector_constructor( valuesOfIndependentVariables, size(evaluationPoint) )
+    call Vector_constructor( valuesOfIndependentVariables, int( size(evaluationPoint), 8) )
     valuesOfIndependentVariables%values = evaluationPoint
 
     !! Ajusta el origen de las particulas presentes en el sistema
@@ -320,7 +320,7 @@ contains
     integer :: i
     ! integer :: sizeGradients !Only for debug
 
-    call Vector_constructor( valuesOfIndependentVariables, size(evaluationPoint) )
+    call Vector_constructor( valuesOfIndependentVariables, int(size(evaluationPoint),8) )
     valuesOfIndependentVariables%values = evaluationPoint
 
     ! write(*,"(A)") "Dentro de GeometryOptimizer_getGradient"

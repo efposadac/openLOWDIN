@@ -77,7 +77,7 @@ contains
        call Matrix_constructor(OrbitalLocalizer_instance(speciesID)%waveFunctionCoefficientsA, int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
        call Matrix_constructor(OrbitalLocalizer_instance(speciesID)%hcoreMatrixA, int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
        call Matrix_constructor(OrbitalLocalizer_instance(speciesID)%fockMatrixA, int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
-       call Vector_constructor(OrbitalLocalizer_instance(speciesID)%molecularOrbitalsEnergyA, numberOfContractions, 0.0_8)
+       call Vector_constructor(OrbitalLocalizer_instance(speciesID)%molecularOrbitalsEnergyA, int(numberOfContractions,8), 0.0_8)
        call Matrix_constructor(OrbitalLocalizer_instance(speciesID)%projectionMatrix, int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
 
        
@@ -315,10 +315,10 @@ contains
        call Matrix_constructor (exchangeHFMatrixAB(speciesID), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
        call Matrix_constructor (populationMatrixA(speciesID), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
        call Matrix_constructor (populationMatrixB(speciesID), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
-       call Vector_constructor (atomPopulationA(speciesID), numberOfCenters, 0.0_8)
-       call Vector_constructor (atomPopulationB(speciesID), numberOfCenters, 0.0_8)
-       call Vector_constructor (shellPopulationA(speciesID), MolecularSystem_getNumberOfContractions(speciesID), 0.0_8)
-       call Vector_constructor (shellPopulationB(speciesID), MolecularSystem_getNumberOfContractions(speciesID), 0.0_8)
+       call Vector_constructor (atomPopulationA(speciesID), int(numberOfCenters, 8), 0.0_8)
+       call Vector_constructor (atomPopulationB(speciesID), int(numberOfCenters, 8), 0.0_8)
+       call Vector_constructor (shellPopulationA(speciesID), int(MolecularSystem_getNumberOfContractions(speciesID), 8), 0.0_8)
+       call Vector_constructor (shellPopulationB(speciesID), int(MolecularSystem_getNumberOfContractions(speciesID), 8), 0.0_8)
 
        do otherSpeciesID=1, numberOfSpecies
           call Matrix_constructor(hartreeMatrixA(speciesID,otherSpeciesID), int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)

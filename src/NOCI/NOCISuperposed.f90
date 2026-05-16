@@ -126,7 +126,7 @@ contains
     do sysI=1, this%numberOfDisplacedSystems
        do speciesID=1, numberOfSpecies
           call Vector_copyConstructorInteger(auxBasisList(speciesID),this%sysBasisList(speciesID,sysI))
-          call Vector_constructorInteger(this%sysBasisList(speciesID,sysI), MolecularSystem_getTotalNumberOfContractions(speciesID,this%mergedMolecularSystem), 0)           
+          call Vector_constructorInteger(this%sysBasisList(speciesID,sysI), int(MolecularSystem_getTotalNumberOfContractions(speciesID,this%mergedMolecularSystem),8), 0)
           do i=1, size(auxBasisList(speciesID)%values)
              this%sysBasisList(speciesID,sysI)%values(i)=auxBasisList(speciesID)%values(i)
           end do
@@ -472,13 +472,13 @@ contains
           write(*,*) "--------------------------------------------------------------"
 
           call Vector_constructor ( densityEigenValues, &
-               int(MolecularSystem_getTotalNumberOfContractions(speciesID),4),  0.0_8 )
+               int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),  0.0_8 )
           call Matrix_constructor ( densityEigenVectors, &
                int(MolecularSystem_getTotalNumberOfContractions(speciesID),8), &
                int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),  0.0_8 )
 
           call Vector_constructor ( auxdensityEigenValues, &
-               int(MolecularSystem_getTotalNumberOfContractions(speciesID),4),  0.0_8 )
+               int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),  0.0_8 )
           call Matrix_constructor ( auxdensityEigenVectors, &
                int(MolecularSystem_getTotalNumberOfContractions(speciesID),8), &
                int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),  0.0_8 )
@@ -509,7 +509,7 @@ contains
           end do
           if(k .eq. 0) k=1
           ! Print eigenvectors with occupation larger than 0.01
-          call Vector_constructor(auxVector,k,0.0_8)
+          call Vector_constructor(auxVector,int(k,8),0.0_8)
           call Matrix_constructor(auxMatrix,int(MolecularSystem_getTotalNumberOfContractions(speciesID),8),int(k,8),0.0_8)
           k=0
           do i=1, MolecularSystem_getTotalNumberOfContractions(speciesID)

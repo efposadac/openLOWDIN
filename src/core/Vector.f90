@@ -59,11 +59,6 @@ module Vector_
      real(8) , allocatable :: values(:)
   end type Vector
 
-  type, public :: Vector8
-     character(50) :: name
-     real(8) , allocatable :: values(:)
-  end type Vector8
-
   type, public :: IVector1
      integer(1) , allocatable :: values(:)
   end type IVector1
@@ -79,19 +74,15 @@ module Vector_
   
   public :: &
        Vector_constructor, &
-       Vector_constructor8, &
        Vector_copyConstructor, &
-       Vector_copyConstructor8, &
        Vector_destructor, &
-       Vector_destructor8, &
        Vector_show, &
        Vector_writeToFile, &
        Vector_getPtr, &
        Vector_sortElements, &
        Vector_reverseSortElements, &
-       Vector_reverseSortElements8, &
        Vector_reverseSortElements8Int, &
-       Vector_reverseSortElementsAbsolute8, &
+       Vector_reverseSortElementsAbsolute, &
        Vector_swapElements, &
        Vector_getSize, &
        Vector_getElement, &
@@ -111,6 +102,7 @@ module Vector_
        Vector_constructorInteger, &
        Vector_constructorInteger8, &
        Vector_destructorInteger, &
+       Vector_destructorInteger8, &
        Vector_swapIntegerElements, &
        Vector_writeToFileInteger, &
        Vector_getFromFileInteger
@@ -122,7 +114,7 @@ contains
   subroutine Vector_constructor( this, ssize, value, values, name )
     implicit none
     type(Vector), intent(inout) :: this
-    integer, intent(in) :: ssize
+    integer(8), intent(in) :: ssize
     real(8), optional, intent(in) :: value
     real(8), optional, intent(in) :: values(:)
     character(50), optional :: name
@@ -162,52 +154,6 @@ contains
     
   end subroutine Vector_constructor
 
-  !>
-  !! @brief Constructor por omision
-  subroutine Vector_constructor8( this, ssize, value, values, name )
-    implicit none
-    type(Vector8), intent(inout) :: this
-    integer(8), intent(in) :: ssize
-    real(8), optional, intent(in) :: value
-    real(8), optional, intent(in) :: values(:)
-    character(50), optional :: name
-    
-    real(8) :: valueTmp
-    character(50) :: auxName
-    
-    valueTmp = 0.0_8
-    
-    if ( allocated( this%values ) ) then
-       deallocate( this%values )
-       
-    end if
-    
-    allocate( this%values( ssize ) )
-    
-    auxName = "none"
-    
-    if( present( name )) then
-       
-       auxName = trim(name)
-       
-    end if
-    
-    if( present(value) ) then
-       
-       valueTmp = value
-       this%values = valueTmp
-       
-    end if
-    
-    if( present(values) ) then
-       
-       this%values = values
-       
-    end if
-    
-  end subroutine Vector_constructor8
-
-   !>
   !! @brief Constructor por omision
   subroutine Vector_constructorInteger1( this, ssize, value, values )
     implicit none
@@ -248,7 +194,7 @@ contains
   subroutine Vector_constructorInteger( this, ssize, value, values )
     implicit none
     type(IVector), intent(inout) :: this
-    integer, intent(in) :: ssize
+    integer(8), intent(in) :: ssize
     integer, optional, intent(in) :: value
     integer, optional, intent(in) :: values(:)
     
@@ -313,7 +259,6 @@ contains
     
   end subroutine Vector_constructorInteger8
  
-
   !>
   !! @brief Constructor de copia
   !! Reserva la memoria necesaria para otherVector y le asigna los valores de this
@@ -328,7 +273,6 @@ contains
     this%values = otherVector%values
     
   end subroutine Vector_copyConstructorInteger
-
 
   
   !>
@@ -347,21 +291,6 @@ contains
   end subroutine Vector_copyConstructor
 
   !>
-  !! @brief Constructor de copia
-  !! Reserva la memoria necesaria para otherVector y le asigna los valores de this
-  subroutine Vector_copyConstructor8( this, otherVector )
-    implicit none
-    type(Vector8), intent(inout) :: this
-    type(Vector8), intent(in) :: otherVector
-    
-    if ( allocated( this%values ) ) deallocate( this%values )
-    allocate( this%values( size(otherVector%values, DIM=1) ) )
-    
-    this%values = otherVector%values
-    
-  end subroutine Vector_copyConstructor8
-
-  !>
   !! @brief Destructor
   subroutine Vector_destructor( this )
     implicit none
@@ -373,18 +302,6 @@ contains
 
   !>
   !! @brief Destructor
-  subroutine Vector_destructor8( this )
-    implicit none
-    type(Vector8), intent(inout) :: this
-    
-    if( allocated(this%values) ) deallocate( this%values )
-    
-  end subroutine Vector_destructor8
-
-
-
-  !>
-  !! @brief Destructor
   subroutine Vector_destructorInteger( this )
     implicit none
     type(IVector), intent(inout) :: this
@@ -393,6 +310,15 @@ contains
     
   end subroutine Vector_destructorInteger
 
+  !>
+  !! @brief Destructor
+  subroutine Vector_destructorInteger8( this )
+    implicit none
+    type(IVector8), intent(inout) :: this
+    
+    if( allocated(this%values) ) deallocate( this%values )
+    
+  end subroutine Vector_destructorInteger8
   
   !>
   !! @brief Imprime a salida estandar la matriz realizando cambio de linea
@@ -709,7 +635,7 @@ contains
   !! @brief Obtiene un vector  del lugar especificado
   subroutine Vector_getFromFile(elementsNum, unit, file, binary, value, arguments, output )
     implicit none
-    integer, optional, intent(in) :: elementsNum
+    integer(8), optional, intent(in) :: elementsNum
     integer, optional :: unit
     character(*), optional :: file
     logical, optional :: binary
@@ -718,7 +644,7 @@ contains
     type(Vector), optional, intent(out) :: output
     
     character(5000) :: line
-    character(20) :: auxSize
+    character(32) :: auxSize
     integer :: status
     integer :: n
     integer(8) :: totalSize
@@ -727,7 +653,7 @@ contains
     logical :: found
 
 
-    if (present(elementsNum)) write(auxSize,*) elementsNum
+    if (present(elementsNum)) write(auxSize,'(I0)') elementsNum
     
     bbinary = .false.
     existFile = .false.
@@ -1097,7 +1023,7 @@ contains
   !! @brief Obtiene un vector  del lugar especificado
   subroutine Vector_getFromFileInteger(elementsNum, unit, file, binary, value, arguments, output )
     implicit none
-    integer, optional, intent(in) :: elementsNum
+    integer(8), optional, intent(in) :: elementsNum
     integer, optional :: unit
     character(*), optional :: file
     logical, optional :: binary
@@ -1387,8 +1313,8 @@ contains
   subroutine Vector_sortElements(this, factor)
     type(Vector) :: this
     
-    integer i,j,n
-    integer, optional :: factor
+    integer(8) i,j,n
+    integer(8), optional :: factor
     
     n = Vector_getSize(this)
     if ( .not. present (factor) ) then
@@ -1400,7 +1326,7 @@ contains
          end do
       end do
     else 
-      factor = 0
+      factor = 0_8
       do i=1,n
          do j=i+1,n
             if (this%values(j).gt.this%values(i)) then
@@ -1415,9 +1341,9 @@ contains
 
   subroutine Vector_reverseSortElements(this,indexVector,m)
     type(Vector) :: this
-    type(IVector), optional :: indexVector
-    integer, optional :: m
-    integer i,j,n
+    type(IVector8), optional :: indexVector
+    integer(8), optional :: m
+    integer(8) :: i,j,n
     
     n = Vector_getSize(this)
     if ( .not. present (indexVector) ) then
@@ -1463,65 +1389,15 @@ contains
 
   end subroutine Vector_reverseSortElements
 
-  subroutine Vector_reverseSortElements8(this,indexVector,m)
-    type(Vector8) :: this
-    type(IVector8), optional :: indexVector
-    integer(8), optional :: m
-    integer(8) i,j,n
-    
-    n = Vector_getSize8(this)
-    if ( .not. present (indexVector) ) then
-      do i=1,n
-         do j=i+1,n
-            if (this%values(j).lt.this%values(i)) then
-               call Vector_swapElements8( this, i, j )
-            end if
-         end do
-      end do
-    else
-    
-      if ( .not. present (m) ) then
-
-        do i=1,n
-          indexVector%values(i) = i
-        end do 
-
-        do i=1,n
-           do j=i+1,n
-              if (this%values(j).lt.this%values(i)) then
-                 call Vector_swapElements8( this, i, j )
-                 call Vector_swapIntegerElements8( indexVector, i, j )
-              end if
-           end do
-        end do
-      else
-
-        do i=1,n
-          indexVector%values(i) = i
-        end do 
-
-        do i=1,m
-           do j=i+1,n
-              if (this%values(j).lt.this%values(i)) then
-                 call Vector_swapElements8( this, i, j )
-                 call Vector_swapIntegerElements8( indexVector, i, j )
-              end if
-           end do
-        end do
-      end if
-    end if
-
-  end subroutine Vector_reverseSortElements8
-
-  subroutine Vector_reverseSortElementsAbsolute8(this,indexVector,m)
-    type(Vector8) :: this
+  subroutine Vector_reverseSortElementsAbsolute(this,indexVector,m)
+    type(Vector) :: this
     type(IVector8), optional :: indexVector
     integer(8), optional :: m
     integer(8) i,j,n
     real(8) :: maxValue
     integer(8) :: maxPos
     
-    n = Vector_getSize8(this)
+    n = Vector_getSize(this)
 
     do i=1,m
       maxPos = 1
@@ -1534,11 +1410,11 @@ contains
         end if
       end do
 
-      call Vector_swapElements8( this, i, maxPos )
-      call Vector_swapIntegerElements8( indexVector, i, maxPos )
+      call Vector_swapElements( this, i, maxPos )
+      call Vector_swapIntegerElements( indexVector, i, maxPos )
     end do
 
-  end subroutine Vector_reverseSortElementsAbsolute8
+  end subroutine Vector_reverseSortElementsAbsolute
 
   subroutine Vector_reverseSortElements8Int(this,indexVector,m)
     type(IVector8) :: this
@@ -1598,15 +1474,13 @@ contains
 
   end subroutine Vector_reverseSortElements8Int
   
-
-  
   !>
   !! @brief Intercambia los elementos i y j el vector
   subroutine Vector_swapElements( this, i, j )
     implicit none
     type(Vector), intent(inout) :: this
-    integer, intent(in) :: i
-    integer, intent(in) :: j
+    integer(8), intent(in) :: i
+    integer(8), intent(in) :: j
     
     real(8) :: value1
     real(8) :: value2
@@ -1621,33 +1495,14 @@ contains
 
   !>
   !! @brief Intercambia los elementos i y j el vector
-  subroutine Vector_swapElements8( this, i, j )
+  subroutine Vector_swapIntegerElements( this, i, j )
     implicit none
-    type(Vector8), intent(inout) :: this
+    type(IVector8), intent(inout) :: this
     integer(8), intent(in) :: i
     integer(8), intent(in) :: j
     
-    real(8) :: value1
-    real(8) :: value2
-    
-    value1 = this%values( i )
-    value2 = this%values( j )
-    
-    this%values( i ) = value2
-    this%values( j ) = value1
-    
-  end subroutine Vector_swapElements8
-
-  !>
-  !! @brief Intercambia los elementos i y j el vector
-  subroutine Vector_swapIntegerElements( this, i, j )
-    implicit none
-    type(IVector), intent(inout) :: this
-    integer, intent(in) :: i
-    integer, intent(in) :: j
-    
-    integer :: value1
-    integer :: value2
+    integer(8) :: value1
+    integer(8) :: value2
     
     value1 = this%values( i )
     value2 = this%values( j )
@@ -1656,7 +1511,6 @@ contains
     this%values( j ) = value1
     
   end subroutine Vector_swapIntegerElements
-
 
   !>
   !! @brief Intercambia los elementos i y j el vector
@@ -1677,8 +1531,6 @@ contains
     
   end subroutine Vector_swapIntegerElements8
 
-
-  
   !>
   !! @brief Retorna el tamano del vector
   function Vector_getSize( this ) result ( output )
@@ -1689,17 +1541,6 @@ contains
     output = size( this%values , DIM=1 )
     
   end function Vector_getSize
-  
-  !>
-  !! @brief Retorna el tamano del vector
-  function Vector_getSize8( this ) result ( output )
-    implicit none
-    type(Vector8), intent(inout) :: this
-    integer(8) :: output
-    
-    output = size( this%values , DIM=1 )
-    
-  end function Vector_getSize8
   
   !>
   !! @brief Retorna el elemento i-esimo del vector

@@ -74,7 +74,7 @@ contains
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
 
     gridSize=size(coordinates%values(:,1))
-    call Vector_constructor( output, gridSize, 0.0_8) 
+    call Vector_constructor( output, int(gridSize,8), 0.0_8) 
     call Matrix_constructor( basisSetValues, int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8 )
 
     call CalculateWaveFunction_getBasisValueAt(speciesID, coordinates, gridSize, basisSetValues)
@@ -103,7 +103,7 @@ contains
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions( speciesID )
 
     gridSize=size(coordinates%values(:,1))
-    call Vector_constructor( output, gridSize, 0.0_8) 
+    call Vector_constructor( output, int(gridSize,8), 0.0_8) 
     call Matrix_constructor( basisSetValues, int(gridSize,8), int(totalNumberOfContractions,8), 0.0_8 )
 
     call CalculateWaveFunction_getBasisValueAt(speciesID, coordinates, gridSize, basisSetValues)
@@ -166,8 +166,8 @@ contains
              write(auxstring,*) state
              arguments(2) = MolecularSystem_getNameOfSpecies( l )
              arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
-             densityMatrices(l,state)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,4), &
-                  columns= int(numberOfOrbitals,4), binary=.false., arguments=arguments(1:2))
+             densityMatrices(l,state)= Matrix_getFromFile(unit=occupationsUnit, rows= int(numberOfOrbitals,8), &
+                  columns= int(numberOfOrbitals,8), binary=.false., arguments=arguments(1:2))
 
           end do
        end do
@@ -182,8 +182,8 @@ contains
           numberOfOrbitals=MolecularSystem_getTotalNumberOfContractions(l)
           arguments(2) = MolecularSystem_getNameOfSpecies( l )
           arguments(1) = "DENSITY"
-          densityMatrices(l,state)= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,4), &
-               columns= int(numberOfOrbitals,4), binary=.true., arguments=arguments(1:2))
+          densityMatrices(l,state)= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfOrbitals,8), &
+               columns= int(numberOfOrbitals,8), binary=.true., arguments=arguments(1:2))
 
        end do
        close(wfnUnit)
@@ -226,18 +226,18 @@ contains
 
              arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
              arguments(2) = MolecularSystem_getNameOfSpecies( l )
-             call  Vector_getFromFile(elementsNum=MolecularSystem_getTotalNumberOfContractions(l),&
+             call  Vector_getFromFile(elementsNum=int(MolecularSystem_getTotalNumberOfContractions(l),8),&
                   unit=occupationsUnit,&
                   arguments=arguments(1:2),&
                   output=fractionalOccupations(l,state))
 
              arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
              coefficientsOfCombination(l,state)=Matrix_getFromFile(unit=occupationsUnit,&
-                  rows= int(MolecularSystem_getTotalNumberOfContractions(l),4), &
-                  columns= int(MolecularSystem_getTotalNumberOfContractions(l),4), &
+                  rows= int(MolecularSystem_getTotalNumberOfContractions(l),8), &
+                  columns= int(MolecularSystem_getTotalNumberOfContractions(l),8), &
                   arguments=arguments(1:2))
 
-             call Vector_constructor( energyOfMolecularOrbital(l,state), MolecularSystem_getTotalNumberOfContractions(l) )
+             call Vector_constructor( energyOfMolecularOrbital(l,state), int(MolecularSystem_getTotalNumberOfContractions(l), 8) )
              energyOfMolecularOrbital(l,state)%values=0.0
 
           end do
@@ -252,7 +252,7 @@ contains
 
        do l=1,numberOfSpecies
           call Vector_constructor( fractionalOccupations(l,1), &
-               MolecularSystem_getTotalNumberOfContractions(l) )
+               int(MolecularSystem_getTotalNumberOfContractions(l),8) )
           fractionalOccupations(l,1)%values=0.0
           do i=1, MolecularSystem_getOcupationNumber(l)
              fractionalOccupations(l,1)%values(i)=1.0_8 * MolecularSystem_getLambda(l)
@@ -261,13 +261,13 @@ contains
           arguments(1) = "COEFFICIENTS"
           coefficientsOfcombination(l,1) = &
                Matrix_getFromFile(unit=wfnUnit, &
-               rows= int(MolecularSystem_getTotalNumberOfContractions(l),4), &
-               columns= int(MolecularSystem_getTotalNumberOfContractions(l),4),&
+               rows= int(MolecularSystem_getTotalNumberOfContractions(l),8), &
+               columns= int(MolecularSystem_getTotalNumberOfContractions(l),8),&
                binary=.true., &
                arguments=arguments(1:2))
 
           arguments(1) = "ORBITALS"
-          call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions(l), &
+          call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions(l),8), &
                unit = wfnUnit,&
                binary = .true.,&
                arguments = arguments(1:2), &

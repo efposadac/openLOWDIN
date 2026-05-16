@@ -102,8 +102,8 @@ program DFT
      
      labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
      labels(1) = "DENSITY-MATRIX"
-     densityMatrix(speciesID) =Matrix_getFromFile(unit=densUnit, rows= int(numberOfContractions,4), &
-          columns=int(numberOfContractions,4), binary=.true., arguments=labels)
+     densityMatrix(speciesID) =Matrix_getFromFile(unit=densUnit, rows= int(numberOfContractions,8), &
+          columns=int(numberOfContractions,8), binary=.true., arguments=labels)
      
      close(unit=densUnit)
   end do
@@ -123,7 +123,7 @@ program DFT
         labels(1) = "NUMBER-OF-PARTICLES"
         call Vector_getFromFile(unit=excUnit, binary=.true., value=numberOfParticles(speciesID), arguments= labels )
         labels(1) = "EXCHANGE-CORRELATION-MATRIX"
-        exchangeCorrelationMatrix(speciesID)=Matrix_getFromFile(unit=excUnit, rows= int(numberOfContractions,4), columns= int(numberOfContractions,4),&
+        exchangeCorrelationMatrix(speciesID)=Matrix_getFromFile(unit=excUnit, rows= int(numberOfContractions,8), columns= int(numberOfContractions,8),&
              binary=.true., arguments=labels(1:2))
 
         do otherSpeciesID = speciesID, numberOfSpecies

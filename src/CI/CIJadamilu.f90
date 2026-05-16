@@ -50,13 +50,13 @@ contains
           3_8, int(size(CIcore_instance%numberOfStrings(i)%values, dim=1) + 1 ,8),  0 )
   
         call Vector_constructor(CIcore_instance%couplingMatrixEnergyOne(i,n), &
-          int(sum(CIcore_instance%numberOfStrings(i)%values),4), 0.0_8 )
+          int(sum(CIcore_instance%numberOfStrings(i)%values),8), 0.0_8 )
   
-        call Vector_constructorInteger(CIcore_instance%couplingMatrixFactorOne(i,n), &
-          int(sum(CIcore_instance%numberOfStrings(i)%values),4), 2 )
+        call Vector_constructorInteger1(CIcore_instance%couplingMatrixFactorOne(i,n), &
+          int(sum(CIcore_instance%numberOfStrings(i)%values),8), 2_1 )
   
         call Vector_constructorInteger( CIcore_instance%couplingMatrixOrbOne(i,n), &
-          int(sum(CIcore_instance%numberOfStrings(i)%values),4), 0 )
+          int(sum(CIcore_instance%numberOfStrings(i)%values),8), 0_4 )
 
       end do  
     end do  
@@ -1267,7 +1267,7 @@ recursive  function CIJadamilu_buildRowRecursionSecondOne( ii, indexConfB, w, vc
     integer :: l,ll
     integer :: factor
     integer :: auxnumberOfOtherSpecieSpatialOrbitals
-    integer :: auxIndex1, auxIndex11, auxIndex
+    integer(8) :: auxIndex1, auxIndex11, auxIndex
     real(8) :: auxCIenergy
 
     auxCIenergy = 0.0_8

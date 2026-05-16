@@ -90,7 +90,7 @@ contains
 
     call Matrix_constructor(this%configurationHamiltonianMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
     call Matrix_constructor(this%configurationOverlapMatrix, int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)
-    call Vector_constructor(this%configurationCorrelationEnergies, this%numberOfDisplacedSystems, 0.0_8)
+    call Vector_constructor(this%configurationCorrelationEnergies, int(this%numberOfDisplacedSystems,8), 0.0_8)
     do speciesID=1, nspecies
          call Matrix_constructor(this%configurationKineticMatrix(speciesID), &
               int(this%numberOfDisplacedSystems,8), int(this%numberOfDisplacedSystems,8), 0.0_8)

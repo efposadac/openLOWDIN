@@ -670,8 +670,8 @@ contains
   !! @warning The arguments options are only available with unit option
   function Matrix_getFromFile(rows, columns, unit, file, binary, arguments, failContinue) result( output )
     implicit none
-    integer, intent(in) :: rows
-    integer, intent(in) :: columns
+    integer(8), intent(in) :: rows
+    integer(8), intent(in) :: columns
     integer, optional :: unit
     character(*), optional :: file
     logical, optional :: binary
@@ -682,7 +682,7 @@ contains
 
     integer :: failAction
     character(5000) :: line
-    character(20) :: auxSize
+    character(32) :: auxSize
     real(8), allocatable :: values(:)
     integer(8) :: totalSize
     integer :: status
@@ -692,7 +692,7 @@ contains
     logical :: existFile
     logical :: found
     
-    write(auxSize,*) columns
+    write(auxSize,'(I0)') columns
 
     bbinary = .false.
     if(present(binary)) bbinary = binary
@@ -1117,7 +1117,7 @@ contains
 
     auxMatrix=this
     ssize = size(this%values,dim=1)
-    call Vector_constructor(auxVector, ssize, 0.0_8)
+    call Vector_constructor(auxVector, int(ssize,8) , 0.0_8)
     linearlyIndependentVectors=this
     linearlyIndependentVectors%values=0.0
 
@@ -1173,7 +1173,7 @@ contains
     integer :: j
 
     ssize = size(this%values,dim=1)
-    call Vector_constructor(auxVector, ssize, 0.0_8)
+    call Vector_constructor(auxVector, int(ssize,8) , 0.0_8)
     linearlyIndependentVectors=this
     linearlyIndependentVectors%values=0.0
 
@@ -1233,7 +1233,7 @@ contains
   function Matrix_getNumberOfColumns( this ) result ( output )
     implicit none
     type(Matrix), intent(inout) :: this
-    integer :: output
+    integer(8) :: output
 
     output = size( this%values , DIM=2 )
 
@@ -3007,7 +3007,7 @@ contains
        end if
 
 
-       call Vector_constructor( eigenValues, rows)
+       call Vector_constructor( eigenValues, int(rows,8) )
        call Matrix_constructor( eigenVectors, int(rows,8), int(rows,8) )
 
 
@@ -3097,7 +3097,7 @@ contains
     type(Vector) :: output
 
     if( .not.allocated(this%eigenValues) ) call Matrix_eigenProperties(this)
-    call Vector_constructor(output,size(this%eigenValues))
+    call Vector_constructor(output,int(size(this%eigenValues), 8) )
     output%values=this%eigenValues
 
   end function Matrix_getEigenValues
@@ -3264,7 +3264,7 @@ contains
 
     call Matrix_constructor( tmp1, int(dm,8), int(dm,8 ) )
     call Matrix_constructor( eigenVectors, int(dm,8), int(dm,8 ) )
-    call Vector_constructor( eigenValues, dm )
+    call Vector_constructor( eigenValues, int(dm,8) )
 
     tmp1%values = m
 

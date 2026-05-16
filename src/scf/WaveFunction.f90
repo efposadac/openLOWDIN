@@ -201,7 +201,7 @@ contains
        call Matrix_constructor( these(speciesID)%exchangeCorrelationMatrix, numberOfContractions, numberOfContractions, 0.0_8 )
 
        call Matrix_constructor( these(speciesID)%waveFunctionCoefficients,numberOfContractions, numberOfContractions, 0.0_8 )
-       call Vector_constructor( these(speciesID)%molecularOrbitalsEnergy, int(numberOfContractions) )
+       call Vector_constructor( these(speciesID)%molecularOrbitalsEnergy, numberOfContractions)
 
        !! Cosmo things
        call Matrix_constructor( these(speciesID)%cosmo1, numberOfContractions, numberOfContractions, 0.0_8 )     
@@ -251,7 +251,7 @@ contains
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
-    this%overlapMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+    this%overlapMatrix = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)
     close(34)
 
@@ -280,7 +280,7 @@ contains
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
-    this%kineticMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+    this%kineticMatrix = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)
     close(34)
 
@@ -309,7 +309,7 @@ contains
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
-    this%puntualInteractionMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+    this%puntualInteractionMatrix = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)
     close(34)
 
@@ -338,16 +338,16 @@ contains
     !! Get number of shells and number of cartesian contractions
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
     arguments(1) = "MOMENTX"
-    this%electricField(1) = Matrix_getFromFile(rows=totalNumberOfContractions, &
-         columns=totalNumberOfContractions, &
+    this%electricField(1) = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), &
+         columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)    
     arguments(1) = "MOMENTY"
-    this%electricField(2) = Matrix_getFromFile(rows=totalNumberOfContractions, & 
-         columns=totalNumberOfContractions, &
+    this%electricField(2) = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), & 
+         columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)    
     arguments(1) = "MOMENTZ"
-    this%electricField(3) = Matrix_getFromFile(rows=totalNumberOfContractions, &
-         columns=totalNumberOfContractions, &
+    this%electricField(3) = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), &
+         columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)    
     close(34)
 
@@ -378,8 +378,8 @@ contains
     !! Get number of shells and number of cartesian contractions
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
     arguments(1) = "HARMONIC"
-    this%harmonic = Matrix_getFromFile(rows=totalNumberOfContractions, &
-         columns=totalNumberOfContractions, &
+    this%harmonic = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), &
+         columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)    
     close(34)
 
@@ -407,7 +407,7 @@ contains
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)
 
     if ( numberOfContractions > 1) then
-       call Vector_constructor( eigenValues, int(numberOfContractions) )
+       call Vector_constructor( eigenValues, numberOfContractions )
        call Matrix_constructor( eigenVectors, numberOfContractions, numberOfContractions)
        !!****************************************************************
        !! diagonaliza la matriz de overlap obteniendo una matriz unitaria
@@ -753,7 +753,7 @@ contains
 
     !! Load electron potential vs clasical charges cosmo matrix
     arguments(1) = "COSMO1"    
-    this%cosmo1 = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+    this%cosmo1 = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)
 
 
@@ -766,7 +766,7 @@ contains
     arguments(1) = "COSMO4"
 
 
-    this%cosmo4 = Matrix_getFromFile(rows=totalNumberOfContractions, columns=totalNumberOfContractions, &
+    this%cosmo4 = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments)    
 
 
@@ -799,8 +799,8 @@ contains
     open(unit = unit, file=trim(file), status="old", form="unformatted")
     !! Get number of shells and number of cartesian contractions
     totalNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species,this%molSys)          
-    this%externalPotentialMatrix = Matrix_getFromFile(rows=totalNumberOfContractions, &
-         columns=totalNumberOfContractions, &
+    this%externalPotentialMatrix = Matrix_getFromFile(rows=int(totalNumberOfContractions,8), &
+         columns=int(totalNumberOfContractions,8), &
          unit=unit, binary=.true., arguments=arguments(1:2))
     close(34)
 
@@ -1590,7 +1590,7 @@ contains
     call Vector_getFromFile(unit=excUnit, binary=.true., value=particlesInGrid, arguments= labels(1:2) )
 
     labels(1) = "EXCHANGE-CORRELATION-MATRIX"
-    exchangeCorrelationMatrix=Matrix_getFromFile(unit=excUnit, rows= int(numberOfContractions,4), columns= int(numberOfContractions,4),&
+    exchangeCorrelationMatrix=Matrix_getFromFile(unit=excUnit, rows= int(numberOfContractions,8), columns= int(numberOfContractions,8),&
          binary=.true., arguments=labels(1:2))
 
     do otherSpeciesID = this%species, numberOfSpecies
@@ -2650,8 +2650,8 @@ contains
 
        arguments(1) = "DENSITY"
        densityMatrix = &
-            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,4), &
-            columns= int(orderOfMatrix,4), binary=.true., arguments=arguments(1:2))
+            Matrix_getFromFile(unit=wfnUnit, rows= int(orderOfMatrix,8), &
+            columns= int(orderOfMatrix,8), binary=.true., arguments=arguments(1:2))
 
        auxLabelsOfContractions = 1
 
@@ -2744,7 +2744,7 @@ contains
     if(this%removedOrbitals .eq. 0) return
     
     numberOfContractions = MolecularSystem_getTotalnumberOfContractions(this%species,this%molSys)
-    call Vector_constructor(normCheck, int(numberOfContractions,4), 0.0_8)
+    call Vector_constructor(normCheck, numberOfContractions, 0.0_8)
 
     do i=1, numberOfContractions
        do mu = 1 , numberOfContractions

@@ -240,14 +240,14 @@ contains
 
         case ("JADAMILU")
           call Vector_constructor ( CIcore_instance%eigenValues, &
-                                 int(CONTROL_instance%NUMBER_OF_CI_STATES,4), 0.0_8 )
+                                 int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8 )
         case ("DSYEVX")
           call Vector_constructor (CIcore_instance%eigenValues, &
-           int(CIcore_instance%numberOfConfigurations,4), 0.0_8 )
+           int(CIcore_instance%numberOfConfigurations,8), 0.0_8 )
 
         case ("DSYEVR")
           call Vector_constructor (CIcore_instance%eigenValues, &
-           int(CIcore_instance%numberOfConfigurations,4), 0.0_8 )
+           int(CIcore_instance%numberOfConfigurations,8), 0.0_8 )
 
         case default
           call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented")
@@ -267,8 +267,8 @@ contains
       !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
       if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
 
-        call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30, 0.0_8)
-        call Vector_constructor  (  CIcore_instance%DDCISDTiming, 30, 0.0_8)
+        call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30_8, 0.0_8)
+        call Vector_constructor  (  CIcore_instance%DDCISDTiming, 30_8, 0.0_8)
   
         write (6,*) ""
         write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
@@ -420,7 +420,7 @@ contains
         call CISCI_constructor( CIcore_instance%numberOfConfigurations )
 
         call Vector_constructor ( CIcore_instance%eigenValues, &
-                                 int(CONTROL_instance%NUMBER_OF_CI_STATES,4), 0.0_8 )
+                                 int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8 )
 
         call Matrix_constructor (CIcore_instance%eigenVectors, &
              int(CIcore_instance%numberOfConfigurations,8), &
@@ -467,8 +467,8 @@ contains
     implicit none
 
     integer :: numberOfSpecies
-    integer :: i,j,m,n,mu,nu,a,b
-    integer(8) :: c
+    integer :: i,j,m,n,mu,nu
+    integer(8) :: a,b,c
     integer :: speciesID
     integer :: otherSpeciesID
     character(10) :: nameOfSpecies
@@ -519,14 +519,14 @@ contains
       arguments(1) = "COEFFICIENTS"
 
       coefficients = &
-          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+          columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
       arguments(1) = "HCORE"
 
       hcoreMatrix = &
-          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+          columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
       !! transform two center integrals (one body operators)
         do m=1,numberOfContractions
@@ -1118,21 +1118,21 @@ contains
          arguments(2) = speciesName
 
          arguments(1) = "COEFFICIENTS"
-         coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+         coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+              columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
          arguments(1) = "KINETIC"
-         kineticMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+         kineticMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+              columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
          
          arguments(1) = "ATTRACTION"
-         attractionMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+         attractionMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+              columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
          arguments(1) = "EXTERNAL-POTENTIAL"
          if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
-              externalPotMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+              externalPotMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+              columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
         
          do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
@@ -1490,14 +1490,14 @@ contains
 
 
                 call Vector_constructor ( auxdensityEigenValues, &
-                     int(numberOfContractions,4),  0.0_8 )
+                     int(numberOfContractions,8),  0.0_8 )
 
                 call Matrix_constructor ( auxdensityEigenVectors, &
                      int(numberOfContractions,8), &
                      int(numberOfContractions,8),  0.0_8 )
 
                 call Vector_constructor ( densityEigenValues, &
-                     int(numberOfContractions,4),  0.0_8 )
+                     int(numberOfContractions,8),  0.0_8 )
 
                 call Matrix_constructor ( densityEigenVectors, &
                      int(numberOfContractions,8), &
@@ -1663,10 +1663,10 @@ contains
     end if
 
 
-    call Vector_destructor8 ( CIcore_instance%diagonalHamiltonianMatrix2 )
+    call Vector_destructor ( CIcore_instance%diagonalHamiltonianMatrix2 )
     call Matrix_destructor(CIcore_instance%hamiltonianMatrix)
-    call Vector_destructorInteger (CIcore_instance%numberOfOccupiedOrbitals)
-    call Vector_destructorInteger (CIcore_instance%numberOfOrbitals)
+    call Vector_destructorInteger8 (CIcore_instance%numberOfOccupiedOrbitals)
+    call Vector_destructorInteger8 (CIcore_instance%numberOfOrbitals)
     call Vector_destructor (CIcore_instance%lambda)
 
     call Matrix_destructor (CIcore_instance%eigenVectors)

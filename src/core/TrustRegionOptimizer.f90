@@ -112,15 +112,15 @@ contains
     real(8) :: initialPoint(:)
 
     this%numberOfVariables = size( initialPoint )
-    call Vector_constructor( this%variables, this%numberOfVariables, 0.0_8 )
-    call Vector_constructor( this%oldVariables, this%numberOfVariables, 0.0_8 )
+    call Vector_constructor( this%variables, int( this%numberOfVariables, 8 ), 0.0_8 )
+    call Vector_constructor( this%oldVariables, int( this%numberOfVariables, 8 ), 1.0_8 )
     this%variables%values = initialPoint
-    call Vector_constructor( this%gradient, this%numberOfVariables, 0.0_8 )
-    call Vector_constructor( this%oldGradient, this%numberOfVariables, 0.0_8 )
-    call Vector_constructor( this%step, this%numberOfVariables, 0.0_8 )
-    call Vector_constructor( this%gradientProjectedOnExtDegrees, this%numberOfVariables, 0.0_8 )
-    call Vector_constructor( this%vibrationalMode, this%numberOfVariables, 0.0_8 )
-    call Vector_constructor( this%gradientProjectedOnHessiane, this%numberOfVariables, 0.0_8 )
+    call Vector_constructor( this%gradient, int( this%numberOfVariables, 8 ), 0.0_8 )
+    call Vector_constructor( this%oldGradient, int( this%numberOfVariables, 8 ), 0.0_8 )
+    call Vector_constructor( this%step, int( this%numberOfVariables, 8 ), 0.0_8 )
+    call Vector_constructor( this%gradientProjectedOnExtDegrees, int( this%numberOfVariables, 8 ), 0.0_8 )
+    call Vector_constructor( this%vibrationalMode, int( this%numberOfVariables, 8 ), 0.0_8 )
+    call Vector_constructor( this%gradientProjectedOnHessiane, int( this%numberOfVariables, 8 ), 0.0_8 )
     call Matrix_constructor( this%hessiane, int(this%numberOfVariables,8), int(this%numberOfVariables,8), 0.0_8 )
     call Matrix_constructor( this%hessianeProjected, int(this%numberOfVariables,8), int(this%numberOfVariables,8), 0.0_8 )
     this%trustRadius = 0.0_8
@@ -1050,8 +1050,8 @@ end subroutine TrustRegionOptimizer_updateTrustRadio
     integer :: i
     integer :: j
 
-    call Vector_constructor( changeOfGradient, this%numberOfVariables )
-    call Vector_constructor( auxVector, this%numberOfVariables )
+    call Vector_constructor( changeOfGradient, int( this%numberOfVariables, 8 ) )
+    call Vector_constructor( auxVector, int( this%numberOfVariables, 8 ) )
 
     changeOfGradient%values= this%gradient%values - this%oldGradient%values
 

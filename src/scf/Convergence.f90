@@ -266,7 +266,7 @@ contains
          orderOfMatrix = size(this%newFockMatrixPtr%values, 1)
          this%orthonormalizationMatrix= this%overlapMatrix
          
-         call Vector_constructor( eigenValues, orderOfMatrix )
+         call Vector_constructor( eigenValues, int(orderOfMatrix,8) )
          call Matrix_constructor( eigenVectors, int(orderOfMatrix,8), int(orderOfMatrix,8) )
          
          call Matrix_eigen( this%orthonormalizationMatrix, eigenValues, eigenVectors, SYMMETRIC  )
@@ -290,7 +290,7 @@ contains
          !! Esta matriz oermite obtener un vector de error balanceado e'=A~*e*A al usar una base ortonormal
          !!	donde A es la matriz de ortogonalizacion.
          !!
-         this%orthonormalizationMatrix%values =	matmul( eigenVectors%values,&
+         this%orthonormalizationMatrix%values = matmul( eigenVectors%values,&
               matmul( this%orthonormalizationMatrix%values, &
               transpose(eigenVectors%values) ) )
          

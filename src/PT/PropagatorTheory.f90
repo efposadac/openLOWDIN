@@ -1,98 +1,98 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!  This code is part of LOWDIN Quantum chemistry package                 
+!!  
+!!  this program has been developed under direction of:
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://sites.google.com/a/bt.unal.edu.co/andresreyes/home
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
-!!	Prof. G. MERINO's Lab. Universidad de Guanajuato
-!!		http://quimera.ugto.mx/qtc/gmerino.html
+!!  Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!    http://sites.google.com/a/bt.unal.edu.co/andresreyes/home
+!!  Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!    http://www.cucei.udg.mx/~robertof
+!!  Prof. G. MERINO's Lab. Universidad de Guanajuato
+!!    http://quimera.ugto.mx/qtc/gmerino.html
 !!
-!!	Authors:
+!!  Authors:
 !!
-!!		J. Romero (jromerof@unal.edu.co)
+!!    J. Romero (jromerof@unal.edu.co)
 !!
-!!	Contributors:
+!!  Contributors:
 !!
-!!		Todos los derechos reservados, 2011
+!!    Todos los derechos reservados, 2011
 !!
 !!******************************************************************************
 
 module PropagatorTheory_
 #ifdef intel
-	use IFPORT
+  use IFPORT
 #endif
-	use MolecularSystem_
+  use MolecularSystem_
         use InputCI_
-!	use IntegralManager_
-!	use GenericInterface_
+!  use IntegralManager_
+!  use GenericInterface_
 !       use PInterface_ 
-	use Exception_
+  use Exception_
         use Matrix_
-	use Vector_
+  use Vector_
         use ReadTransformedIntegrals_
-	use IndexMap_
-	use Units_
+  use IndexMap_
+  use Units_
         use omp_lib
-!	use TransformIntegrals_
-!	use TransformIntegrals2_
-	implicit NONE
+!  use TransformIntegrals_
+!  use TransformIntegrals2_
+  implicit NONE
 
-	!>
-	!! @brief Implementation of propagator theory
-	!!
-	!!
-	!<
+  !>
+  !! @brief Implementation of propagator theory
+  !!
+  !!
+  !<
 
-	!< enum PropagatorTheory_correctionFlags {
-	integer, parameter :: FIRST_ORDER = 1
-	integer, parameter :: SECOND_ORDER = 2
-	integer, parameter :: THIRD_ORDER = 3
-	!< }
+  !< enum PropagatorTheory_correctionFlags {
+  integer, parameter :: FIRST_ORDER = 1
+  integer, parameter :: SECOND_ORDER = 2
+  integer, parameter :: THIRD_ORDER = 3
+  !< }
 
-	type, private :: PropagatorTheory
+  type, private :: PropagatorTheory
 
-		character(50) :: name
-		integer :: orderOfCorrection
-		integer :: numberOfSpecies
-		integer :: occupationBoundary
-		integer :: virtualBoundary
+    character(50) :: name
+    integer :: orderOfCorrection
+    integer :: numberOfSpecies
+    integer :: occupationBoundary
+    integer :: virtualBoundary
 
-		!! Matrices to store the energy corrections
-		type(Matrix) :: energyCorrectionsOfSecondOrder
-		type(Matrix),allocatable :: secondOrderCorrections(:)
-		type(Matrix),allocatable :: thirdOrderCorrections(:)
+    !! Matrices to store the energy corrections
+    type(Matrix) :: energyCorrectionsOfSecondOrder
+    type(Matrix),allocatable :: secondOrderCorrections(:)
+    type(Matrix),allocatable :: thirdOrderCorrections(:)
                 type(Matrix) :: energyCorrections
                 type(IMatrix8), allocatable :: xy(:)
                 type(IVector8), allocatable :: ioff(:)
                 integer(8), allocatable :: ssize2(:)
-		logical :: isInstanced
+    logical :: isInstanced
                 logical :: externalSCS
 
-	end type PropagatorTheory
+  end type PropagatorTheory
 
-	type(PropagatorTheory), private, target :: PropagatorTheory_instance
-	
-	private :: &
-		PropagatorTheory_secondOrderCorrection, &
+  type(PropagatorTheory), private, target :: PropagatorTheory_instance
+  
+  private :: &
+    PropagatorTheory_secondOrderCorrection, &
                 ! PropagatorTheory_nonDiagonalSecondOrderCorrection, &
                 ! PropagatorTheory_nonDiagonalSecondOrderTDACorrection, &
-!		PropagatorTheory_thirdOrderCorrection, &  !! Commented 30th August 2014
-!        	PropagatorTheory_thirdOrderCorrection2, & !! Commented 30th August 2014
-!		PropagatorTheory_thirdOrderCorrection3, & !! Commented 30th August 2014
-!		PropagatorTheory_thirdOrderCorrection4, & !! Commented 30th August 2014
-		PropagatorTheory_thirdOrderCorrection5
-	
-	public :: &
-		PropagatorTheory_constructor, &
-		PropagatorTheory_destructor, &
-		PropagatorTheory_show, &
-		PropagatorTheory_run
+!    PropagatorTheory_thirdOrderCorrection, &  !! Commented 30th August 2014
+!          PropagatorTheory_thirdOrderCorrection2, & !! Commented 30th August 2014
+!    PropagatorTheory_thirdOrderCorrection3, & !! Commented 30th August 2014
+!    PropagatorTheory_thirdOrderCorrection4, & !! Commented 30th August 2014
+    PropagatorTheory_thirdOrderCorrection5
+  
+  public :: &
+    PropagatorTheory_constructor, &
+    PropagatorTheory_destructor, &
+    PropagatorTheory_show, &
+    PropagatorTheory_run
 
 contains
-	  
+    
   !**
   ! Defines the class' constructor
   !
@@ -638,7 +638,7 @@ contains
 
        ! Occupations
 
-       call Vector_constructor(occupationsOfSpeciesA,occupationNumberOfSpeciesA,1.0_8)
+       call Vector_constructor(occupationsOfSpeciesA,int(occupationNumberOfSpeciesA,8) ,1.0_8)
 
        if (CONTROL_instance%PT_TRANSITION_OPERATOR) then
           
@@ -654,7 +654,7 @@ contains
 
         arguments(1) = "ORBITALS"
 
-        call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( i ), &
+        call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( i ),8) , &
                unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                output =  eigenValuesOfSpeciesA )     
        
@@ -666,7 +666,7 @@ contains
              arguments(2) = trim(MolecularSystem_getNameOfSpecies(p))
 
              arguments(1) = "ORBITALS"
-             call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( p ), &
+             call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( p ),8) , &
                      unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                      output =  eigenValuesOfSpeciesB  )    
 
@@ -696,11 +696,11 @@ contains
        end do
        
        !**************************************************************************
-       !	Storing of denominators and numerators in the corresponding vectors
+       !  Storing of denominators and numerators in the corresponding vectors
        !****
 
        m =0
-       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary	
+       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary  
 
           m=m+1          
 
@@ -725,7 +725,7 @@ contains
              arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
 
              arguments(1) = "ORBITALS"
-             call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
+             call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( j ),8) , &
                      unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                      output =  eigenValuesOfSpeciesB  )     
 
@@ -853,7 +853,7 @@ contains
                 lambdaOfSpeciesB = MolecularSystem_getLambda( j )
                 virtualNumberOfSpeciesB = activeOrbitalsOfSpeciesB - occupationNumberOfSpeciesB
 
-                call Vector_constructor(occupationsOfSpeciesB,occupationNumberOfSpeciesB,1.0_8)
+                call Vector_constructor(occupationsOfSpeciesB, int(occupationNumberOfSpeciesB, 8),1.0_8)
 
                 vectorSize1 = occupationNumberOfSpeciesB * virtualNumberOfSpeciesA * virtualNumberOfSpeciesB
                 vectorSize2 = occupationNumberOfSpeciesB * occupationNumberOfSpeciesA * virtualNumberOfSpeciesB
@@ -1553,7 +1553,7 @@ contains
        arguments(2) = trim(MolecularSystem_getNameOfSpecies(i))
 
        arguments(1) = "ORBITALS"
-       call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( i ), &
+       call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( i ), 8), &
                  unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                  output =  eigenValuesOfSpeciesA  )    
 
@@ -1584,12 +1584,12 @@ contains
        call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8_8, 0.0_8)
 
        !**************************************************************************
-       !	Storing of denominators and numerators in the corresponding vectors
+       !  Storing of denominators and numerators in the corresponding vectors
        !****
        
        m =0
        
-       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary	
+       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary  
 
           m=m+1          
           
@@ -1786,7 +1786,7 @@ contains
   
                   arguments(2) = trim(MolecularSystem_getNameOfSpecies(p))
                   arguments(1) = "ORBITALS"
-                  call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( p ), &
+                  call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( p ), 8), &
                        unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                        output =  eigenValuesOfSpeciesB  )     
   
@@ -2203,7 +2203,7 @@ contains
   
                         arguments(2) = trim(MolecularSystem_getNameOfSpecies(r))
                         arguments(1) = "ORBITALS"
-                        call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( r ), &
+                        call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( r ), 8), &
                              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                              output =  eigenValuesOfSpeciesC  )     
                         
@@ -2658,7 +2658,7 @@ contains
 
                    arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                    arguments(1) = "ORBITALS"
-                   call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
+                   call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( j ), 8), &
                          unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                          output =  eigenValuesOfSpeciesB  )
                    
@@ -3073,7 +3073,7 @@ contains
 
                    arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                    arguments(1) = "ORBITALS"
-                   call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
+                   call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( j ), 8), &
                         unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                         output =  eigenValuesOfSpeciesB  )     
 
@@ -3513,7 +3513,7 @@ contains
 
                             arguments(2) = trim(MolecularSystem_getNameOfSpecies(k))
                             arguments(1) = "ORBITALS"
-                            call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( k ), &
+                            call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( k ), 8), &
                                      unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                                      output =  eigenValuesOfSpeciesB  )     
 
@@ -3768,7 +3768,7 @@ contains
 
                       arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
                       arguments(1) = "ORBITALS"
-                      call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( j ), &
+                      call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( j ), 8), &
                            unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                            output =  eigenValuesOfSpeciesB  )   
                       
@@ -4142,7 +4142,7 @@ contains
 
                             arguments(2) = trim(MolecularSystem_getNameOfSpecies(k))
                             arguments(1) = "ORBITALS"
-                            call Vector_getFromFile( elementsNum = MolecularSystem_getTotalNumberOfContractions( k ), &
+                            call Vector_getFromFile( elementsNum = int(MolecularSystem_getTotalNumberOfContractions( k ), 8) , &
                                     unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
                                     output =  eigenValuesOfSpeciesC  )    
                             
@@ -4915,13 +4915,13 @@ end module PropagatorTheory_
   !      end if
        
   !      !!**************************************************************************
-  !      !!	Storing of denominators and numerators in the corresponding vectors
+  !      !!  Storing of denominators and numerators in the corresponding vectors
   !      !!****
 
   !      m=0 !orbital counter
   !      vectorSize2=0
 
-  !      do p=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary	
+  !      do p=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary  
   !         id=0
   !         m=m+1
           
@@ -5231,7 +5231,7 @@ end module PropagatorTheory_
   !         end if
           
   !         call Vector_destructor(auxDenominatorsVector)
-  !         call Vector_destructor(auxNumeratorsVector)		 		  
+  !         call Vector_destructor(auxNumeratorsVector)           
   !         call Vector_destructor(auxNumeratorsVector2)
   !         call Vector_destructor(auxDenominatorsVector2)            
           
@@ -5373,7 +5373,7 @@ end module PropagatorTheory_
 
   !   !!! Section (f|Hf) !!! This part is the bottleneck for other orders, but for the second order ... well it is too easy
       
-  !   !!!	Storing (f|Hf) terms
+  !   !!!  Storing (f|Hf) terms
 
   !   idfHf = numberOfContractionsOfSpecies
 
@@ -5972,7 +5972,7 @@ end module PropagatorTheory_
 
 !     call Matrix_constructor(superHamiltonian, HamiltonianSize, HamiltonianSize)
 
-!     !!!	BUILDING (a|Ha) BLOCK !!! I wish all the blocks were like this
+!     !!!  BUILDING (a|Ha) BLOCK !!! I wish all the blocks were like this
 
 !     do pa = 1, numberOfContractionsOfSpecies
 
@@ -5980,7 +5980,7 @@ end module PropagatorTheory_
 
 !     end do
 
-!     !!!	BUILDING (a|Hf) BLOCKS
+!     !!!  BUILDING (a|Hf) BLOCKS
     
 !     do pa = 1 , numberOfContractionsOfSpecies !!! Run over the alpha holes and particles
 
@@ -6093,7 +6093,7 @@ end module PropagatorTheory_
      
 !     end do
 
-!     !!!	BUILDING (f|Hf) BLOCK !!! THIS IS MADNEEEEESSSSSSSSSS
+!     !!!  BUILDING (f|Hf) BLOCK !!! THIS IS MADNEEEEESSSSSSSSSS
 
 !     idfHf = numberOfContractionsOfSpecies !!! VERY IMPORTANT INDEX
 
@@ -7032,12 +7032,12 @@ end module PropagatorTheory_
 !       end do
 !       
 !       !**************************************************************************
-!       !	Storing of denominators and numerators in the corresponding vectors
+!       !  Storing of denominators and numerators in the corresponding vectors
 !       !****
 !
 !       m =0
 !
-!       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary	
+!       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary  
 !
 !          m=m+1          
 !
@@ -8706,12 +8706,12 @@ end module PropagatorTheory_
 !       end if
 !       
 !       !**************************************************************************
-!       !	Storing of denominators and numerators in the corresponding vectors
+!       !  Storing of denominators and numerators in the corresponding vectors
 !       !****
 !       
 !       m =0
 !       
-!       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary	
+!       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary  
 !          
 !          m=m+1          
 !          
@@ -10634,12 +10634,12 @@ end module PropagatorTheory_
 !       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8, 0.0_8)
 !
 !       !**************************************************************************
-!       !	Storing of denominators and numerators in the corresponding vectors
+!       !  Storing of denominators and numerators in the corresponding vectors
 !       !****
 !       
 !       m =0
 !       
-!       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary	
+!       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary  
 !
 !          m=m+1          
 !          
@@ -12824,12 +12824,12 @@ end module PropagatorTheory_
 !       call Matrix_constructor(PropagatorTheory_instance%thirdOrderCorrections(q), int(n,8), 8, 0.0_8)
 !
 !       !**************************************************************************
-!       !	Storing of denominators and numerators in the corresponding vectors
+!       !  Storing of denominators and numerators in the corresponding vectors
 !       !****
 !       
 !       m =0
 !       
-!       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary	
+!       do pa=PropagatorTheory_instance%occupationBoundary, PropagatorTheory_instance%virtualBoundary  
 !
 !          m=m+1          
 !          

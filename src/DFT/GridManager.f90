@@ -217,8 +217,8 @@ contains
        Grid_instance(speciesID)%totalSize=int(auxVal)
 
        labels(1) = "INTEGRATION-GRID"
-       Grid_instance(speciesID)%points=Matrix_getFromFile(unit=dftUnit, rows= int(Grid_instance(speciesID)%totalSize,4), &
-            columns=int(4,4), binary=.true., arguments=labels)
+       Grid_instance(speciesID)%points=Matrix_getFromFile(unit=dftUnit, rows= int(Grid_instance(speciesID)%totalSize,8), &
+            columns=int(4,8), binary=.true., arguments=labels)
 
        ! print *, "grid recien leida"
        ! print *, size(Grid_instance(speciesID)%points%values)
@@ -248,8 +248,8 @@ contains
           GridsCommonPoints(speciesID,otherSpeciesID)%totalSize=int(auxVal)
 
           labels(1) = "COMMON-POINTS"
-          GridsCommonPoints(speciesID,otherSpeciesID)%points=Matrix_getFromFile(unit=dftUnit, rows= int(GridsCommonPoints(speciesID,otherSpeciesID)%totalSize,4), &
-            columns=int(2,4), binary=.true., arguments=labels)
+          GridsCommonPoints(speciesID,otherSpeciesID)%points=Matrix_getFromFile(unit=dftUnit, rows= int(GridsCommonPoints(speciesID,otherSpeciesID)%totalSize,8), &
+            columns=int(2,8), binary=.true., arguments=labels)
           
           close(unit=dftUnit)
        end do
@@ -273,8 +273,8 @@ contains
     integer :: numberOfSpecies
     integer :: totalNumberOfContractions
     integer :: speciesID
-    integer :: gridSize
-    integer :: mu,nu, point
+    integer(8) :: gridSize, point
+    integer :: mu,nu
 
     character(50) :: labels(2)
     character(100) ::   orbsFile
@@ -317,8 +317,8 @@ contains
              write( labels(1), "(A,I0.4)") "ORBITAL_", u
              labels(2) = Grid_instance(speciesID)%nameOfSpecies
 
-             Grid_instance(speciesID)%orbitalsWithGradient(u)=Matrix_getFromFile(unit=orbsUnit, rows= int(gridSize,4), &
-                  columns= int(4,4), binary=.true., arguments=labels)
+             Grid_instance(speciesID)%orbitalsWithGradient(u)=Matrix_getFromFile(unit=orbsUnit, rows= int(gridSize,8), &
+                  columns= int(4,8), binary=.true., arguments=labels)
 
           end do
           close(unit=orbsUnit)
@@ -391,10 +391,9 @@ contains
     type(Vector) :: densityInGrid
     type(Vector) :: gradientInGrid(*)
 
-    integer :: gridSize
+    integer(8) :: gridSize, point
     integer :: numberOfCartesiansOrbitalsU
     integer :: numberOfCartesiansOrbitalsV
-    integer :: point
     integer :: i, j, u, g
     integer :: ii, jj, v, gg
     integer :: s, ss
@@ -509,11 +508,11 @@ contains
     real(8), optional :: otherExchangeCorrelationEnergy
 
     character(50) :: nameOfSpecies, otherNameOfSpecies
-    integer :: gridSize
+    integer(8) :: gridSize, i
     type(Vector) :: energyDensity
     type(Vector) :: sigma, sigmaPotential
     type(Vector) :: densityAB, potentialAB, sigmaAB, sigmaPotentialAB
-    integer :: i, dir
+    integer :: dir
 
     
     nameOfSpecies = MolecularSystem_getNameOfSpecies( speciesID,Grid_instance(speciesID)%molSys)
@@ -704,12 +703,13 @@ contains
     real(8), optional :: otherElectronExchangeCorrelationEnergy
 
     character(50) :: nameOfSpecies, otherNameOfSpecies, auxstring
-    integer :: gridSize, otherGridSize
+    integer(8) :: gridSize, otherGridSize
     type(Vector) :: energyDensity
     type(Vector) :: sigma
     type(Vector) :: densityAB, potentialAB, sigmaAB, sigmaPotentialAB
     type(Vector) :: electronicDensityAtOtherGrid, electronicGradientAtOtherGrid(3), electronicPotentialAtOtherGrid, electronicGradientPotentialAtOtherGrid(3)
-    integer :: i, j, k, dir
+    integer :: i, j, dir
+    integer(8) :: k
 
     nameOfSpecies = MolecularSystem_getNameOfSpecies( speciesID,Grid_instance(speciesID)%molSys)
     otherNameOfSpecies = MolecularSystem_getNameOfSpecies( otherSpeciesID,Grid_instance(otherSpeciesID)%molSys)
@@ -896,12 +896,12 @@ contains
     integer :: speciesID
     type(Matrix) :: exchangeCorrelationMatrix
 
-    integer :: gridSize
+    integer(8) :: gridSize, point
     integer :: numberOfContractions
 
     integer :: numberOfCartesiansOrbitalsU
     integer :: numberOfCartesiansOrbitalsV
-    integer :: u, v, point
+    integer :: u, v
 
     real(8) :: time1, time2
     integer :: n, nproc
@@ -992,15 +992,16 @@ contains
     type(Grid) :: Grid_instance(:)
     type(Grid) :: GridsCommonPoints(:,:)
     integer :: electronicID, otherSpeciesID
-    integer :: commonGridSize
+    integer(8) :: commonGridSize
     integer :: commonPoints(commonGridSize,2)
     type(Vector) :: electronicDensityAtOtherGrid
     type(Vector) :: electronicGradientAtOtherGrid(3)
     
     character(50) :: nameOfElectron
     integer :: otherElectronicID
-    integer :: electronicGridSize, otherGridSize
-    integer :: i,j,k
+    integer(8) :: electronicGridSize, otherGridSize
+    integer :: i,j
+    integer(8) :: k
     real :: time1,time2
 
     electronicGridSize=Grid_instance(electronicID)%totalSize
@@ -1043,11 +1044,11 @@ contains
   subroutine GridManager_findCommonPoints(grid,gridSize,otherGrid,otherGridSize,commonPoints,commonSize)
     implicit none
     type(Matrix) :: grid,otherGrid
-    integer :: gridSize,otherGridSize,commonSize
+    integer(8) :: gridSize,otherGridSize,commonSize
     type(Matrix) :: commonPoints
 
     type(Matrix) :: auxFinder
-    integer :: i,j, k,last, point
+    integer(8) :: i,j, k,last, point
     real :: time1,time2
 
     !The two grids must have been generated from the same amount of atomic angular and radial points
@@ -1103,8 +1104,8 @@ contains
     integer :: speciesID, otherSpeciesID
     integer, optional :: otherElectronID
     
-    integer :: gridSize
-    integer :: point
+    integer(8) :: gridSize
+    integer(8) :: point
     real(8) :: kf,a0n,a1n,a2n,a3n,a4n,a0d,a1d,a2d,p,q0,q2,q4,Eab,Eab2
     real(8) :: rhoE,rhoP, rhoTot, rhoDif, npos, densityThreshold
     real(8) :: beta, dBdE, dBdP, d2BdE2, d2BdP2, d2BdEP
@@ -1234,7 +1235,7 @@ contains
     type(Grid) :: GridsCommonPoints(:,:)
     integer :: speciesID
     
-    integer :: point,gridSize
+    integer(8) :: point,gridSize
     integer :: center,numberOfCenters
     real(8), allocatable :: distances(:)
 

@@ -391,14 +391,11 @@ end if
    implicit none
    
    
-   integer :: a
-   integer :: b
+   integer(8) :: a, b, i, j
    integer :: r
    integer :: s
    integer :: p
    integer :: t
-   integer :: i
-   integer :: j
    integer :: m
    integer :: k
    integer :: is, js
@@ -407,8 +404,8 @@ end if
    integer :: electronsID
    integer :: ocupationNumber
    integer :: ocupationNumberOfOtherSpecie
-   integer :: numberOfContractions
-   integer :: numberOfContractionsOfOtherSpecie
+   integer(8) :: numberOfContractions
+   integer(8) :: numberOfContractionsOfOtherSpecie
    integer(8) :: auxIndex
     character(10) :: order
    character(10) :: nameOfSpecie
@@ -483,8 +480,8 @@ end if
          arguments(2) = MolecularSystem_getNameOfSpecies(is)
 
          arguments(1) = "COEFFICIENTS"
-         eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+         eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+              columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
    
          arguments(1) = "ORBITALS"
          call Vector_getFromFile( elementsNum = numberOfContractions, &
@@ -621,7 +618,7 @@ end if
                            auxfactor = 1.0
                          end if
 
-                         auxIndex = IndexMap_tensorR4ToVector(a, j, b, i, numberOfContractions )
+                         auxIndex = IndexMap_tensorR4ToVectorB(a, j, b, i, numberOfContractions )
                          auxVal_B= auxMatrix%values(auxIndex, 1)
 
                          independentEnergyCorrection(1) = independentEnergyCorrection(1) + auxVal_A  &
@@ -747,8 +744,8 @@ end if
 
      arguments(1) = "COEFFICIENTS"
      eigenVec = &
-          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-             columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+             columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
      arguments(1) = "ORBITALS"
      call Vector_getFromFile( elementsNum = numberOfContractions, &
@@ -770,8 +767,8 @@ end if
 
         arguments(1) = "COEFFICIENTS"
         eigenVecOtherSpecie = &
-             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
-             columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,8), &
+             columns= int(numberOfContractionsOfOtherSpecie,8), binary=.true., arguments=arguments(1:2))
 
         arguments(1) = "ORBITALS"
         call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
@@ -818,12 +815,12 @@ end if
                  do b=ocupationNumberOfOtherSpecie+1, EpsteinNesbet_instance%activeOrbitals(js)
 
                     ! ii II 
-                    auxIndex = IndexMap_tensorR4ToVector(i,i,j,j, numberOfContractions, &
+                    auxIndex = IndexMap_tensorR4ToVectorB(i,i,j,j, numberOfContractions, &
                          numberOfContractionsOfOtherSpecie )
                     auxVal_C(1) = -auxMatrix%values(auxIndex,1) 
 
                     ! aa AA
-                    auxIndex = IndexMap_tensorR4ToVector(a,a,b,b, numberOfContractions, &
+                    auxIndex = IndexMap_tensorR4ToVectorB(a,a,b,b, numberOfContractions, &
                          numberOfContractionsOfOtherSpecie )
                     auxVal_C(2) = -auxMatrix%values(auxIndex,1) 
 
@@ -832,20 +829,20 @@ end if
                          MolecularSystem_getNumberOfParticles(is) > 1 ) then
 
                     ! aaii
-                    auxIndex = IndexMap_tensorR4ToVector(i,i,a,a, numberOfContractions )
+                    auxIndex = IndexMap_tensorR4ToVectorB(i,i,a,a, numberOfContractions )
                     auxVal_C(3) = -auxMatrixA%values(auxIndex,1) 
 
-                    auxIndex = IndexMap_tensorR4ToVector(i,a,a,i, numberOfContractions )
+                    auxIndex = IndexMap_tensorR4ToVectorB(i,a,a,i, numberOfContractions )
                     auxVal_C(3) = auxVal_C(3) + auxMatrixA%values(auxIndex,1) 
                     end if
 
                     ! aa II
-                    auxIndex = IndexMap_tensorR4ToVector(a,a,j,j, numberOfContractions, &
+                    auxIndex = IndexMap_tensorR4ToVectorB(a,a,j,j, numberOfContractions, &
                          numberOfContractionsOfOtherSpecie )
                     auxVal_C(4) = auxMatrix%values(auxIndex,1) 
  
                     ! ii AA
-                    auxIndex = IndexMap_tensorR4ToVector(i,i,b,b, numberOfContractions, &
+                    auxIndex = IndexMap_tensorR4ToVectorB(i,i,b,b, numberOfContractions, &
                          numberOfContractionsOfOtherSpecie )
                     auxVal_C(5) = auxMatrix%values(auxIndex,1) 
  
@@ -853,15 +850,15 @@ end if
                          CONTROL_instance%BUILD_TWO_PARTICLES_MATRIX_FOR_ONE_PARTICLE .or. &
                          MolecularSystem_getNumberOfParticles(js) > 1 ) then
                     ! IIAA
-                    auxIndex = IndexMap_tensorR4ToVector(j,j,b,b, numberOfContractionsOfOtherSpecie )
+                    auxIndex = IndexMap_tensorR4ToVectorB(j,j,b,b, numberOfContractionsOfOtherSpecie )
                     auxVal_C(6) = -auxMatrixB%values(auxIndex,1) 
 
-                    auxIndex = IndexMap_tensorR4ToVector(j,b,b,j, numberOfContractionsOfOtherSpecie )
+                    auxIndex = IndexMap_tensorR4ToVectorB(j,b,b,j, numberOfContractionsOfOtherSpecie )
                     auxVal_C(6) = auxVal_C(6) + auxMatrixB%values(auxIndex,1) 
                     end if
 
 
-                    auxIndex = IndexMap_tensorR4ToVector(i,a,j,b, numberOfContractions, &
+                    auxIndex = IndexMap_tensorR4ToVectorB(i,a,j,b, numberOfContractions, &
                          numberOfContractionsOfOtherSpecie )
                    if (  dabs( auxMatrix%values(auxIndex,1))  > 1.0E-20_8 ) then
 

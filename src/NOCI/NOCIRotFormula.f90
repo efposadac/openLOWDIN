@@ -85,10 +85,10 @@ contains
     if(nstates .lt. 2) nstates=2
     npoints=this%numberOfIndividualTransformations
     
-    call Vector_constructor(angles,npoints,0.0_8)    
+    call Vector_constructor(angles,int(npoints,8),0.0_8)    
     call Matrix_constructor(weights,int(npoints,8),int(nstates,8),1.0_8)
-    call Vector_constructor(signs,this%numberOfDisplacedSystems,1.0_8)    
-    call Vector_constructor(this%statesEigenvalues, this%numberOfDisplacedSystems, 0.0_8)
+    call Vector_constructor(signs,int(this%numberOfDisplacedSystems,8),1.0_8)
+    call Vector_constructor(this%statesEigenvalues, int(this%numberOfDisplacedSystems,8), 0.0_8)
 
     do i=1,npoints
        angles%values(i)=(i-1)*CONTROL_instance%ROTATION_AROUND_Z_STEP*Math_PI/180

@@ -119,13 +119,13 @@ contains
       end do
       
       if ( MollerPlesset_instance%orderOfCorrection >= 2 ) then
-        call Vector_constructor( MollerPlesset_instance%energyCorrectionOfSecondOrder, MollerPlesset_instance%numberOfSpecies)
+        call Vector_constructor( MollerPlesset_instance%energyCorrectionOfSecondOrder, int(MollerPlesset_instance%numberOfSpecies,8) )
 
         i = MollerPlesset_instance%numberOfSpecies * ( MollerPlesset_instance%numberOfSpecies-1 ) / 2
 
 
 
-        call Vector_constructor( MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder, i)
+        call Vector_constructor( MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder, int(i,8) )
       end if
 
       if ( MollerPlesset_instance%orderOfCorrection >= 3 ) then
@@ -422,11 +422,11 @@ end if
          arguments(2) = MolecularSystem_getNameOfSpecies(is)
 
          arguments(1) = "COEFFICIENTS"
-         eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+         eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+              columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
    
          arguments(1) = "ORBITALS"
-         call Vector_getFromFile( elementsNum = numberOfContractions, &
+         call Vector_getFromFile( elementsNum = int(numberOfContractions,8) , &
               unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
               output = eigenValues )     
          
@@ -691,11 +691,11 @@ end if
 
      arguments(1) = "COEFFICIENTS"
      eigenVec = &
-          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-             columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
+             columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
 
      arguments(1) = "ORBITALS"
-     call Vector_getFromFile( elementsNum = numberOfContractions, &
+     call Vector_getFromFile( elementsNum = int(numberOfContractions,8) , &
           unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
           output = eigenValues )     
 
@@ -714,11 +714,11 @@ end if
 
         arguments(1) = "COEFFICIENTS"
         eigenVecOtherSpecie = &
-             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,4), &
-             columns= int(numberOfContractionsOfOtherSpecie,4), binary=.true., arguments=arguments(1:2))
+             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,8), &
+             columns= int(numberOfContractionsOfOtherSpecie,8), binary=.true., arguments=arguments(1:2))
 
         arguments(1) = "ORBITALS"
-        call Vector_getFromFile( elementsNum = numberOfContractionsofOtherSpecie, &
+        call Vector_getFromFile( elementsNum = int(numberOfContractionsofOtherSpecie,8), &
              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
              output = eigenValuesOfOtherSpecie )     
 
