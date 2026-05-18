@@ -1,6 +1,6 @@
 !!******************************************************************************
-!!  This code is part of LOWDIN Quantum chemistry package                 
-!!  
+!!  This code is part of LOWDIN Quantum chemistry package
+!!
 !!  this program has been developed under direction of:
 !!
 !!  Prof. A REYES' Lab. Universidad Nacional de Colombia
@@ -33,7 +33,7 @@
 !!        -# Enable the UMP2 method.
 !!        -# Consider the particle fraction in the intraspecies term.
 !!
-!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 module MPFunctions_
@@ -54,92 +54,89 @@ module MPFunctions_
   !< }
 
   type :: MollerP
-    
-        character(50) :: name
-        real(8) :: energyHF
-        integer :: orderOfCorrection
-        integer :: numberOfSpecies
-        integer,allocatable :: frozenCoreBoundary(:)
-        integer,allocatable :: activeOrbitals(:)
-        real(8) :: totalEnergy
-        real(8) :: totalCorrection
-        real(8) :: secondOrderCorrection
-        real(8) :: thirdOrderCorrection
-        !! Vectores para almacenamiento de correcciones a la energia.para cada especie
-        type(Vector) :: energyCorrectionOfSecondOrder
-        type(Vector) :: energyOfCouplingCorrectionOfSecondOrder
 
-        logical :: isInstanced
+    character(50) :: name
+    real(8) :: energyHF
+    integer :: orderOfCorrection
+    integer :: numberOfSpecies
+    integer, allocatable :: frozenCoreBoundary(:)
+    integer, allocatable :: activeOrbitals(:)
+    real(8) :: totalEnergy
+    real(8) :: totalCorrection
+    real(8) :: secondOrderCorrection
+    real(8) :: thirdOrderCorrection
+    !! Vectores para almacenamiento de correcciones a la energia.para cada especie
+    type(Vector) :: energyCorrectionOfSecondOrder
+    type(Vector) :: energyOfCouplingCorrectionOfSecondOrder
+
+    logical :: isInstanced
 
   end type MollerP
 
-       type(MollerP), target :: MollerPlesset_instance
-!       character(50) :: job
-       private :: &
-            MollerPlesset_secondOrderCorrection, &
-            MollerPlesset_thirdOrderCorrection
+  type(MollerP), target :: MollerPlesset_instance
 
-       public :: &
-            MollerPlesset_constructor, &
-            MollerPlesset_destructor, &
-            MollerPlesset_show, &
-            MollerPlesset_run, &
-            MollerPlesset_getTotalEnergy, &
-            MollerPlesset_getEnergyCorrection, &
-            MollerPlesset_getSpecieCorrection
+  private :: &
+    MollerPlesset_secondOrderCorrection, &
+    MollerPlesset_thirdOrderCorrection
 
+  public :: &
+    MollerPlesset_constructor, &
+    MollerPlesset_destructor, &
+    MollerPlesset_show, &
+    MollerPlesset_run, &
+    MollerPlesset_getTotalEnergy, &
+    MollerPlesset_getEnergyCorrection, &
+    MollerPlesset_getSpecieCorrection
 
 contains
   !**
   ! Define el constructor para la clase
   !
   !**
-  subroutine MollerPlesset_constructor( orderOfCorrection )
+  subroutine MollerPlesset_constructor(orderOfCorrection)
     implicit none
     integer, intent(in) :: orderOfCorrection
 
     integer :: i
     type(Exception) :: ex
 
-!   if( .not.MollerPlesset_instance%isInstanced ) then
+    !if( .not.MollerPlesset_instance%isInstanced ) then
 
-      MollerPlesset_instance%orderOfCorrection = orderOfCorrection
-      MollerPlesset_instance%numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    MollerPlesset_instance%orderOfCorrection = orderOfCorrection
+    MollerPlesset_instance%numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-      allocate(MollerPlesset_instance%frozenCoreBoundary(MollerPlesset_instance%numberOfSpecies), &
-           MollerPlesset_instance%activeOrbitals(MollerPlesset_instance%numberOfSpecies))
+    allocate (MollerPlesset_instance%frozenCoreBoundary(MollerPlesset_instance%numberOfSpecies), &
+              MollerPlesset_instance%activeOrbitals(MollerPlesset_instance%numberOfSpecies))
 
-      do i=1,  MollerPlesset_instance%numberOfSpecies
-         MollerPlesset_instance%frozenCoreBoundary(i)=0
-         if ( InputCI_Instance(i)%coreOrbitals /= 0 ) MollerPlesset_instance%frozenCoreBoundary(i)=InputCI_Instance(i)%coreOrbitals 
+    do i = 1, MollerPlesset_instance%numberOfSpecies
+      MollerPlesset_instance%frozenCoreBoundary(i) = 0
+      if (InputCI_Instance(i)%coreOrbitals /= 0) MollerPlesset_instance%frozenCoreBoundary(i) = InputCI_Instance(i)%coreOrbitals
 
-         MollerPlesset_instance%activeOrbitals(i)=MolecularSystem_getTotalNumberOfContractions(i)
-         if ( InputCI_Instance(i)%activeOrbitals /= 0 ) MollerPlesset_instance%activeOrbitals(i)=InputCI_Instance(i)%activeOrbitals 
-         
-      end do
-      
-      if ( MollerPlesset_instance%orderOfCorrection >= 2 ) then
-        call Vector_constructor( MollerPlesset_instance%energyCorrectionOfSecondOrder, int(MollerPlesset_instance%numberOfSpecies,8) )
+      MollerPlesset_instance%activeOrbitals(i) = MolecularSystem_getTotalNumberOfContractions(i)
+      if (InputCI_Instance(i)%activeOrbitals /= 0) MollerPlesset_instance%activeOrbitals(i) = InputCI_Instance(i)%activeOrbitals
 
-        i = MollerPlesset_instance%numberOfSpecies * ( MollerPlesset_instance%numberOfSpecies-1 ) / 2
+    end do
 
+    if (MollerPlesset_instance%orderOfCorrection >= 2) then
+      call Vector_constructor(MollerPlesset_instance%energyCorrectionOfSecondOrder, int(MollerPlesset_instance%numberOfSpecies, 8))
 
+      i = MollerPlesset_instance%numberOfSpecies*(MollerPlesset_instance%numberOfSpecies - 1)/2
 
-        call Vector_constructor( MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder, int(i,8) )
-      end if
+      call Vector_constructor(MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder, int(i, 8))
+    end if
 
-      if ( MollerPlesset_instance%orderOfCorrection >= 3 ) then
+    if (MollerPlesset_instance%orderOfCorrection >= 3) then
 
-        call Exception_constructor( ex , ERROR )
-        call Exception_setDebugDescription( ex, "Class object MollerPlesset in the constructor() function" )
-        call Exception_setDescription( ex, "This order correction hasn't been implemented" )
-        call Exception_show( ex )
+      call Exception_constructor(ex, ERROR)
+      call Exception_setDebugDescription(ex, "Class object MollerPlesset in the constructor() function")
+      call Exception_setDescription(ex, "This order correction hasn't been implemented")
+      call Exception_show(ex)
 
-      end if
+    end if
 
-      MollerPlesset_instance%isInstanced =.true.
+    MollerPlesset_instance%isInstanced = .true.
 
-!   end if
+    !end if
 
   end subroutine MollerPlesset_constructor
 
@@ -150,10 +147,9 @@ contains
   subroutine MollerPlesset_destructor()
     implicit none
 
-               MollerPlesset_instance%isInstanced =.false.
+    MollerPlesset_instance%isInstanced = .false.
 
   end subroutine MollerPlesset_destructor
-
 
   !**
   ! @brief Muestra informacion asociada con la correccion MPn
@@ -165,42 +161,41 @@ contains
     integer :: j
     integer :: k
 
-    if ( MollerPlesset_instance%isInstanced )  then
+    if (MollerPlesset_instance%isInstanced) then
 
-       print *,""
-       print *," POST HARTREE-FOCK CALCULATION"
-       print *," MANY-BODY PERTURBATION THEORY:"
-       print *,"=============================="
-       print *,""
-       write (6,"(T15,A25)") "MOLLER-PLESSET FORMALISM "
-       write (6,"(T15,A23, I5)") "ORDER OF CORRECTION = ",MollerPlesset_instance%orderOfCorrection
+      print *, ""
+      print *, " POST HARTREE-FOCK CALCULATION"
+      print *, " MANY-BODY PERTURBATION THEORY:"
+      print *, "=============================="
+      print *, ""
+      write (6, "(T15,A25)") "MOLLER-PLESSET FORMALISM "
+      write (6, "(T15,A23, I5)") "ORDER OF CORRECTION = ", MollerPlesset_instance%orderOfCorrection
 
+      print *, ""
+      write (6, '(A30,F20.12)') "E(0) + E(1) = ", MollerPlesset_instance%energyHF
+      write (6, '(A30,F20.12)') "E(2) = ", MollerPlesset_instance%secondOrderCorrection
+      write (6, '(T30,A20)') "________________________"
+      write (6, '(A30,F20.12)') "E(MP2) = ", MollerPlesset_instance%totalEnergy
+      print *, ""
+      write (6, '(T15,A35)') "-----------------------------------------------"
+      write (6, '(T15,A15,A20)') " E(n){ Specie } ", "   E(n) / Hartree "
+      write (6, '(T15,A35)') "-----------------------------------------------"
+      print *, ""
 
-       print *,""
-       write (6,'(A30,F20.12)') "E(0) + E(1) = ", MollerPlesset_instance%energyHF
-       write (6,'(A30,F20.12)') "E(2) = ", MollerPlesset_instance%secondOrderCorrection
-       write (6,'(T30,A20)') "________________________"
-       write (6,'(A30,F20.12)') "E(MP2) = ", MollerPlesset_instance%totalEnergy
-       print *,""
-       write ( 6,'(T15,A35)') "-----------------------------------------------"
-       write ( 6,'(T15,A15,A20)') " E(n){ Specie } ","   E(n) / Hartree "
-       write ( 6,'(T15,A35)') "-----------------------------------------------"
-       print *,""
+      do i = 1, MollerPlesset_instance%numberOfSpecies
+        write (*, '(A30,F20.12)') "E(2){ "//trim(MolecularSystem_getSymbolOfSpecies(i))//" } = ", &
+          MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
+      end do
 
-       do i=1, MollerPlesset_instance%numberOfSpecies
-          write (*,'(A30,F20.12)') "E(2){ "//trim(MolecularSystem_getSymbolOfSpecies(i))//" } = ", &
-               MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
-       end do
-
-       print *,""
-       k=0
-       do i=1, MollerPlesset_instance%numberOfSpecies
-          do j=i+1,MollerPlesset_instance%numberOfSpecies
-             k=k+1
-             write (*,'(A30,F20.12)') "E(2){ "//trim(MolecularSystem_getSymbolOfSpecies(i))//"/"//trim(MolecularSystem_getSymbolOfSpecies(j))//" } = ", &
-                  MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(k)
-          end do
-       end do
+      print *, ""
+      k = 0
+      do i = 1, MollerPlesset_instance%numberOfSpecies
+        do j = i + 1, MollerPlesset_instance%numberOfSpecies
+          k = k + 1
+          write (*, '(A30,F20.12)') "E(2){ "//trim(MolecularSystem_getSymbolOfSpecies(i))//"/"//trim(MolecularSystem_getSymbolOfSpecies(j))//" } = ", &
+            MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(k)
+        end do
+      end do
 
     end if
 
@@ -215,74 +210,71 @@ contains
     type(Exception) :: ex
     integer :: i
 
-  character(50) :: wfnFile
-  integer :: wfnUnit
+    character(50) :: wfnFile
+    integer :: wfnUnit
 
-  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
-     wfnFile = "lowdin.wfn"
-  ! else
-  !    wfnFile = "lowdin-subsystemA.wfn"
-  ! end if
+    ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+    wfnFile = "lowdin.wfn"
+    ! else
+    !    wfnFile = "lowdin-subsystemA.wfn"
+    ! end if
 
-  wfnUnit = 20
+    wfnUnit = 20
 
-  
-  if ( MollerPlesset_instance%isInstanced ) then
+    if (MollerPlesset_instance%isInstanced) then
 
-     do i=2, MollerPlesset_instance%orderOfCorrection
+      do i = 2, MollerPlesset_instance%orderOfCorrection
 
-        select case( i )
+        select case (i)
 
-        case(  SECOND_ORDER )
+        case (SECOND_ORDER)
 
-           call MollerPlesset_secondOrderCorrection()
+          call MollerPlesset_secondOrderCorrection()
 
-           MollerPlesset_instance%totalCorrection= MollerPlesset_instance%secondOrderCorrection
-        case(  THIRD_ORDER )
+          MollerPlesset_instance%totalCorrection = MollerPlesset_instance%secondOrderCorrection
+        case (THIRD_ORDER)
 
-           call MollerPlesset_thirdOrderCorrection()
+          call MollerPlesset_thirdOrderCorrection()
 
-           MollerPlesset_instance%totalCorrection= MollerPlesset_instance%totalCorrection +&
-                MollerPlesset_instance%thirdOrderCorrection
+          MollerPlesset_instance%totalCorrection = MollerPlesset_instance%totalCorrection + &
+                                                   MollerPlesset_instance%thirdOrderCorrection
 
         case default
 
-           call Exception_constructor( ex , ERROR )
-           call Exception_setDebugDescription( ex, "Class object MollerPlesset in run() function" )
-           call Exception_setDescription( ex, "This order correction hasn't been implemented" )
-           call Exception_show( ex )
+          call Exception_constructor(ex, ERROR)
+          call Exception_setDebugDescription(ex, "Class object MollerPlesset in run() function")
+          call Exception_setDescription(ex, "This order correction hasn't been implemented")
+          call Exception_show(ex)
 
         end select
 
-     end do
-  !! Open file for wavefunction
-  open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+      end do
+      !! Open file for wavefunction
+      open (unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-  !! Load results...
+      !! Load results...
 
-   call Vector_getFromFile(unit=wfnUnit, binary=.true., value=MollerPlesset_instance%energyHF, arguments=["TOTALENERGY"])
+      call Vector_getFromFile(unit=wfnUnit, binary=.true., value=MollerPlesset_instance%energyHF, arguments=["TOTALENERGY"])
 
       MollerPlesset_instance%totalEnergy = MollerPlesset_instance%energyHF + MollerPlesset_instance%totalCorrection
 
-close(wfnUnit)
+      close (wfnUnit)
 
     else
 
-      call Exception_constructor( ex , ERROR )
-      call Exception_setDebugDescription( ex, "Class object MollerPlesset in run() function" )
-      call Exception_setDescription( ex, "You should to instance MollerPlesset module before use this function" )
-      call Exception_show( ex )
+      call Exception_constructor(ex, ERROR)
+      call Exception_setDebugDescription(ex, "Class object MollerPlesset in run() function")
+      call Exception_setDescription(ex, "You should to instance MollerPlesset module before use this function")
+      call Exception_show(ex)
 
-end if
-
+    end if
 
   end subroutine MollerPlesset_run
-
 
   !**
   ! @ Retorna el la correccion a la energia
   !**
-  function MollerPlesset_getEnergyCorrection() result( output)
+  function MollerPlesset_getEnergyCorrection() result(output)
     implicit none
     real(8) :: output
 
@@ -293,16 +285,16 @@ end if
   !**
   ! @ Retorna el la correccion a la energia
   !**
-  function MollerPlesset_getSpecieCorrection( specieName) result( output)
+  function MollerPlesset_getSpecieCorrection(specieName) result(output)
     implicit none
     character(*) :: specieName
     real(8) :: output
 
     integer :: i
 
-    do i=1, MollerPlesset_instance%numberOfSpecies
+    do i = 1, MollerPlesset_instance%numberOfSpecies
 
-      if ( trim(specieName) == trim(  MolecularSystem_getNameOfSpecies( i ) ) ) then
+      if (trim(specieName) == trim(MolecularSystem_getNameOfSpecies(i))) then
 
         output = MollerPlesset_instance%energyCorrectionOfSecondOrder%values(i)
         return
@@ -312,8 +304,6 @@ end if
     end do
 
   end function MollerPlesset_getSpecieCorrection
-
-
 
   !**
   ! @ Retorna la energia final con correccion Moller-Plesset de orrden dado
@@ -326,604 +316,589 @@ end if
 
   end function MollerPlesset_getTotalEnergy
 
+  !<
+  !! @brief Realiza la correccion de segundo orden a la enegia
+  !>
+  subroutine MollerPlesset_secondOrderCorrection()
+    implicit none
 
- !<
- !! @brief Realiza la correccion de segundo orden a la enegia
- !>
- subroutine MollerPlesset_secondOrderCorrection()
-   implicit none
-   
-   
-   integer :: a
-   integer :: b
-   integer :: r
-   integer :: s
-   integer :: p
-   integer :: t
-   integer :: i
-   integer :: j
-   integer :: m
-   integer :: is, js
-   integer :: specieID
-   integer :: otherSpecieID
-   integer :: electronsID
-   integer :: ocupationNumber
-   integer :: ocupationNumberOfOtherSpecie
-   integer :: numberOfContractions
-   integer :: numberOfContractionsOfOtherSpecie
-   integer(8) :: auxIndex
+    integer :: a
+    integer :: b
+    integer :: r
+    integer :: s
+    integer :: p
+    integer :: t
+    integer :: i
+    integer :: j
+    integer :: m
+    integer :: is, js
+    integer :: specieID
+    integer :: otherSpecieID
+    integer :: electronsID
+    integer :: ocupationNumber
+    integer :: ocupationNumberOfOtherSpecie
+    integer :: numberOfContractions
+    integer :: numberOfContractionsOfOtherSpecie
+    integer(8) :: auxIndex
     character(10) :: order
-   character(10) :: nameOfSpecie
-   character(10) :: nameOfOtherSpecie
-   type(Vector) :: eigenValues
-   type(Vector) :: eigenValuesOfOtherSpecie
-   type(Matrix) :: auxMatrix
-   integer :: occupation, otherOccupation
-!   type(TransformIntegrals) :: repulsionTransformer
-   real(8) :: lambda
-   real(8) :: lambdaOfOtherSpecie
-   real(8) :: independentEnergyCorrection, E1, E2
-   real(8) :: couplingEnergyCorrection
-   real(8) :: auxVal_A
-   real(8) :: auxVal_B
-   type(Matrix) :: eigenVec
-   type(Matrix) :: eigenVecOtherSpecie 
-   character(50) :: wfnFile
-   character(50) :: arguments(2)
-   integer :: wfnUnit
+    character(10) :: nameOfSpecie
+    character(10) :: nameOfOtherSpecie
+    type(Vector) :: eigenValues
+    type(Vector) :: eigenValuesOfOtherSpecie
+    type(Matrix) :: auxMatrix
+    integer :: occupation, otherOccupation
+    real(8) :: lambda
+    real(8) :: lambdaOfOtherSpecie
+    real(8) :: independentEnergyCorrection, E1, E2
+    real(8) :: couplingEnergyCorrection
+    real(8) :: auxVal_A
+    real(8) :: auxVal_B
+    type(Matrix) :: eigenVec
+    type(Matrix) :: eigenVecOtherSpecie
+    character(50) :: wfnFile
+    character(50) :: arguments(2)
+    integer :: wfnUnit
 
-   integer :: i1, i2, j1, j2, nVirtualOrbitals
-   integer :: ii(CONTROL_instance%INTEGRAL_STACK_SIZE)
-   integer :: jj(CONTROL_instance%INTEGRAL_STACK_SIZE)
-   integer :: aa(CONTROL_instance%INTEGRAL_STACK_SIZE)
-   integer :: bb(CONTROL_instance%INTEGRAL_STACK_SIZE)
-   real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
-   integer :: integralStackSize
-   character(255) :: prefixOfFile
-   integer :: unidOfOutputForIntegrals
-   real(8), allocatable :: intArray(:,:,:)
-   real(8) :: auxIntegral
-   integer :: errorValue
+    integer :: i1, i2, j1, j2, nVirtualOrbitals
+    integer :: ii(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: jj(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: aa(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: bb(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
+    integer :: integralStackSize
+    character(255) :: prefixOfFile
+    integer :: unidOfOutputForIntegrals
+    real(8), allocatable :: intArray(:, :, :)
+    real(8) :: auxIntegral
+    integer :: errorValue
 
-   !! TypeOfIntegrals 
-   integer, parameter :: ONE_SPECIE     = 0
-   integer, parameter :: TWO_SPECIES      = 1
+    !! TypeOfIntegrals
+    integer, parameter :: ONE_SPECIE = 0
+    integer, parameter :: TWO_SPECIES = 1
 
-  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
-     wfnFile = "lowdin.wfn"
-  ! else
-  !    wfnFile = "lowdin-subsystemA.wfn"
-  ! end if
-     
-   wfnUnit = 20
-   
+    ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+    wfnFile = "lowdin.wfn"
+    ! else
+    !    wfnFile = "lowdin-subsystemA.wfn"
+    ! end if
 
-   electronsID = MolecularSystem_getSpeciesID(  "E-" )
+    wfnUnit = 20
+
+    electronsID = MolecularSystem_getSpeciesID("E-")
 
    !! Define file names
-!   call TransformIntegrals_constructor( repulsionTransformer )
+   !   call TransformIntegrals_constructor( repulsionTransformer )
 
    !!*******************************************************************************************
    !! Calculo de correcciones de segundo orden para particulas de la misma especie
    !!
 
-   open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted") 
-   rewind(wfnUnit)
+    open (unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+    rewind (wfnUnit)
 
-   do is=1, MollerPlesset_instance%numberOfSpecies
+    do is = 1, MollerPlesset_instance%numberOfSpecies
 
-      nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( is ) )
-      
+      nameOfSpecie = trim(MolecularSystem_getNameOfSpecies(is))
+
       independentEnergyCorrection = 0.0_8
-      
-      if( trim(nameOfSpecie)=="E-" .or. .not.CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION ) then
-         
-         numberOfContractions = MolecularSystem_getTotalNumberOfContractions(is)
-         arguments(2) = MolecularSystem_getNameOfSpecies(is)
 
-         arguments(1) = "COEFFICIENTS"
-         eigenVec= Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
-              columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
-   
-         arguments(1) = "ORBITALS"
-         call Vector_getFromFile( elementsNum = int(numberOfContractions,8) , &
-              unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
-              output = eigenValues )     
-         
-         
-         specieID = MolecularSystem_getSpeciesID( nameOfSpecie )
-         ocupationNumber = MolecularSystem_getOcupationNumber( is )
-         lambda = MolecularSystem_instance%species(is)%lambda
-         
-         !! Read transformed integrals from file
+      if (trim(nameOfSpecie) == "E-" .or. .not. CONTROL_instance%MP_ONLY_ELECTRONIC_CORRECTION) then
 
-         if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
-
-           call ReadTransformedIntegrals_readOneSpecies( specieID, auxMatrix)
-
-!           call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer,&
-!                eigenVec, auxMatrix, specieID, trim(nameOfSpecie) )
-
-                  !!**************************************************************************
-         !         !!  Calcula la correccion de segundo orden a la energia
-                  !!****
-           do a=MollerPlesset_instance%frozenCoreBoundary(is)+1, ocupationNumber
-             do b=MollerPlesset_instance%frozenCoreBoundary(is)+1,ocupationNumber
-               do r=ocupationNumber+1, MollerPlesset_instance%activeOrbitals(is)
-                 do s=r, MollerPlesset_instance%activeOrbitals(is)
-
-                   auxIndex = IndexMap_tensorR4ToVectorB(int(a,8),int(r,8),int(b,8),int(s,8), &
-                                                        int(numberOfContractions,8) )
-
-                   auxVal_A= auxMatrix%values(auxIndex, 1)
-                   if (  dabs( auxVal_A)  > 1.0E-10_8 ) then
-
-                     ! if ( b >= a) print *, "A", a, b, r, s, auxVal_A, eigenValues%values(a), eigenValues%values(b), eigenValues%values(r), eigenValues%values(s)
-                     ! if ( b < a) print *, "B", a, b, r, s, auxVal_A, eigenValues%values(a), eigenValues%values(b), eigenValues%values(r), eigenValues%values(s)
-
-                     if ( s>r ) then
-
-                       if (a==b) then
-
-                         if( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-
-                           independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A**2.0  &
-                                                        * ( lambda  -  1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
-                                                        - eigenValues%values(r) - eigenValues%values(s) )
-
-                         end if
-
-                       else
-
-                         auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
-                         auxVal_B= auxMatrix%values(auxIndex, 1)
-
-                         independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A  &
-                                                     * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(a) + eigenValues%values(b) &
-                                                     - eigenValues%values(r) - eigenValues%values(s) )
-
-                       end if
-
-                     else if ( a==b .and. r==s ) then
-
-                       if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-
-                         independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0_8  &
-                                                      * ( lambda - 1.0_8 ) / ( 2.0_8*( eigenValues%values(a)-eigenValues%values(r)))
-
-                       end if
-
-
-                     else
-
-                       if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-                         independentEnergyCorrection = independentEnergyCorrection + auxVal_A**2.0  &
-                                                      * ( lambda  - 1.0_8 ) / ( eigenValues%values(a) + eigenValues%values(b) &
-                                                      - eigenValues%values(r) - eigenValues%values(s) )
-
-                       end if
-
-                     end if
-                   end if
-
-                 end do
-               end do
-             end do
-           end do
-
-         else !! DIRECT
-
-           integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
-           prefixOfFile =""//trim(nameOfSpecie)
-           unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
-           nVirtualOrbitals = numberOfContractions - ocupationNumber 
-
-           allocate (intArray(numberOfContractions, numberOfContractions, numberOfContractions))
-           intArray = 0
-           i1 = MollerPlesset_instance%frozenCoreBoundary(is)+1
-           !i1 = 1 !! replace to frozen core
-
-           !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
-           open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
-             status='old',access='sequential', form='unformatted' )
-
-           readIntegralsC : do
-             read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) ii, aa, jj, bb, shellIntegrals
-
-             do p = 1, integralStackSize
-
-               if ( ii(p) /= i1 ) then
-                 i = i1
-                 i1 = ii(p)
-
-                 !print *, i,j
-                 do j = 1,ocupationNumber
-                   do a = ocupationNumber+1, numberOfContractions
-                     do b = a, numberOfContractions
-                     
-                       !!auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), int(numberOfContractions,8 ))
-                       !!matrixContainer%values( auxIndex, 1 ) = auxIntegrals(i)
-                       auxVal_A = intArray(j,a,b)
-                       !if ( abs(auxVal_A ) > 1E-10) print *, "A", i, j, a, b, auxVal_A
-                       if ( abs(auxVal_A ) > 1E-10) then
-                     
-                         if ( b > a ) then
-                      
-                           if ( i == j ) then
-                      
-                             if( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-                      
-                               independentEnergyCorrection = independentEnergyCorrection + 2.0_8 *  auxVal_A**2.0  &
-                                                         * ( lambda  -  1.0_8 ) / ( eigenValues%values(i) + eigenValues%values(j) &
-                                                         - eigenValues%values(a) - eigenValues%values(b) )
-                      
-                             end if
-                      
-                           else
-                      
-                             !auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
-                             !auxVal_B= auxMatrix%values(auxIndex, 1)
-                             auxVal_B = intArray(j,b,a)
-                      
-                             independentEnergyCorrection = independentEnergyCorrection + 2.0_8 * auxVal_A  &
-                                                      * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(i) + eigenValues%values(j) &
-                                                      - eigenValues%values(a) - eigenValues%values(b) )
-                           end if
-                      
-                         else if ( i == j .and. a == b ) then
-                      
-                           if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-                      
-                           independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0_8  &
-                                                       * ( lambda - 1.0_8 ) / ( 2.0_8*( eigenValues%values(i)-eigenValues%values(a)))
-
-                           end if
-                      
-                         else
-                      
-                           if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-                             independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0  &
-                                                       * ( lambda  - 1.0_8 ) / ( eigenValues%values(i) + eigenValues%values(j) &
-                                                       - eigenValues%values(a) - eigenValues%values(b) )
-
-                           end if
-                      
-                         end if
-                       end if !! >1E-10
-                     end do !! b
-
-                     do b = 1, a
-
-                       if ( j > i ) then
-                         auxVal_A = intArray(j,a,b)
-                         !if ( abs(auxVal_A ) > 1E-10) print *, "B", i, j, a, b, auxVal_A
-                     
-                         if ( a > b ) then
-                     
-                           !auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
-                           !auxVal_B= auxMatrix%values(auxIndex, 1)
-                           auxVal_B = intArray(j,b,a)
-                     
-                           independentEnergyCorrection = independentEnergyCorrection + 2.0_8 * auxVal_A  &
-                                                       * ( lambda * auxVal_A  - auxVal_B ) / ( eigenValues%values(i) + eigenValues%values(j) &
-                                                       - eigenValues%values(a) - eigenValues%values(b) )
-                      
-                         else
-                           if ( abs( lambda  -  1.0_8 ) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
-                             independentEnergyCorrection = independentEnergyCorrection +  auxVal_A**2.0  &
-                                                      * ( lambda  - 1.0_8 ) / ( eigenValues%values(i) + eigenValues%values(j) &
-                                                      - eigenValues%values(a) - eigenValues%values(b) )
-
-                            end if
-                     
-                         end if
-                       end if
-                     end do
-                   end do
-                 end do
-
-                 intArray = 0
-               end if  
-                     
-               if ( ii(p) == -1_8 ) exit readIntegralsC
-                 !print *, "===", ii(p), jj(p),aa(p),bb(p), shellIntegrals(p)
-
-               if ( ii(p) == i1 ) then
-                 intArray(jj(p),aa(p),bb(p))  = shellIntegrals(p)
-                  !intArray(jj(p),bb(p),aa(p))  = shellIntegrals(p)
-                     
-               end if
-                     
-             end do  
-                     
-           end do readIntegralsC
-
-           close(unidOfOutputForIntegrals)
-           deallocate(intArray)
-                     
-                     
-         end if !!direct
-                     
-      end if
-                     
-    MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = independentEnergyCorrection &
-      * ( ( MolecularSystem_getCharge( specieID ) )**4.0_8 )
-                     
-    if ( nameOfSpecie == "E-ALPHA" .or. nameOfSpecie == "E-BETA" ) then
-                     
-      MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = &
-        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) / ( 2.0 )
-                     
-    else             
-                     
-      MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = &
-        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) / &
-        ( MolecularSystem_getParticlesFraction ( specieID ) * 2.0 )
-    end if           
-                     
-                     
-    call Matrix_destructor(auxMatrix)
-    !!
-    !!**************************************************************************
-
-  end do
-
-
-  !! Suma las correcciones de energia para especies independientes
-  MollerPlesset_instance%secondOrderCorrection = sum( MollerPlesset_instance%energyCorrectionOfSecondOrder%values )
-
-  !!
-  !!*******************************************************************************************
-
-
-  !!*******************************************************************************************
-  !! Calculo de correcion se segundo orden para interaccion entre particulas de especie diferente
-  !!
-  if ( MollerPlesset_instance%numberOfSpecies > 1 ) then
-
-   couplingEnergyCorrection = 0.0_8
-   m=0
-
-   do is = 1 , MollerPlesset_instance%numberOfSpecies
-
-     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(is)
-     arguments(2) = trim(MolecularSystem_getNameOfSpecies(is))
-
-     arguments(1) = "COEFFICIENTS"
-     eigenVec = &
-          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,8), &
-             columns= int(numberOfContractions,8), binary=.true., arguments=arguments(1:2))
-
-     arguments(1) = "ORBITALS"
-     call Vector_getFromFile( elementsNum = int(numberOfContractions,8) , &
-          unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
-          output = eigenValues )     
-
-     nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( is ) )
-     specieID =MolecularSystem_getSpeciesID( trim(nameOfSpecie) )
-     ocupationNumber = MolecularSystem_getOcupationNumber( is )
-     lambda = MolecularSystem_getEta( is )
-
-     do js = is + 1 , MollerPlesset_instance%numberOfSpecies
-        m = m + 1
-
-
-        numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions( js )
-
-        arguments(2) = trim(MolecularSystem_getNameOfSpecies(js))
+        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(is)
+        arguments(2) = MolecularSystem_getNameOfSpecies(is)
 
         arguments(1) = "COEFFICIENTS"
-        eigenVecOtherSpecie = &
-             Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractionsOfOtherSpecie,8), &
-             columns= int(numberOfContractionsOfOtherSpecie,8), binary=.true., arguments=arguments(1:2))
+        eigenVec = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                                      columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
 
         arguments(1) = "ORBITALS"
-        call Vector_getFromFile( elementsNum = int(numberOfContractionsofOtherSpecie,8), &
-             unit = wfnUnit, binary = .true., arguments = arguments(1:2), &
-             output = eigenValuesOfOtherSpecie )     
+        call Vector_getFromFile(elementsNum=int(numberOfContractions, 8), &
+                                unit=wfnUnit, binary=.true., arguments=arguments(1:2), &
+                                output=eigenValues)
 
+        specieID = MolecularSystem_getSpeciesID(nameOfSpecie)
+        ocupationNumber = MolecularSystem_getOcupationNumber(is)
+        lambda = MolecularSystem_instance%species(is)%lambda
 
-        nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( js ) )
-        otherSpecieID =MolecularSystem_getSpeciesID( nameOfOtherSpecie )
-        ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber( js )
+        !! Read transformed integrals from file
 
-        lambdaOfOtherSpecie = MolecularSystem_instance%species(js)%lambda
-        couplingEnergyCorrection = 0.0_8
+        if (.not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT") then
 
-!        if ( .not.CONTROL_instance%OPTIMIZE ) then
-!           write (6,"(T10,A)") "INTER-SPECIES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)//"/"//trim(nameOfOtherSpecie)
-!           print *,""
-!        end if
+          call ReadTransformedIntegrals_readOneSpecies(specieID, auxMatrix)
 
-         if ( .not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT" ) then
+          ! call TransformIntegrals_atomicToMolecularOfOneSpecie( repulsionTransformer,&
+          ! eigenVec, auxMatrix, specieID, trim(nameOfSpecie) )
 
-         !! Read transformed integrals from file
-        call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, auxMatrix)
+          !!**************************************************************************
+          !!  Calcula la correccion de segundo orden a la energia
+          !!****
+          do a = MollerPlesset_instance%frozenCoreBoundary(is) + 1, ocupationNumber
+            do b = MollerPlesset_instance%frozenCoreBoundary(is) + 1, ocupationNumber
+              do r = ocupationNumber + 1, MollerPlesset_instance%activeOrbitals(is)
+                do s = r, MollerPlesset_instance%activeOrbitals(is)
 
-!        call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
-!             eigenVec, eigenVecOtherSpecie, &
-!             auxMatrix, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
+                  auxIndex = IndexMap_tensorR4ToVectorB(int(a, 8), int(r, 8), int(b, 8), int(s, 8), &
+                                                        int(numberOfContractions, 8))
 
-        auxMatrix%values = auxMatrix%values * MolecularSystem_getCharge( specieID ) &
-             * MolecularSystem_getCharge( otherSpecieID )
+                  auxVal_A = auxMatrix%values(auxIndex, 1)
+                  if (dabs(auxVal_A) > 1.0E-10_8) then
 
-        do a=MollerPlesset_instance%frozenCoreBoundary(is)+1, ocupationNumber
-           do p=MollerPlesset_instance%frozenCoreBoundary(js)+1,ocupationNumberOfOtherSpecie
-              do r=ocupationNumber+1, MollerPlesset_instance%activeOrbitals(is)
-                 do t=ocupationNumberOfOtherSpecie+1, MollerPlesset_instance%activeOrbitals(js)
+                    ! if ( b >= a) print *, "A", a, b, r, s, auxVal_A, eigenValues%values(a), eigenValues%values(b), eigenValues%values(r), eigenValues%values(s)
+                    ! if ( b < a) print *, "B", a, b, r, s, auxVal_A, eigenValues%values(a), eigenValues%values(b), eigenValues%values(r), eigenValues%values(s)
 
-                    auxIndex = IndexMap_tensorR4ToVector(a,r,p,t, numberOfContractions, &
-                         numberOfContractionsOfOtherSpecie )
-                    couplingEnergyCorrection = couplingEnergyCorrection +  &
-                         ( ( auxMatrix%values(auxIndex,1) )**2.0_8 ) &
-                         / (eigenValues%values(a) + eigenValuesOfOtherSpecie%values(p) &
-                         -eigenValues%values(r)-eigenValuesOfOtherSpecie%values(t) )
+                    if (s > r) then
 
-                 end do
+                      if (a == b) then
+
+                        if (abs(lambda - 1.0_8) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
+
+                          independentEnergyCorrection = independentEnergyCorrection + 2.0_8*auxVal_A**2.0 &
+                                                        *(lambda - 1.0_8)/(eigenValues%values(a) + eigenValues%values(b) &
+                                                                           - eigenValues%values(r) - eigenValues%values(s))
+
+                        end if
+
+                      else
+
+                        auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions)
+                        auxVal_B = auxMatrix%values(auxIndex, 1)
+
+                        independentEnergyCorrection = independentEnergyCorrection + 2.0_8*auxVal_A &
+                                                      *(lambda*auxVal_A - auxVal_B)/(eigenValues%values(a) + eigenValues%values(b) &
+                                                                                     - eigenValues%values(r) - eigenValues%values(s))
+
+                      end if
+
+                    else if (a == b .and. r == s) then
+
+                      if (abs(lambda - 1.0_8) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
+
+                        independentEnergyCorrection = independentEnergyCorrection + auxVal_A**2.0_8 &
+                                                      *(lambda - 1.0_8)/(2.0_8*(eigenValues%values(a) - eigenValues%values(r)))
+
+                      end if
+
+                    else
+
+                      if (abs(lambda - 1.0_8) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
+                        independentEnergyCorrection = independentEnergyCorrection + auxVal_A**2.0 &
+                                                      *(lambda - 1.0_8)/(eigenValues%values(a) + eigenValues%values(b) &
+                                                                         - eigenValues%values(r) - eigenValues%values(s))
+
+                      end if
+
+                    end if
+                  end if
+
+                end do
               end do
-           end do
-        end do
+            end do
+          end do
 
         else !! DIRECT
-         !! Read transformed integrals from file
-        !!call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, auxMatrix)
 
-        !!auxMatrix%values = auxMatrix%values * MolecularSystem_getCharge( specieID ) &
-        !!     * MolecularSystem_getCharge( otherSpecieID )
-        shellIntegrals = 0.0_8
-        aa = 0
-        bb = 0
-        ii = 0
-        jj = 0
-
-        occupation = MolecularSystem_getOcupationNumber( specieID )
-        otheroccupation = MolecularSystem_getOcupationNumber( otherSpecieID )
-
-        order = ""
-
-        if ( otheroccupation > occupation ) then
-          order = "AB"
-        else if ( otheroccupation < occupation ) then
-          order = "BA"
-        else 
-          if ( otherSpecieID > SpecieID ) then
-            order = "AB"
-          else 
-            order = "BA"
-          end if
-        end if
-
-       !if ( otherSpecieID > SpecieID ) then
-       select case (order)
-       case ("AB")
-
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
-
-          prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
-
+          integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
+          prefixOfFile = ""//trim(nameOfSpecie)
           unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+          nVirtualOrbitals = numberOfContractions - ocupationNumber
+
+          allocate (intArray(numberOfContractions, numberOfContractions, numberOfContractions))
+          intArray = 0
+          i1 = MollerPlesset_instance%frozenCoreBoundary(is) + 1
+          !i1 = 1 !! replace to frozen core
 
           !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
-          open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
-               status='old',access='sequential', form='unformatted' )
+          open (unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
+                status='old', access='sequential', form='unformatted')
 
-       readIntegralsC3 : do
-          read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) ii, aa, jj, bb, shellIntegrals
-          do p = 1, integralStackSize
-            if ( ii(p) == -1_8 ) exit readIntegralsC3
+          readIntegralsC: do
+            read (UNIT=unidOfOutputForIntegrals, IOSTAT=errorValue) ii, aa, jj, bb, shellIntegrals
 
-              i = ii(p)
-              a = aa(p)
-              j = jj(p)
-              b = bb(p)
+            do p = 1, integralStackSize
 
-              auxIntegral = shellIntegrals(p) * MolecularSystem_getCharge( specieID ) &
-             * MolecularSystem_getCharge( otherSpecieID )
+              if (ii(p) /= i1) then
+                i = i1
+                i1 = ii(p)
 
+                !print *, i,j
+                do j = 1, ocupationNumber
+                  do a = ocupationNumber + 1, numberOfContractions
+                    do b = a, numberOfContractions
 
-              couplingEnergyCorrection = couplingEnergyCorrection +  &
-                         ( ( auxIntegral )**2.0_8 ) &
-                         / (eigenValues%values(i) + eigenValuesOfOtherSpecie%values(j) &
-                         -eigenValues%values(a)-eigenValuesOfOtherSpecie%values(b) )
+                      !!auxIndex = IndexMap_tensorR4ToVectorB( int(pp(i),8), int(qq(i),8), int(rr(i),8), int(ss(i),8), int(numberOfContractions,8 ))
+                      !!matrixContainer%values( auxIndex, 1 ) = auxIntegrals(i)
+                      auxVal_A = intArray(j, a, b)
+                      !if ( abs(auxVal_A ) > 1E-10) print *, "A", i, j, a, b, auxVal_A
+                      if (abs(auxVal_A) > 1E-10) then
 
-          end do
+                        if (b > a) then
 
-       end do readIntegralsC3
+                          if (i == j) then
 
-      close(unidOfOutputForIntegrals)
+                            if (abs(lambda - 1.0_8) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
 
-       case ("BA")
+                              independentEnergyCorrection = independentEnergyCorrection + 2.0_8*auxVal_A**2.0 &
+                                                            *(lambda - 1.0_8)/(eigenValues%values(i) + eigenValues%values(j) &
+                                                                               - eigenValues%values(a) - eigenValues%values(b))
 
-          nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( specieID ) )
-          nameOfOtherSpecie= trim(  MolecularSystem_getNameOfSpecies( otherSpecieID ) )
+                            end if
 
-          prefixOfFile =""//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
+                          else
 
-          unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+                            !auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
+                            !auxVal_B= auxMatrix%values(auxIndex, 1)
+                            auxVal_B = intArray(j, b, a)
 
-          !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
-          open(unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
-               status='old',access='sequential', form='unformatted' )
+                            independentEnergyCorrection = independentEnergyCorrection + 2.0_8*auxVal_A &
+                                                          *(lambda*auxVal_A - auxVal_B)/(eigenValues%values(i) + eigenValues%values(j) &
+                                                                                         - eigenValues%values(a) - eigenValues%values(b))
+                          end if
 
-       readIntegralsC4 : do
-          read(UNIT=unidOfOutputForIntegrals,IOSTAT=errorValue) jj, bb, ii, aa, shellIntegrals
-          do p = 1, integralStackSize
-            if ( jj(p) == -1_8 ) exit readIntegralsC4
+                        else if (i == j .and. a == b) then
 
-              i = ii(p)
-              a = aa(p)
-              j = jj(p)
-              b = bb(p)
+                          if (abs(lambda - 1.0_8) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
 
-              auxIntegral = shellIntegrals(p)* MolecularSystem_getCharge( specieID ) &
-             * MolecularSystem_getCharge( otherSpecieID )
+                            independentEnergyCorrection = independentEnergyCorrection + auxVal_A**2.0_8 &
+                                                          *(lambda - 1.0_8)/(2.0_8*(eigenValues%values(i) - eigenValues%values(a)))
 
+                          end if
 
-              couplingEnergyCorrection = couplingEnergyCorrection +  &
-                         ( ( auxIntegral )**2.0_8 ) &
-                         / (eigenValues%values(i) + eigenValuesOfOtherSpecie%values(j) &
-                         -eigenValues%values(a)-eigenValuesOfOtherSpecie%values(b) )
+                        else
 
-          end do
+                          if (abs(lambda - 1.0_8) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
+                            independentEnergyCorrection = independentEnergyCorrection + auxVal_A**2.0 &
+                                                          *(lambda - 1.0_8)/(eigenValues%values(i) + eigenValues%values(j) &
+                                                                             - eigenValues%values(a) - eigenValues%values(b))
 
-       end do readIntegralsC4
+                          end if
 
-      close(unidOfOutputForIntegrals)
+                        end if
+                      end if !! >1E-10
+                    end do !! b
 
-      end select
+                    do b = 1, a
+
+                      if (j > i) then
+                        auxVal_A = intArray(j, a, b)
+                        !if ( abs(auxVal_A ) > 1E-10) print *, "B", i, j, a, b, auxVal_A
+
+                        if (a > b) then
+
+                          !auxIndex = IndexMap_tensorR4ToVector(r, b, s, a, numberOfContractions )
+                          !auxVal_B= auxMatrix%values(auxIndex, 1)
+                          auxVal_B = intArray(j, b, a)
+
+                          independentEnergyCorrection = independentEnergyCorrection + 2.0_8*auxVal_A &
+                                                        *(lambda*auxVal_A - auxVal_B)/(eigenValues%values(i) + eigenValues%values(j) &
+                                                                                       - eigenValues%values(a) - eigenValues%values(b))
+
+                        else
+                          if (abs(lambda - 1.0_8) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
+                            independentEnergyCorrection = independentEnergyCorrection + auxVal_A**2.0 &
+                                                          *(lambda - 1.0_8)/(eigenValues%values(i) + eigenValues%values(j) &
+                                                                             - eigenValues%values(a) - eigenValues%values(b))
+
+                          end if
+
+                        end if
+                      end if
+                    end do
+                  end do
+                end do
+
+                intArray = 0
+              end if
+
+              if (ii(p) == -1_8) exit readIntegralsC
+              !print *, "===", ii(p), jj(p),aa(p),bb(p), shellIntegrals(p)
+
+              if (ii(p) == i1) then
+                intArray(jj(p), aa(p), bb(p)) = shellIntegrals(p)
+                !intArray(jj(p),bb(p),aa(p))  = shellIntegrals(p)
+
+              end if
+
+            end do
+
+          end do readIntegralsC
+
+          close (unidOfOutputForIntegrals)
+          deallocate (intArray)
+
+        end if !!direct
 
       end if
 
-        MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(m)= &
-             ( lambda * lambdaOfOtherSpecie * couplingEnergyCorrection )  
+      MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = independentEnergyCorrection &
+                                                                        *((MolecularSystem_getCharge(specieID))**4.0_8)
 
-     end do
-  end do
+      if (nameOfSpecie == "E-ALPHA" .or. nameOfSpecie == "E-BETA") then
 
-  call Matrix_destructor(auxMatrix)
-  !! Adiciona la correccion del termino de acoplamiento
-  MollerPlesset_instance%secondOrderCorrection = MollerPlesset_instance%secondOrderCorrection + &
-       sum( MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values )
+        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = &
+          MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is)/(2.0)
 
-end if
-!!
-!!*******************************************************************************************
+      else
 
-close(wfnUnit)
+        MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is) = &
+          MollerPlesset_instance%energyCorrectionOfSecondOrder%values(is)/ &
+          (MolecularSystem_getParticlesFraction(specieID)*2.0)
+      end if
 
-end subroutine MollerPlesset_secondOrderCorrection
+      call Matrix_destructor(auxMatrix)
+      !!
+      !!**************************************************************************
 
-!<
-!! @brief Realiza la correccion de tercer orden a la enegia
-!>
-subroutine MollerPlesset_thirdOrderCorrection()
-  implicit none
+    end do
 
-  call MollerPlesset_exception( ERROR, "Class object MollerPlesset in thirdOrderCorrection() function" , &
-       "This order correction hasn't been implemented" )
+    !! Suma las correcciones de energia para especies independientes
+    MollerPlesset_instance%secondOrderCorrection = sum(MollerPlesset_instance%energyCorrectionOfSecondOrder%values)
 
-end subroutine MollerPlesset_thirdOrderCorrection
+    !!
+    !!*******************************************************************************************
 
-!>
-!! @brief  Maneja excepciones de la clase
-!<
-subroutine MollerPlesset_exception( typeMessage, description, debugDescription)
-  implicit none
-  integer :: typeMessage
-  character(*) :: description
-  character(*) :: debugDescription
+    !!*******************************************************************************************
+    !! Calculo de correcion se segundo orden para interaccion entre particulas de especie diferente
+    !!
+    if (MollerPlesset_instance%numberOfSpecies > 1) then
 
-  type(Exception) :: ex
+      couplingEnergyCorrection = 0.0_8
+      m = 0
 
-  call Exception_constructor( ex , typeMessage )
-  call Exception_setDebugDescription( ex, debugDescription )
-  call Exception_setDescription( ex, description )
-  call Exception_show( ex )
-  call Exception_destructor( ex )
+      do is = 1, MollerPlesset_instance%numberOfSpecies
 
-end subroutine MollerPlesset_exception
+        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(is)
+        arguments(2) = trim(MolecularSystem_getNameOfSpecies(is))
 
+        arguments(1) = "COEFFICIENTS"
+        eigenVec = &
+          Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                             columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
+
+        arguments(1) = "ORBITALS"
+        call Vector_getFromFile(elementsNum=int(numberOfContractions, 8), &
+                                unit=wfnUnit, binary=.true., arguments=arguments(1:2), &
+                                output=eigenValues)
+
+        nameOfSpecie = trim(MolecularSystem_getNameOfSpecies(is))
+        specieID = MolecularSystem_getSpeciesID(trim(nameOfSpecie))
+        ocupationNumber = MolecularSystem_getOcupationNumber(is)
+        lambda = MolecularSystem_getEta(is)
+
+        do js = is + 1, MollerPlesset_instance%numberOfSpecies
+          m = m + 1
+
+          numberOfContractionsOfOtherSpecie = MolecularSystem_getTotalNumberOfContractions(js)
+
+          arguments(2) = trim(MolecularSystem_getNameOfSpecies(js))
+
+          arguments(1) = "COEFFICIENTS"
+          eigenVecOtherSpecie = &
+            Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractionsOfOtherSpecie, 8), &
+                               columns=int(numberOfContractionsOfOtherSpecie, 8), binary=.true., arguments=arguments(1:2))
+
+          arguments(1) = "ORBITALS"
+          call Vector_getFromFile(elementsNum=int(numberOfContractionsofOtherSpecie, 8), &
+                                  unit=wfnUnit, binary=.true., arguments=arguments(1:2), &
+                                  output=eigenValuesOfOtherSpecie)
+
+          nameOfOtherSpecie = trim(MolecularSystem_getNameOfSpecies(js))
+          otherSpecieID = MolecularSystem_getSpeciesID(nameOfOtherSpecie)
+          ocupationNumberOfOtherSpecie = MolecularSystem_getOcupationNumber(js)
+
+          lambdaOfOtherSpecie = MolecularSystem_instance%species(js)%lambda
+          couplingEnergyCorrection = 0.0_8
+
+          !if ( .not.CONTROL_instance%OPTIMIZE ) then
+          !   write (6,"(T10,A)") "INTER-SPECIES INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecie)//"/"//trim(nameOfOtherSpecie)
+          !   print *,""
+          !end if
+
+          if (.not. trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE)) == "DIRECT") then
+
+            !! Read transformed integrals from file
+            call ReadTransformedIntegrals_readTwoSpecies(specieID, otherSpecieID, auxMatrix)
+
+            !call TransformIntegrals_atomicToMolecularOfTwoSpecies( repulsionTransformer, &
+            !     eigenVec, eigenVecOtherSpecie, &
+            !     auxMatrix, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
+
+            auxMatrix%values = auxMatrix%values*MolecularSystem_getCharge(specieID) &
+                               *MolecularSystem_getCharge(otherSpecieID)
+
+            do a = MollerPlesset_instance%frozenCoreBoundary(is) + 1, ocupationNumber
+              do p = MollerPlesset_instance%frozenCoreBoundary(js) + 1, ocupationNumberOfOtherSpecie
+                do r = ocupationNumber + 1, MollerPlesset_instance%activeOrbitals(is)
+                  do t = ocupationNumberOfOtherSpecie + 1, MollerPlesset_instance%activeOrbitals(js)
+
+                    auxIndex = IndexMap_tensorR4ToVector(a, r, p, t, numberOfContractions, &
+                                                         numberOfContractionsOfOtherSpecie)
+                    couplingEnergyCorrection = couplingEnergyCorrection + &
+                                               ((auxMatrix%values(auxIndex, 1))**2.0_8) &
+                                               /(eigenValues%values(a) + eigenValuesOfOtherSpecie%values(p) &
+                                                 - eigenValues%values(r) - eigenValuesOfOtherSpecie%values(t))
+
+                  end do
+                end do
+              end do
+            end do
+
+          else !! DIRECT
+            !! Read transformed integrals from file
+            !!call ReadTransformedIntegrals_readTwoSpecies( specieID, otherSpecieID, auxMatrix)
+
+            !!auxMatrix%values = auxMatrix%values * MolecularSystem_getCharge( specieID ) &
+            !!     * MolecularSystem_getCharge( otherSpecieID )
+            shellIntegrals = 0.0_8
+            aa = 0
+            bb = 0
+            ii = 0
+            jj = 0
+
+            occupation = MolecularSystem_getOcupationNumber(specieID)
+            otheroccupation = MolecularSystem_getOcupationNumber(otherSpecieID)
+
+            order = ""
+
+            if (otheroccupation > occupation) then
+              order = "AB"
+            else if (otheroccupation < occupation) then
+              order = "BA"
+            else
+              if (otherSpecieID > SpecieID) then
+                order = "AB"
+              else
+                order = "BA"
+              end if
+            end if
+
+            !if ( otherSpecieID > SpecieID ) then
+            select case (order)
+            case ("AB")
+
+              nameOfSpecie = trim(MolecularSystem_getNameOfSpecies(specieID))
+              nameOfOtherSpecie = trim(MolecularSystem_getNameOfSpecies(otherSpecieID))
+
+              prefixOfFile = ""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+
+              unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+
+              !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+              open (unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
+                    status='old', access='sequential', form='unformatted')
+
+              readIntegralsC3: do
+                read (UNIT=unidOfOutputForIntegrals, IOSTAT=errorValue) ii, aa, jj, bb, shellIntegrals
+                do p = 1, integralStackSize
+                  if (ii(p) == -1_8) exit readIntegralsC3
+
+                  i = ii(p)
+                  a = aa(p)
+                  j = jj(p)
+                  b = bb(p)
+
+                  auxIntegral = shellIntegrals(p)*MolecularSystem_getCharge(specieID) &
+                                *MolecularSystem_getCharge(otherSpecieID)
+
+                  couplingEnergyCorrection = couplingEnergyCorrection + &
+                                             ((auxIntegral)**2.0_8) &
+                                             /(eigenValues%values(i) + eigenValuesOfOtherSpecie%values(j) &
+                                               - eigenValues%values(a) - eigenValuesOfOtherSpecie%values(b))
+
+                end do
+
+              end do readIntegralsC3
+
+              close (unidOfOutputForIntegrals)
+
+            case ("BA")
+
+              nameOfSpecie = trim(MolecularSystem_getNameOfSpecies(specieID))
+              nameOfOtherSpecie = trim(MolecularSystem_getNameOfSpecies(otherSpecieID))
+
+              prefixOfFile = ""//trim(nameOfOtherSpecie)//"."//trim(nameOfSpecie)
+
+              unidOfOutputForIntegrals = CONTROL_instance%UNIT_FOR_MP2_INTEGRALS_FILE
+
+              !! Accesa el archivo binario con las integrales en terminos de orbitales moleculares
+              open (unit=unidOfOutputForIntegrals, file=trim(prefixOfFile)//"moint.dat", &
+                    status='old', access='sequential', form='unformatted')
+
+              readIntegralsC4: do
+                read (UNIT=unidOfOutputForIntegrals, IOSTAT=errorValue) jj, bb, ii, aa, shellIntegrals
+                do p = 1, integralStackSize
+                  if (jj(p) == -1_8) exit readIntegralsC4
+
+                  i = ii(p)
+                  a = aa(p)
+                  j = jj(p)
+                  b = bb(p)
+
+                  auxIntegral = shellIntegrals(p)*MolecularSystem_getCharge(specieID) &
+                                *MolecularSystem_getCharge(otherSpecieID)
+
+                  couplingEnergyCorrection = couplingEnergyCorrection + &
+                                             ((auxIntegral)**2.0_8) &
+                                             /(eigenValues%values(i) + eigenValuesOfOtherSpecie%values(j) &
+                                               - eigenValues%values(a) - eigenValuesOfOtherSpecie%values(b))
+
+                end do
+
+              end do readIntegralsC4
+
+              close (unidOfOutputForIntegrals)
+
+            end select
+
+          end if
+
+          MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values(m) = &
+            (lambda*lambdaOfOtherSpecie*couplingEnergyCorrection)
+
+        end do
+      end do
+
+      call Matrix_destructor(auxMatrix)
+      !! Adiciona la correccion del termino de acoplamiento
+      MollerPlesset_instance%secondOrderCorrection = MollerPlesset_instance%secondOrderCorrection + &
+                                                     sum(MollerPlesset_instance%energyOfCouplingCorrectionOfSecondOrder%values)
+
+    end if
+    !!
+    !!*******************************************************************************************
+
+    close (wfnUnit)
+
+  end subroutine MollerPlesset_secondOrderCorrection
+
+  !<
+  !! @brief Realiza la correccion de tercer orden a la enegia
+  !>
+  subroutine MollerPlesset_thirdOrderCorrection()
+    implicit none
+
+    call MollerPlesset_exception(ERROR, "Class object MollerPlesset in thirdOrderCorrection() function", &
+                                 "This order correction hasn't been implemented")
+
+  end subroutine MollerPlesset_thirdOrderCorrection
+
+  !>
+  !! @brief  Maneja excepciones de la clase
+  !<
+  subroutine MollerPlesset_exception(typeMessage, description, debugDescription)
+    implicit none
+    integer :: typeMessage
+    character(*) :: description
+    character(*) :: debugDescription
+
+    type(Exception) :: ex
+
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
+
+  end subroutine MollerPlesset_exception
 
 end module MPFunctions_
 
