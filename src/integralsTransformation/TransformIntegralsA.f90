@@ -1,6 +1,6 @@
 !!******************************************************************************
-!!  This code is part of LOWDIN Quantum chemistry package                 
-!!  
+!!  This code is part of LOWDIN Quantum chemistry package
+!!
 !!  this program has been developed under direction of:
 !!
 !!  Prof. A REYES' Lab. Universidad Nacional de Colombia
@@ -26,9 +26,9 @@
 !!        -# Creacion del archivo y las funciones basicas
 !!   - <tt> 2011-02-15 </tt>: Fernando Posada ( efposadac@unal.edu.co )
 !!        -# Adapta el módulo para su inclusion en Lowdin
-!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)     
-!!        -# Adapts to Lowdin 2               
-!!   - <tt> 2014-08-26 </tt>: Jorge Charry (jacharrym@unal.edu.co)     
+!!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
+!!        -# Adapts to Lowdin 2
+!!   - <tt> 2014-08-26 </tt>: Jorge Charry (jacharrym@unal.edu.co)
 !!        -# Adapts this module to works indepently from MP2 program
 !<
 module TransformIntegralsA_
@@ -42,18 +42,18 @@ module TransformIntegralsA_
   implicit none
 
   type, public :: TransformIntegralsA
-     character(30) :: name
-     character(255) :: fileForCoefficients
-     character(255) :: fileForIntegrals
-     character(255) :: prefixOfFile
-     integer :: numberOfContractions
-     integer :: bias
-     integer :: specieID
-     integer :: otherSpecieID
-     integer :: unidOfOutputForCoefficients
-     integer :: unidOfOutputForIntegrals
-     integer :: nproc
-     integer :: integralStackSize
+    character(30) :: name
+    character(255) :: fileForCoefficients
+    character(255) :: fileForIntegrals
+    character(255) :: prefixOfFile
+    integer :: numberOfContractions
+    integer :: bias
+    integer :: specieID
+    integer :: otherSpecieID
+    integer :: unidOfOutputForCoefficients
+    integer :: unidOfOutputForIntegrals
+    integer :: nproc
+    integer :: integralStackSize
 
   end type TransformIntegralsA
 
@@ -63,51 +63,49 @@ module TransformIntegralsA_
   !! }
 
   public :: &
-       TransformIntegralsA_constructor, &
-       TransformIntegralsA_destructor, &
-       TransformIntegralsA_show, &
-       TransformIntegralsA_atomicToMolecularOfOneSpecie, &
-       TransformIntegralsA_atomicToMolecularOfTwoSpecies
-  !       TransformIntegralsA_readIntegralsTransformed
+    TransformIntegralsA_constructor, &
+    TransformIntegralsA_destructor, &
+    TransformIntegralsA_show, &
+    TransformIntegralsA_atomicToMolecularOfOneSpecie, &
+    TransformIntegralsA_atomicToMolecularOfTwoSpecies
+    !TransformIntegralsA_readIntegralsTransformed
 
   private
 
   interface
 
-     !**                                                                                                                                                                                                
-     ! Realiza proceso de minimizacion restringida o no de una funcion arbitraria                                                                                                                       
-     ! tomado de:    Zhu, C.; Lu, P. and Nocedal, J. Department of Electrical Engineering                                                                                                               
-     !               and Computer Science. Northwestern University. 1996                                                                                                                                
-     !               L-BFGS-B FORTRAN SUBROUTINES FOR LARGE-SCALE BOUND CONSTRAINED                                                                                                                     
-     !               OPTIMIZATION                                                                                                                                                                       
-     !**                                                                                                                                                                                                
-     subroutine  setulb(n, m, x, l, u, nbd, f, g, factr, pgtol, wa, iwa, task, iprint,  csave, lsave, isave, dsave)
-       character*60    ::  task, csave
-       logical ::   lsave(4)
-       integer :: n, m, iprint, nbd(*), iwa(*), isave(44)
-       real(8) :: f, factr, pgtol, x(*), l(*), u(*), g(*), wa(*), dsave(29)
-     end subroutine setulb
+    !**
+    ! Realiza proceso de minimizacion restringida o no de una funcion arbitraria
+    ! tomado de:    Zhu, C.; Lu, P. and Nocedal, J. Department of Electrical Engineering
+    !               and Computer Science. Northwestern University. 1996
+    !               L-BFGS-B FORTRAN SUBROUTINES FOR LARGE-SCALE BOUND CONSTRAINED
+    !               OPTIMIZATION
+    !**
+    subroutine setulb(n, m, x, l, u, nbd, f, g, factr, pgtol, wa, iwa, task, iprint, csave, lsave, isave, dsave)
+      character*60    ::  task, csave
+      logical ::   lsave(4)
+      integer :: n, m, iprint, nbd(*), iwa(*), isave(44)
+      real(8) :: f, factr, pgtol, x(*), l(*), u(*), g(*), wa(*), dsave(29)
+    end subroutine setulb
 
-     !**                                                                                                                                                                                                
-     ! Realiza transformacion de cuatro indices de integrales en OA a integrales                                                                                                                        
-     ! en orbitales moleculares.                                                                                                                                                                        
-     ! tomado de:    Yamamoto, Shigeyoshi; Nagashima, U.                                                                                                                                                
-     !               Four-index integral tranformation exploiting symmetry.                                                                                                                             
-     !               Computer Physics Communications, 2005, 166, 58-65                                                                                                                                  
-     !**                                                                                                                                                                                                
-     subroutine  fourIndexTransformation(numberOfContractions, otherNumberOfContractions, nameFile, nproc, integralStackSize )
-       integer :: numberOfContractions
-       integer :: otherNumberOfContractions
-       integer :: nproc
-       integer :: integralStackSize
-       character(*) :: nameFile
-     end subroutine fourIndexTransformation
+    !**
+    ! Realiza transformacion de cuatro indices de integrales en OA a integrales
+    ! en orbitales moleculares.
+    ! tomado de:    Yamamoto, Shigeyoshi; Nagashima, U.
+    !               Four-index integral tranformation exploiting symmetry.
+    !               Computer Physics Communications, 2005, 166, 58-65
+    !**
+    subroutine fourIndexTransformation(numberOfContractions, otherNumberOfContractions, nameFile, nproc, integralStackSize)
+      integer :: numberOfContractions
+      integer :: otherNumberOfContractions
+      integer :: nproc
+      integer :: integralStackSize
+      character(*) :: nameFile
+    end subroutine fourIndexTransformation
 
   end interface
 
-
 contains
-
 
   !>
   !! @brief Contructor de la clase
@@ -121,7 +119,6 @@ contains
     this%fileForIntegrals = trim(CONTROL_INSTANCE%INPUT_FILE)//".ints"
 
   end subroutine TransformIntegralsA_constructor
-
 
   !>
   !! @brief Contructor de la clase
@@ -138,22 +135,21 @@ contains
   subroutine TransformIntegralsA_show()
     implicit none
 
-    print *,"--------------------------------------------------"
-    print *,"    Algorithm Four-index integral tranformation"
-    print *,"      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
-    print *,"  Computer Physics Communications, 2005, 166, 58-65"
-    print *,"--------------------------------------------------"
-    print *,""
+    print *, "--------------------------------------------------"
+    print *, "    Algorithm Four-index integral tranformation"
+    print *, "      Yamamoto, Shigeyoshi; Nagashima, Umpei. "
+    print *, "  Computer Physics Communications, 2005, 166, 58-65"
+    print *, "--------------------------------------------------"
+    print *, ""
 
   end subroutine TransformIntegralsA_show
-
 
   !>
   !! @brief Transforma integrales de repulsion atomicas entre particulas de la misma especie
   !!    a integrales moleculares.
   !<
-  subroutine TransformIntegralsA_atomicToMolecularOfOneSpecie( this, coefficientsOfAtomicOrbitals, &
-       molecularIntegrals, specieID, nameOfSpecie  )
+  subroutine TransformIntegralsA_atomicToMolecularOfOneSpecie(this, coefficientsOfAtomicOrbitals, &
+                                                              molecularIntegrals, specieID, nameOfSpecie)
     implicit none
     type(TransformIntegralsA) :: this
     type(Matrix) :: coefficientsOfAtomicOrbitals
@@ -170,20 +166,20 @@ contains
     nproc = CONTROL_instance%NUMBER_OF_CORES
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
-    this%prefixOfFile =""//trim(nameOfSpecie)
-    this%fileForCoefficients =""//trim(nameOfSpecie)//"mo.values"
+    this%prefixOfFile = ""//trim(nameOfSpecie)
+    this%fileForCoefficients = ""//trim(nameOfSpecie)//"mo.values"
 
-    if ( .not.CONTROL_instance%OPTIMIZE ) then
-       call cpu_time(initialTime)
+    if (.not. CONTROL_instance%OPTIMIZE) then
+      call cpu_time(initialTime)
     end if
 
-    this%numberOfContractions=size(coefficientsOfAtomicOrbitals%values,dim=1)
+    this%numberOfContractions = size(coefficientsOfAtomicOrbitals%values, dim=1)
     this%specieID = specieID
 
     call TransformIntegralsA_writeCoefficients(this, coefficientsOfAtomicOrbitals)
 
     !! Inicia proceso de transformacion
-    call fourIndexTransformation( this%numberOfContractions, 0_4,  trim(this%prefixOfFile ), nproc, integralStackSize )
+    call fourIndexTransformation(this%numberOfContractions, 0_4, trim(this%prefixOfFile), nproc, integralStackSize)
 
     !    !! Lee  de disco las integrales tranformadas
     !    call TransformIntegralsA_readIntegralsTransformed( this, molecularIntegrals, ONE_SPECIE )
@@ -203,8 +199,8 @@ contains
   !! @brief Transforma integrales de repulsion atomicas entre particulas de diferente especie
   !!    a integrales moleculares.
   !<
-  subroutine TransformIntegralsA_atomicToMolecularOfTwoSpecies( this, coefficientsOfAtomicOrbitals, &
-       otherCoefficientsOfAtomicOrbitals, molecularIntegrals, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie )
+  subroutine TransformIntegralsA_atomicToMolecularOfTwoSpecies(this, coefficientsOfAtomicOrbitals, &
+                                                               otherCoefficientsOfAtomicOrbitals, molecularIntegrals, specieID, nameOfSpecie, otherSpecieID, nameOfOtherSpecie)
     implicit none
     type(TransformIntegralsA) :: this
     type(Matrix) :: coefficientsOfAtomicOrbitals
@@ -220,31 +216,28 @@ contains
     real(8) :: initialTime
     real(8) :: finalTime
 
-    if ( .not.CONTROL_instance%OPTIMIZE ) then
-       call cpu_time(initialTime)
+    if (.not. CONTROL_instance%OPTIMIZE) then
+      call cpu_time(initialTime)
     end if
 
     ! Reads the number of cores
     nproc = CONTROL_instance%NUMBER_OF_CORES
     integralStackSize = CONTROL_instance%INTEGRAL_STACK_SIZE
 
+    this%prefixOfFile = ""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
+    this%fileForCoefficients = ""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//"mo.values"
 
-    this%prefixOfFile =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)
-    this%fileForCoefficients =""//trim(nameOfSpecie)//"."//trim(nameOfOtherSpecie)//"mo.values"
+    this%numberOfContractions = size(coefficientsOfAtomicOrbitals%values, dim=1) + size(otherCoefficientsOfAtomicOrbitals%values, dim=1)
 
-
-    this%numberOfContractions = size(coefficientsOfAtomicOrbitals%values, dim=1)+size(otherCoefficientsOfAtomicOrbitals%values, dim=1)
-
-    this%bias = size(coefficientsOfAtomicOrbitals%values,dim=1)
+    this%bias = size(coefficientsOfAtomicOrbitals%values, dim=1)
     this%specieID = specieID
     this%otherSpecieID = otherSpecieID
 
-
-    call TransformIntegralsA_writeCoefficients( this, coefficientsOfAtomicOrbitals, otherCoefficientsOfAtomicOrbitals )
+    call TransformIntegralsA_writeCoefficients(this, coefficientsOfAtomicOrbitals, otherCoefficientsOfAtomicOrbitals)
 
     !! Inicia proceso de transformacion
     !! this%numberOfContractions = Total number of contractions, it is the sum of contractions beetwen specieID and otherSpecieID
-    call fourIndexTransformation( this%numberOfContractions, size(coefficientsOfAtomicOrbitals%values,dim=1), trim(this%prefixOfFile), 0_4, integralStackSize )
+    call fourIndexTransformation(this%numberOfContractions, size(coefficientsOfAtomicOrbitals%values, dim=1), trim(this%prefixOfFile), 0_4, integralStackSize)
 
     ! Lee  de disco las integrales tranformadas
     !    call TransformIntegralsA_readIntegralsTransformed( this, molecularIntegrals, TWO_SPECIES )
@@ -264,7 +257,7 @@ contains
   !! @brief Escribe los coefficientes de combinacion para los orbitales atomicos.
   !!    El almacenamiento requiere guardar columnas completas una tras de otra
   !<
-  subroutine TransformIntegralsA_writeCoefficients( this, coefficients, otherCoefficients )
+  subroutine TransformIntegralsA_writeCoefficients(this, coefficients, otherCoefficients)
     implicit none
     type(TransformIntegralsA) :: this
     type(Matrix) :: coefficients
@@ -272,56 +265,55 @@ contains
     integer :: a
     integer :: b
 
-    open( UNIT=this%unidOfOutputForCoefficients,FILE=trim(this%fileforcoefficients),STATUS='REPLACE', &
-         ACCESS='SEQUENTIAL', FORM='FORMATTED' )
+    open (UNIT=this%unidOfOutputForCoefficients, FILE=trim(this%fileforcoefficients), STATUS='REPLACE', &
+          ACCESS='SEQUENTIAL', FORM='FORMATTED')
 
-    if ( .not.present(otherCoefficients) ) then
+    if (.not. present(otherCoefficients)) then
 
-       this%numberOfContractions=size(coefficients%values,dim=1)
+      this%numberOfContractions = size(coefficients%values, dim=1)
 
-       do a=1, this%numberOfContractions
-          do b=1,this%numberOfContractions
+      do a = 1, this%numberOfContractions
+        do b = 1, this%numberOfContractions
 
-             write(this%unidOfOutputForCoefficients,*) a,b,coefficients%values(b,a)
+          write (this%unidOfOutputForCoefficients, *) a, b, coefficients%values(b, a)
 
-          end do
-       end do
+        end do
+      end do
 
     else
 
-       this%numberOfContractions=size(coefficients%values,dim=1)+size(otherCoefficients%values,dim=1)
-       this%bias = size(coefficients%values,dim=1)
+      this%numberOfContractions = size(coefficients%values, dim=1) + size(otherCoefficients%values, dim=1)
+      this%bias = size(coefficients%values, dim=1)
 
-       !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       !! Escribe en disco los coeficientes de combinacion  para un par de especies,  haciendo
-       !! un "this%bias" de uno de los conjuntos sobre el otro
-       !!
-       do a=1, this%numberOfContractions
-          do b=1,this%numberOfContractions
+      !*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !! Escribe en disco los coeficientes de combinacion  para un par de especies,  haciendo
+      !! un "this%bias" de uno de los conjuntos sobre el otro
+      !!
+      do a = 1, this%numberOfContractions
+        do b = 1, this%numberOfContractions
 
-             if ( ( a <= this%bias ) .and. ( b <= this%bias ) ) then
-                write(this%unidOfOutputForCoefficients,*) a, b, coefficients%values( b, a )
+          if ((a <= this%bias) .and. (b <= this%bias)) then
+            write (this%unidOfOutputForCoefficients, *) a, b, coefficients%values(b, a)
 
-             else &
-                  if ( ( a > this%bias ) .and. ( b > this%bias ) ) then
-                write(this%unidOfOutputForCoefficients,*) a, b, otherCoefficients%values( b-this%bias, a-this%bias )
+          else &
+            if ((a > this%bias) .and. (b > this%bias)) then
+            write (this%unidOfOutputForCoefficients, *) a, b, otherCoefficients%values(b - this%bias, a - this%bias)
 
-             else
-                write(this%unidOfOutputForCoefficients,*) a,b,0.0_8
+          else
+            write (this%unidOfOutputForCoefficients, *) a, b, 0.0_8
 
-             end if
+          end if
 
-          end do
-       end do
+        end do
+      end do
 
     end if
 
-    close( UNIT=this%unidOfOutputForCoefficients )
-
+    close (UNIT=this%unidOfOutputForCoefficients)
 
   end subroutine TransformIntegralsA_writeCoefficients
 
-  !! This subroutine was moved to lowdinCore  
+  !! This subroutine was moved to lowdinCore
   !
   !  subroutine TransformIntegralsA_readIntegralsTransformed(this, matrixContainer, typeOfIntegrals )
   !    implicit none
@@ -452,11 +444,10 @@ contains
   !
   !  end subroutine TransformIntegralsA_readIntegralsTransformed
 
-
   !>
   !! @brief  Maneja excepciones de la clase
   !<
-  subroutine TransformIntegralsA_exception( typeMessage, description, debugDescription)
+  subroutine TransformIntegralsA_exception(typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -464,12 +455,12 @@ contains
 
     type(Exception) :: ex
 
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine TransformIntegralsA_exception
-  
+
 end module TransformIntegralsA_

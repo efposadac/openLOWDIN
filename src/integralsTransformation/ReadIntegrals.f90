@@ -1,6 +1,6 @@
 !!******************************************************************************
-!!  This code is part of LOWDIN Quantum chemistry package                 
-!!  
+!!  This code is part of LOWDIN Quantum chemistry package
+!!
 !!  this program has been developed under direction of:
 !!
 !!  Prof. A REYES' Lab. Universidad Nacional de Colombia
@@ -16,7 +16,6 @@ module ReadIntegrals_
   use CONTROL_
   use Vector_
   implicit none
-
 
 contains
 
@@ -43,61 +42,57 @@ contains
     integer :: reclen
     logical :: disk = .false.
 
-    if(.not. allocated(integrals)) disk = .true.
-    
-    if( disk ) then
-       inquire(iolength=reclen) int_value
-       open(unit=50,FILE=trim(nameOfSpecies)//".dints",ACCESS="direct",FORM="Unformatted",RECL=reclen, STATUS="unknown")
+    if (.not. allocated(integrals)) disk = .true.
+
+    if (disk) then
+      inquire (iolength=reclen) int_value
+      open (unit=50, FILE=trim(nameOfSpecies)//".dints", ACCESS="direct", FORM="Unformatted", RECL=reclen, STATUS="unknown")
     end if
 
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, p, q, r, s, integral, i, index)
     nthreads = OMP_GET_NUM_THREADS()
-    threadid =  OMP_GET_THREAD_NUM()
+    threadid = OMP_GET_THREAD_NUM()
     unitid = 40 + threadid
 
-    write(fileid,*) threadid
+    write (fileid, *) threadid
     fileid = trim(adjustl(fileid))
 
-    if ( trim(nameOfSpecies) == "E-BETA" ) then
-       open( UNIT=unitid,FILE=trim(fileid)//trim("E-ALPHA")//".ints", status='old',access='stream', form='Unformatted')
-    else 
-       open( unit=unitid,FILE=trim(fileid)//trim(nameOfSpecies)//".ints", status='old',access='stream', form='Unformatted')
+    if (trim(nameOfSpecies) == "E-BETA") then
+      open (UNIT=unitid, FILE=trim(fileid)//trim("E-ALPHA")//".ints", status='old', access='stream', form='Unformatted')
+    else
+      open (unit=unitid, FILE=trim(fileid)//trim(nameOfSpecies)//".ints", status='old', access='stream', form='Unformatted')
     end if
 
+    loadintegrals: do
 
-    loadintegrals : do
+      read (UNIT=unitid, iostat=status) p(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+        q(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+        r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+        s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+        integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-       read(UNIT=unitid, iostat=status) p(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            q(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+      do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+        if (p(i) == -1) exit loadintegrals
 
+        index = ReadIntegrals_index4Intra(int(p(i), 4), int(q(i), 4), int(r(i), 4), int(s(i), 4))
 
-       do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
-          if( p(i) == -1 ) exit loadintegrals
+        if (disk) then
+          write (50, rec=index) integral(i)
+        else
+          integrals(index) = integral(i)
+        end if
 
-
-          index = ReadIntegrals_index4Intra(int(p(i), 4), int(q(i), 4), int(r(i), 4), int(s(i), 4))
-
-          if (disk) then
-            write(50, rec=index) integral(i)
-          else
-             integrals(index) = integral(i)
-          endif
-
-       end do
+      end do
 
     end do loadintegrals
 
     close (unitid)
 
     !$OMP END PARALLEL
-    
-    if( disk ) close(50)
+
+    if (disk) close (50)
 
   end subroutine ReadIntegrals_intraSpecies
-
 
   subroutine ReadIntegrals_interSpecies(nameOfSpecies, nameOfOtherSpecies, w, integrals)
 
@@ -124,45 +119,45 @@ contains
     integer :: reclen
     logical :: disk = .false.
 
-    if(.not. allocated(integrals)) disk = .true.
-    
-    if( disk ) then
-       inquire(iolength=reclen) int_value
-       open(unit=50,FILE=trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".dints",ACCESS="direct",FORM="Unformatted",RECL=reclen, STATUS="unknown")
+    if (.not. allocated(integrals)) disk = .true.
+
+    if (disk) then
+      inquire (iolength=reclen) int_value
+      open (unit=50, FILE=trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".dints", ACCESS="direct", FORM="Unformatted", RECL=reclen, STATUS="unknown")
     end if
 
     !! Read integrals
     !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, p, q, r, s, integral, i, index)
     nthreads = OMP_GET_NUM_THREADS()
-    threadid =  OMP_GET_THREAD_NUM()
+    threadid = OMP_GET_THREAD_NUM()
     unitid = 40 + threadid
 
-    write(fileid,*) threadid
+    write (fileid, *) threadid
     fileid = trim(adjustl(fileid))
 
     !! open file for integrals
-    open(UNIT=unitid,FILE=trim(fileid)//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".ints", &
-         STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+    open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".ints", &
+          STATUS='OLD', ACCESS='stream', FORM='Unformatted')
 
-    loadintegrals : do
+    loadintegrals: do
 
-       read(unitid)   p(1:CONTROL_instance%INTEGRAL_STACK_SIZE), q(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+      read (unitid) p(1:CONTROL_instance%INTEGRAL_STACK_SIZE), q(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+        r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+        integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-       do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+      do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
-          if (p(i) == -1) exit loadintegrals
+        if (p(i) == -1) exit loadintegrals
 
-          index = ReadIntegrals_index4Inter(int(p(i), 4), int(q(i), 4), int(r(i), 4), int(s(i), 4), w)
-          
-          if (disk) then
-            write(50, rec=index) integral(i)
-          else
-             integrals(index) = integral(i)
-          endif
+        index = ReadIntegrals_index4Inter(int(p(i), 4), int(q(i), 4), int(r(i), 4), int(s(i), 4), w)
 
-       end do
+        if (disk) then
+          write (50, rec=index) integral(i)
+        else
+          integrals(index) = integral(i)
+        end if
+
+      end do
 
     end do loadintegrals
 
@@ -172,17 +167,15 @@ contains
 
   end subroutine ReadIntegrals_interSpecies
 
-
-
   function ReadIntegrals_index2(i, j) result(output)
     implicit none
     integer :: i, j
     integer :: output
 
-    if(i > j) then
-       output = i * (i + 1) / 2 + j
+    if (i > j) then
+      output = i*(i + 1)/2 + j
     else
-       output = j * (j + 1) / 2 + i
+      output = j*(j + 1)/2 + i
     end if
 
   end function ReadIntegrals_index2
@@ -224,9 +217,8 @@ contains
     ij = ReadIntegrals_index2(ii, jj)
     kl = ReadIntegrals_index2(kk, ll)
 
-    output = ij * w + kl + 1
+    output = ij*w + kl + 1
 
   end function ReadIntegrals_index4Inter
-
 
 end module ReadIntegrals_
