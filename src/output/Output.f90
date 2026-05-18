@@ -1,22 +1,22 @@
 
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://sites.google.com/a/bt.unal.edu.co/andresreyes/home
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
-!!	Prof. G. MERINO's Lab. Universidad de Guanajuato
-!!		http://quimera.ugto.mx/qtc/gmerino.html
+!!        this program has been developed under direction of:
 !!
-!!	Authors:
-!!		E. F. Posada (efposadac@unal.edu.co)
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://sites.google.com/a/bt.unal.edu.co/andresreyes/home
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!        Prof. G. MERINO's Lab. Universidad de Guanajuato
+!!                http://quimera.ugto.mx/qtc/gmerino.html
 !!
-!!	Contributors:
+!!        Authors:
+!!                E. F. Posada (efposadac@unal.edu.co)
 !!
-!!		Todos los derechos reservados, 2011
+!!        Contributors:
+!!
+!!                Todos los derechos reservados, 2011
 !!
 !!******************************************************************************
 
@@ -43,9 +43,9 @@ program Output_
 
   character(50) :: job
   integer :: numberOfOutputs, i
-  
+
   job = ""
-  call get_command_argument(1,value=job)  
+  call get_command_argument(1, value=job)
   job = trim(String_getUppercase(job))
 
   !!Start time
@@ -53,44 +53,40 @@ program Output_
   call Stopwatch_start(lowdin_stopwatch)
 
   !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
+  call MolecularSystem_loadFromFile("LOWDIN.DAT")
 
   !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  call MolecularSystem_loadFromFile("LOWDIN.SYS")
 
-  if(job.eq."FCHK") then
+  if (job .eq. "FCHK") then
 
-     allocate(outputs_instance(1) )
+    allocate (outputs_instance(1))
 
-     call OutputBuilder_constructor( outputs_instance(1), 1, &
-          "FCHKFILE", "ALL")
+    call OutputBuilder_constructor(outputs_instance(1), 1, &
+                                   "FCHKFILE", "ALL")
 
-     call OutputBuilder_buildOutput(outputs_instance(1))
-     call OutputBuilder_show(outputs_instance(1))
+    call OutputBuilder_buildOutput(outputs_instance(1))
+    call OutputBuilder_show(outputs_instance(1))
 
   else
-     read(job,"(I10)") numberOfOutputs
+    read (job, "(I10)") numberOfOutputs
 
-     allocate(outputs_instance(numberOfOutputs) )
+    allocate (outputs_instance(numberOfOutputs))
 
-     call InputOutput_load(outputs_instance(:))
+    call InputOutput_load(outputs_instance(:))
 
-     do i=1, numberOfOutputs
-        call OutputBuilder_buildOutput(outputs_instance(i))
-        call OutputBuilder_show(outputs_instance(i))
-     end do
+    do i = 1, numberOfOutputs
+      call OutputBuilder_buildOutput(outputs_instance(i))
+      call OutputBuilder_show(outputs_instance(i))
+    end do
   end if
 
   call Stopwatch_stop(lowdin_stopwatch)
 
-  write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL CPU Time Outputs : ", lowdin_stopwatch%enlapsetTime ," (s)"
-  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Outputs : ", lowdin_stopwatch%elapsetWTime ," (s)"
-  write(*, *) ""
+  write (*, *) ""
+  write (*, "(A,F10.3,A4)") "** TOTAL CPU Time Outputs : ", lowdin_stopwatch%enlapsetTime, " (s)"
+  write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time Outputs : ", lowdin_stopwatch%elapsetWTime, " (s)"
+  write (*, *) ""
 
 end program Output_
-
-
-
-
 

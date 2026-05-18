@@ -1,22 +1,22 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://sites.google.com/a/bt.unal.edu.co/andresreyes/home
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
-!!	Prof. G. MERINO's Lab. Universidad de Guanajuato
-!!		http://quimera.ugto.mx/qtc/gmerino.html
+!!        this program has been developed under direction of:
 !!
-!!	Authors:
-!!		E. F. Posada (efposadac@unal.edu.co)
-!!		R. Flores (roberto.floresmoreno.qt@gmail.com)
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://sites.google.com/a/bt.unal.edu.co/andresreyes/home
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!        Prof. G. MERINO's Lab. Universidad de Guanajuato
+!!                http://quimera.ugto.mx/qtc/gmerino.html
 !!
-!!	Contributors:
+!!        Authors:
+!!                E. F. Posada (efposadac@unal.edu.co)
+!!                R. Flores (roberto.floresmoreno.qt@gmail.com)
 !!
-!!		Todos los derechos reservados, 2011
+!!        Contributors:
+!!
+!!                Todos los derechos reservados, 2011
 !!
 !!******************************************************************************
 
@@ -27,7 +27,7 @@ module InputOutput_
   implicit none
 
   !>
-  !! @brief Description: Reads information from the input, as a namelist, for additional output files 
+  !! @brief Description: Reads information from the input, as a namelist, for additional output files
   !!
   !! @author felix
   !!
@@ -65,35 +65,35 @@ module InputOutput_
   real(8) :: Output_point1(3)
   real(8) :: Output_point2(3)
   real(8) :: Output_point3(3)
-  
+
   NAMELIST /Output/ &
-       Output_type, &
-       Output_species, &
-       Output_plane, &
-       Output_axis, &
-       Output_state, &
-       Output_orbital, &
-       Output_dimensions, &
-       Output_pointsPerDim, &
-       Output_scanStep, &
-       Output_cubeSize, &
-       Output_minValue, &
-       Output_maxValue, &
-       Output_offsetX, &
-       Output_offsetY, &
-       Output_offsetZ, &
-       Output_limitX, &
-       Output_limitY, &
-       Output_limitZ, &
-       Output_center, &
-       Output_point1, &
-       Output_point2, &
-       Output_point3
+    Output_type, &
+    Output_species, &
+    Output_plane, &
+    Output_axis, &
+    Output_state, &
+    Output_orbital, &
+    Output_dimensions, &
+    Output_pointsPerDim, &
+    Output_scanStep, &
+    Output_cubeSize, &
+    Output_minValue, &
+    Output_maxValue, &
+    Output_offsetX, &
+    Output_offsetY, &
+    Output_offsetZ, &
+    Output_limitX, &
+    Output_limitY, &
+    Output_limitZ, &
+    Output_center, &
+    Output_point1, &
+    Output_point2, &
+    Output_point3
 
   public :: &
-       InputOutput_load
+    InputOutput_load
 
-  private	
+  private
 
 contains
 
@@ -102,7 +102,7 @@ contains
   !!
   !! @param this
   !<
-  subroutine  InputOutput_load( outputObjects )
+  subroutine InputOutput_load(outputObjects)
     implicit none
     type(OutputBuilder) :: outputObjects(:)
     integer :: i
@@ -110,69 +110,69 @@ contains
     character(1000) :: line
 
     open (unit=4, file=trim(CONTROL_instance%INPUT_FILE)//"aux")
-    rewind(4)
-    do i=1, size(outputObjects)
-       Output_type=""
-       Output_species="ALL"
-       Output_plane=""
-       Output_axis=""
-       Output_state=1
-       Output_orbital=0
-       Output_dimensions=0
-       Output_pointsPerDim=0
-       Output_scanStep=0.0_8
-       Output_cubeSize=0.0_8
-       Output_minValue=0.0_8
-       Output_maxValue=0.0_8
-       Output_offsetX=0.0_8
-       Output_offsetY=0.0_8
-       Output_offsetZ=0.0_8
-       Output_limitX(:)=0.0_8
-       Output_limitY(:)=0.0_8
-       Output_limitZ(:)=0.0_8
-       Output_center(:)=0.0_8
-       Output_point1(:)=0.0_8
-       Output_point2(:)=0.0_8
-       Output_point3(:)=0.0_8
-       read(4,NML=Output, iostat=stat)
+    rewind (4)
+    do i = 1, size(outputObjects)
+      Output_type = ""
+      Output_species = "ALL"
+      Output_plane = ""
+      Output_axis = ""
+      Output_state = 1
+      Output_orbital = 0
+      Output_dimensions = 0
+      Output_pointsPerDim = 0
+      Output_scanStep = 0.0_8
+      Output_cubeSize = 0.0_8
+      Output_minValue = 0.0_8
+      Output_maxValue = 0.0_8
+      Output_offsetX = 0.0_8
+      Output_offsetY = 0.0_8
+      Output_offsetZ = 0.0_8
+      Output_limitX(:) = 0.0_8
+      Output_limitY(:) = 0.0_8
+      Output_limitZ(:) = 0.0_8
+      Output_center(:) = 0.0_8
+      Output_point1(:) = 0.0_8
+      Output_point2(:) = 0.0_8
+      Output_point3(:) = 0.0_8
+      read (4, NML=Output, iostat=stat)
 
-       if( stat > 0 ) then       
-          write (*,'(A)') 'Error reading Output block'
-          backspace(4)
-          read(4,fmt='(A)') line
-          write(*,'(A)') 'Invalid line : '//trim(line)
-          call Exception_stopError("Class object InputOutput in the load function", &
-               "check the OUTPUTS block in your input file")
-       end if
+      if (stat > 0) then
+        write (*, '(A)') 'Error reading Output block'
+        backspace (4)
+        read (4, fmt='(A)') line
+        write (*, '(A)') 'Invalid line : '//trim(line)
+        call Exception_stopError("Class object InputOutput in the load function", &
+                                 "check the OUTPUTS block in your input file")
+      end if
 
-       call OutputBuilder_constructor( outputs_instance(i), i, &
-            Output_type, &
-            Output_species, &
-            Output_plane, &
-            Output_axis, &
-            Output_state, &
-            Output_orbital, &
-            Output_dimensions, &
-            Output_pointsPerDim, &
-            Output_scanStep, &
-            Output_cubeSize, &
-            Output_minValue, &
-            Output_maxValue, &
-            Output_offsetX, &
-            Output_offsetY, &
-            Output_offsetZ, &
-            Output_limitX, &
-            Output_limitY, &
-            Output_limitZ, &
-            Output_center, &
-            Output_point1, &
-            Output_point2, &
-            Output_point3)
+      call OutputBuilder_constructor(outputs_instance(i), i, &
+                                     Output_type, &
+                                     Output_species, &
+                                     Output_plane, &
+                                     Output_axis, &
+                                     Output_state, &
+                                     Output_orbital, &
+                                     Output_dimensions, &
+                                     Output_pointsPerDim, &
+                                     Output_scanStep, &
+                                     Output_cubeSize, &
+                                     Output_minValue, &
+                                     Output_maxValue, &
+                                     Output_offsetX, &
+                                     Output_offsetY, &
+                                     Output_offsetZ, &
+                                     Output_limitX, &
+                                     Output_limitY, &
+                                     Output_limitZ, &
+                                     Output_center, &
+                                     Output_point1, &
+                                     Output_point2, &
+                                     Output_point3)
 
     end do
-    
-    close(4)
-    
+
+    close (4)
+
   end subroutine InputOutput_load
 
 end module InputOutput_
