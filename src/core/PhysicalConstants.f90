@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 !>
@@ -32,22 +32,22 @@
 !!        -# Adapt the module to LOWDIN package.
 module PhysicalConstants_
   implicit none
-    
+
   !<
   !! Define algunas constantes numericas
   !! definicion de algunas constantes atomicas y nucleares en unidades atomicas.
-  real(8) , parameter :: PhysicalConstants_ELECTRON_CHARGE = -1.0_8
-  real(8) , parameter :: PhysicalConstants_ELECTRON_MASS = 1.0_8
-  real(8) , parameter :: PhysicalConstants_PROTON_CHARGE = 1.0_8
-  real(8) , parameter :: PhysicalConstants_PROTON_MASS = 1*1836.15267247_8
-  real(8) , parameter :: PhysicalConstants_NEUTRON_CHARGE = 0.0_8
-  real(8) , parameter :: PhysicalConstants_NEUTRON_MASS = 1*1838.6836605_8
-  
-  real(8) , parameter :: PhysicalConstants_SPIN_UP_ELECTRON = 0.5_8
-  real(8) , parameter :: PhysicalConstants_SPIN_DOWN_ELECTRON = -0.5_8
-  real(8) , parameter :: PhysicalConstants_SPIN_ELECTRON = 0.5_8
-  real(8) , parameter :: PhysicalConstants_SPIN_FERMION = 0.5_8 !< solo se especifica este valor pero puede ser n*0.5 n=1,2,3,..., en U.A.
-  real(8) , parameter :: PhysicalConstants_SPIN_BOSON = 1.0_8 !< solo se especifica este valor pero puede ser n=0,1,2,3,..., en U.A.
+  real(8), parameter :: PhysicalConstants_ELECTRON_CHARGE = -1.0_8
+  real(8), parameter :: PhysicalConstants_ELECTRON_MASS = 1.0_8
+  real(8), parameter :: PhysicalConstants_PROTON_CHARGE = 1.0_8
+  real(8), parameter :: PhysicalConstants_PROTON_MASS = 1*1836.15267247_8
+  real(8), parameter :: PhysicalConstants_NEUTRON_CHARGE = 0.0_8
+  real(8), parameter :: PhysicalConstants_NEUTRON_MASS = 1*1838.6836605_8
+
+  real(8), parameter :: PhysicalConstants_SPIN_UP_ELECTRON = 0.5_8
+  real(8), parameter :: PhysicalConstants_SPIN_DOWN_ELECTRON = -0.5_8
+  real(8), parameter :: PhysicalConstants_SPIN_ELECTRON = 0.5_8
+  real(8), parameter :: PhysicalConstants_SPIN_FERMION = 0.5_8 !< solo se especifica este valor pero puede ser n*0.5 n=1,2,3,..., en U.A.
+  real(8), parameter :: PhysicalConstants_SPIN_BOSON = 1.0_8 !< solo se especifica este valor pero puede ser n=0,1,2,3,..., en U.A.
   !!***************************************************************************
-  
+
 end module PhysicalConstants_

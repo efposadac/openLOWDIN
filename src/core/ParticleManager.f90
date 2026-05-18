@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -35,62 +35,61 @@ module ParticleManager_
 
   type ParticleManager
 
-     type(particle), pointer :: particlePtr
+    type(particle), pointer :: particlePtr
 
   end type ParticleManager
-
 
   !< enum ParticleManager__showFlags {
   integer, parameter :: LABELS_NUMERATED = 1
   !< }
 
   public :: &
-       ParticleManager_show, &
-       !        ParticleManager_getValuesOfFreeCoordinates, &
-       ParticleManager_getPositionOfCenterOfOptimizacion, &
-       !        ParticleManager_getNumberOfFreeCoordinates, &
-       ! ParticleManager_getNumberOfCoordinates, &
-       ParticleManager_getNumberOfCentersOfOptimization, &
-       ParticleManager_getCartesianMatrixOfCentersOfOptimization, &
-       !        ParticleManager_getDistanceMatrix, &
-       ParticleManager_getCenterOfOptimization, &
-       !        ParticleManager_getSpecieID, &
-       !        ParticleManager_getNickName, &
-       ParticleManager_getSymbol, &
-       !        ParticleManager_getParticlePtr, &
-       !        ParticleManager_getContractionPtr, &
-       !        ParticleManager_getFactorOfInterchangeIntegrals, &
-       !        ParticleManager_getOwnerOfPuntualParticle, &
-       !        ParticleManager_getOwnerCenter, &
-       !        ParticleManager_getNameOfPuntualParticle, &
-       !        ParticleManager_getSymbolOfPuntualParticle, &
-       !        ParticleManager_getOcupationNumber,&
-       !        ParticleManager_getMultiplicity,&
-       !        ParticleManager_getEta, &
-       !        ParticleManager_getLambda,&
-       !        ParticleManager_getKappa, &
-       !        ParticleManager_getParticlesFraction,&
-       !        ParticleManager_getMass, &
-       !        ParticleManager_getMassInPosition, &
-       !        ParticleManager_getTotalMass, &
-       !        ParticleManager_getCenterOfMass, &
-       !        ParticleManager_getCharge, &
-       !        ParticleManager_getLabelsOfContractions, &
-       ParticleManager_getLabelsOfCentersOfOptimization, &
-       ParticleManager_getChargesOfCentersOfOptimization, &
-       ParticleManager_isQuantum, &
-       ParticleManager_isCenterOfOptimization, &
-       !        ParticleManager_isComponentFixed, &
-       !        ParticleManager_iterateSpecie, &
-       !        ParticleManager_beginSpecie, &
-       !        ParticleManager_endSpecie, &
-       !        ParticleManager_rewindSpecies, &
-       ! 			ParticleManager_getOriginOfPuntualParticle, &
-       !   			ParticleManager_getChargeOfPuntualParticle, &
-       ParticleManager_getOrigin, &
-       ParticleManager_setOrigin, &
-       ParticleManager_setParticlesPositions, &
-       ParticleManager_setOwner
+    ParticleManager_show, &
+    !        ParticleManager_getValuesOfFreeCoordinates, &
+    ParticleManager_getPositionOfCenterOfOptimizacion, &
+    !        ParticleManager_getNumberOfFreeCoordinates, &
+    ! ParticleManager_getNumberOfCoordinates, &
+    ParticleManager_getNumberOfCentersOfOptimization, &
+    ParticleManager_getCartesianMatrixOfCentersOfOptimization, &
+    !        ParticleManager_getDistanceMatrix, &
+    ParticleManager_getCenterOfOptimization, &
+    !        ParticleManager_getSpecieID, &
+    !        ParticleManager_getNickName, &
+    ParticleManager_getSymbol, &
+    !        ParticleManager_getParticlePtr, &
+    !        ParticleManager_getContractionPtr, &
+    !        ParticleManager_getFactorOfInterchangeIntegrals, &
+    !        ParticleManager_getOwnerOfPuntualParticle, &
+    !        ParticleManager_getOwnerCenter, &
+    !        ParticleManager_getNameOfPuntualParticle, &
+    !        ParticleManager_getSymbolOfPuntualParticle, &
+    !        ParticleManager_getOcupationNumber,&
+    !        ParticleManager_getMultiplicity,&
+    !        ParticleManager_getEta, &
+    !        ParticleManager_getLambda,&
+    !        ParticleManager_getKappa, &
+    !        ParticleManager_getParticlesFraction,&
+    !        ParticleManager_getMass, &
+    !        ParticleManager_getMassInPosition, &
+    !        ParticleManager_getTotalMass, &
+    !        ParticleManager_getCenterOfMass, &
+    !        ParticleManager_getCharge, &
+    !        ParticleManager_getLabelsOfContractions, &
+    ParticleManager_getLabelsOfCentersOfOptimization, &
+    ParticleManager_getChargesOfCentersOfOptimization, &
+    ParticleManager_isQuantum, &
+    ParticleManager_isCenterOfOptimization, &
+    !        ParticleManager_isComponentFixed, &
+    !        ParticleManager_iterateSpecie, &
+    !        ParticleManager_beginSpecie, &
+    !        ParticleManager_endSpecie, &
+    !        ParticleManager_rewindSpecies, &
+    !                         ParticleManager_getOriginOfPuntualParticle, &
+    !                           ParticleManager_getChargeOfPuntualParticle, &
+    ParticleManager_getOrigin, &
+    ParticleManager_setOrigin, &
+    ParticleManager_setParticlesPositions, &
+    ParticleManager_setOwner
   !        ParticleManager_puntualParticlesEnergy,&
   !        ParticleManager_changeOriginOfSystem, &
   !        ParticleManager_searchSpecie
@@ -102,7 +101,7 @@ contains
   !>
   !! @brief Muestra los atributos de todas las particulas en el Administrador de particulas
   !! @todo Falta adicionar procedimineto para que muestre una sola particula
-  subroutine ParticleManager_show( nameOfParticle )
+  subroutine ParticleManager_show(nameOfParticle)
     implicit none
 
     character(*), optional ::nameOfParticle
@@ -110,26 +109,25 @@ contains
     integer :: i, j
     integer :: cosa
 
-    if ( present( nameOfParticle ) ) then
+    if (present(nameOfParticle)) then
 
        !! Aqui adicionar codigo para una sola particula
 
     else
 
-       write(*,*) "================================"
-       write(*,*) " LOADED PARTICLES IN THE SYSTEM "
-       write(*,*) "================================"
+      write (*, *) "================================"
+      write (*, *) " LOADED PARTICLES IN THE SYSTEM "
+      write (*, *) "================================"
 
-       do i=1, size(ParticleManager_instance)
+      do i = 1, size(ParticleManager_instance)
 
-          call Particle_show( ParticleManager_instance(i)%particlePtr )
+        call Particle_show(ParticleManager_instance(i)%particlePtr)
 
-       end do
+      end do
 
     end if
 
   end subroutine ParticleManager_show
-
 
   !>
   !! @brief Ajusta el owner de la particula especificada
@@ -141,46 +139,45 @@ contains
     integer :: particleID
 
     do particleID = 1, size(ParticleManager_instance)
-       do i = 1, particleID! - 1 Es necesario revisar si la misma particula es cuantica para asignar el owner
-          
-          !! ojo esto es necesario para determinar correctamente el owner cuando son particulas diferentes a electrones
-          if(particleID == i) then
-             call Particle_setOwner(ParticleManager_instance(i)%particlePtr, owner = particleID )
+      do i = 1, particleID ! - 1 Es necesario revisar si la misma particula es cuantica para asignar el owner
 
-          else if( abs( ParticleManager_instance(i)%particlePtr%origin(1) - ParticleManager_instance(particleID)%particlePtr%origin(1) ) &
-               < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
-               abs( ParticleManager_instance(i)%particlePtr%origin(2) - ParticleManager_instance(particleID)%particlePtr%origin(2) ) &
-               < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
-               abs( ParticleManager_instance(i)%particlePtr%origin(3) - ParticleManager_instance(particleID)%particlePtr%origin(3) ) &
-               < CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+          !! ojo esto es necesario para determinar correctamente el owner cuando son particulas diferentes a electrones
+        if (particleID == i) then
+          call Particle_setOwner(ParticleManager_instance(i)%particlePtr, owner=particleID)
+
+        else if (abs(ParticleManager_instance(i)%particlePtr%origin(1) - ParticleManager_instance(particleID)%particlePtr%origin(1)) &
+                 < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
+                 abs(ParticleManager_instance(i)%particlePtr%origin(2) - ParticleManager_instance(particleID)%particlePtr%origin(2)) &
+                 < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
+                 abs(ParticleManager_instance(i)%particlePtr%origin(3) - ParticleManager_instance(particleID)%particlePtr%origin(3)) &
+                 < CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
 
              !!
              !! Selecciona quien debe ser  la particula propietaria, cuando encuentra dos
              !! especies sobre el mismo origen. Se opta por la mas pesada como la propietaria
              !! y la liviana como hija
              !!
-             if ( ParticleManager_instance(particleID)%particlePtr%mass  > ParticleManager_instance(i)%particlePtr%mass )	then
+          if (ParticleManager_instance(particleID)%particlePtr%mass > ParticleManager_instance(i)%particlePtr%mass) then
 
-                call Particle_setOwner(ParticleManager_instance(i)%particlePtr, owner = particleID )
-                ParticleManager_instance(particleID)%particlePtr%isCenterOfOptimization =.true.
-                ParticleManager_instance(i)%particlePtr%isCenterOfOptimization =.false.
-                call Particle_setChild(ParticleManager_instance(particleID)%particlePtr, i)
-                call Particle_removeChilds( ParticleManager_instance(i)%particlePtr )
+            call Particle_setOwner(ParticleManager_instance(i)%particlePtr, owner=particleID)
+            ParticleManager_instance(particleID)%particlePtr%isCenterOfOptimization = .true.
+            ParticleManager_instance(i)%particlePtr%isCenterOfOptimization = .false.
+            call Particle_setChild(ParticleManager_instance(particleID)%particlePtr, i)
+            call Particle_removeChilds(ParticleManager_instance(i)%particlePtr)
 
-             else
-                call Particle_setOwner( ParticleManager_instance(particleID)%particlePtr, &
-                     owner= ParticleManager_instance(i)%particlePtr%owner )
-                call Particle_removeChilds( ParticleManager_instance(particleID)%particlePtr )
-                ParticleManager_instance(particleID)%particlePtr%isCenterOfOptimization =.false.
-                ParticleManager_instance(i)%particlePtr%isCenterOfOptimization =.true.
-
-             end if
+          else
+            call Particle_setOwner(ParticleManager_instance(particleID)%particlePtr, &
+                                   owner=ParticleManager_instance(i)%particlePtr%owner)
+            call Particle_removeChilds(ParticleManager_instance(particleID)%particlePtr)
+            ParticleManager_instance(particleID)%particlePtr%isCenterOfOptimization = .false.
+            ParticleManager_instance(i)%particlePtr%isCenterOfOptimization = .true.
 
           end if
 
-       end do
-    end do
+        end if
 
+      end do
+    end do
 
   end subroutine ParticleManager_setOwner
 
@@ -191,7 +188,7 @@ contains
   !! @param origin Origen de la particula o contraccion especificada.
   !! @param contractionNumber Numero de contraccion dentro de una lista.
   !! @param gaussianNumber Numero de gausiana dentro de una lista.
-  recursive subroutine ParticleManager_setOrigin( this, origin )
+  recursive subroutine ParticleManager_setOrigin(this, origin)
     implicit none
     type(Particle)  :: this
     real(8)  :: origin(3)
@@ -202,17 +199,17 @@ contains
 
     if (this%isQuantum .eqv. .true.) then
 
-       do i = 1, this%basis%length
-          this%basis%contraction(i)%origin = origin
-       end do
+      do i = 1, this%basis%length
+        this%basis%contraction(i)%origin = origin
+      end do
 
     end if
 
-    if ( this%isCenterOfOptimization .and. allocated(this%childs) ) then
+    if (this%isCenterOfOptimization .and. allocated(this%childs)) then
 
-       do i=1, size(this%childs)
-          call ParticleManager_setOrigin( ParticleManager_instance(this%childs(i))%particlePtr, this%origin )
-       end do
+      do i = 1, size(this%childs)
+        call ParticleManager_setOrigin(ParticleManager_instance(this%childs(i))%particlePtr, this%origin)
+      end do
 
     end if
 
@@ -221,9 +218,9 @@ contains
   !>
   !! @brief calcula la energia total para una especie especificada
   !! @todo Este algoritmo debe ser optimizado
-  subroutine ParticleManager_setParticlesPositions( cartesianVector )
+  subroutine ParticleManager_setParticlesPositions(cartesianVector)
     implicit none
-    type(Vector), intent(in),optional :: cartesianVector
+    type(Vector), intent(in), optional :: cartesianVector
 
     integer :: i
     integer :: j
@@ -233,63 +230,62 @@ contains
 
     k = 0
 
-    do i=1, size(ParticleManager_instance)
+    do i = 1, size(ParticleManager_instance)
 
-       if( k < size(cartesianVector%values) ) then
+      if (k < size(cartesianVector%values)) then
 
-          if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
+        if (ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
 
-             origin = ParticleManager_instance(i)%particlePtr%origin
+          origin = ParticleManager_instance(i)%particlePtr%origin
 
-             do j=1,3
-                k=k+1
-                if( .not.ParticleManager_instance(i)%particlePtr%fixComponent(j) )  origin(j)=cartesianVector%values( k )
-             end do
+          do j = 1, 3
+            k = k + 1
+            if (.not. ParticleManager_instance(i)%particlePtr%fixComponent(j)) origin(j) = cartesianVector%values(k)
+          end do
 
-             call ParticleManager_setOrigin( ParticleManager_instance(i)%particlePtr, origin )
+          call ParticleManager_setOrigin(ParticleManager_instance(i)%particlePtr, origin)
 
-             if ( allocated(ParticleManager_instance(i)%particlePtr%childs) ) then
+          if (allocated(ParticleManager_instance(i)%particlePtr%childs)) then
 
-                do j=1, size( ParticleManager_instance(i)%particlePtr%childs )
-                   m=ParticleManager_instance(i)%particlePtr%childs(j)
-                   call ParticleManager_setOrigin( ParticleManager_instance(m)%particlePtr, origin )
-                end do
-
-             end if
+            do j = 1, size(ParticleManager_instance(i)%particlePtr%childs)
+              m = ParticleManager_instance(i)%particlePtr%childs(j)
+              call ParticleManager_setOrigin(ParticleManager_instance(m)%particlePtr, origin)
+            end do
 
           end if
 
-       else
+        end if
 
-          return
+      else
 
-       end if
+        return
+
+      end if
 
     end do
 
   end subroutine ParticleManager_setParticlesPositions
 
-
   !>
   !! @brief gets the number of centers of optimization.
   !  function ParticleManager_getNumberOfCentersOfOptimization( ) result( output)
   !    implicit none
-  !    
+  !
   !    integer :: output
-  !    
+  !
   !    integer :: i
   !
   !    output = 0
-  !    
+  !
   !    do i=1, size(ParticleManager_instance)
   !       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) output =output + 1
   !    end do
-  !       
+  !
   !  end function ParticleManager_getNumberOfCentersOfOptimization
 
   !>
   !! @brief Retorna la masa total del sistema en las unidades solicitadas
-  function ParticleManager_getTotalMass( unid ) result( output )
+  function ParticleManager_getTotalMass(unid) result(output)
     implicit none
 
     character(*), optional :: unid
@@ -299,27 +295,27 @@ contains
 
     output = 0.0_8
 
-    do i=1, size( ParticleManager_instance)
-       output = output + ParticleManager_instance(i)%particlePtr%mass * ParticleManager_instance(i)%particlePtr%internalSize
+    do i = 1, size(ParticleManager_instance)
+      output = output + ParticleManager_instance(i)%particlePtr%mass*ParticleManager_instance(i)%particlePtr%internalSize
     end do
 
-    if ( present(unid) ) then
+    if (present(unid)) then
 
-       select case( trim(unid) )
+      select case (trim(unid))
 
-       case ("AU")
+      case ("AU")
 
-       case("SI")
+      case ("SI")
 
-          output = output * KG
+        output = output*KG
 
-       case("AMU")
+      case ("AMU")
 
-          output = output * AMU
+        output = output*AMU
 
-       case default
+      case default
 
-       end select
+      end select
 
     end if
 
@@ -327,9 +323,9 @@ contains
 
   !>
   !! @brief Retorna el valor de masa localizada en un punto dado del espacio.
-  function ParticleManager_getMassInPosition( position, unid) result( output )
+  function ParticleManager_getMassInPosition(position, unid) result(output)
     implicit none
-    real(8),intent(in) :: position(:)
+    real(8), intent(in) :: position(:)
 
     character(*), optional :: unid
     real(8) :: output
@@ -338,45 +334,43 @@ contains
 
     output = 0.0_8
 
-    do i=1,size( ParticleManager_instance )
+    do i = 1, size(ParticleManager_instance)
 
-       if( abs( position(1) - ParticleManager_instance(i)%particlePtr%origin(1) ) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
-            abs( position(2) - ParticleManager_instance(i)%particlePtr%origin(2) ) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
-            abs( position(3) - ParticleManager_instance(i)%particlePtr%origin(3) ) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD ) then
+      if (abs(position(1) - ParticleManager_instance(i)%particlePtr%origin(1)) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
+          abs(position(2) - ParticleManager_instance(i)%particlePtr%origin(2)) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
+          abs(position(3) - ParticleManager_instance(i)%particlePtr%origin(3)) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
 
-          output = output + ParticleManager_instance(i)%particlePtr%mass * ParticleManager_instance(i)%particlePtr%internalSize
+        output = output + ParticleManager_instance(i)%particlePtr%mass*ParticleManager_instance(i)%particlePtr%internalSize
 
-       end if
+      end if
 
     end do
 
-    if ( present(unid) ) then
+    if (present(unid)) then
 
-       select case( trim(unid) )
+      select case (trim(unid))
 
-       case ("AU")
+      case ("AU")
 
-       case("SI")
+      case ("SI")
 
-          output = output * KG
+        output = output*KG
 
-       case("AMU")
+      case ("AMU")
 
-          output = output * AMU
+        output = output*AMU
 
-       case default
+      case default
 
-       end select
+      end select
 
     end if
 
-
   end function ParticleManager_getMassInPosition
 
-
-  !> 
+  !>
   !! @brief Returns a matrix of the position of centers for optimization.
-  function ParticleManager_getCartesianMatrixOfCentersOfOptimization() result( output)
+  function ParticleManager_getCartesianMatrixOfCentersOfOptimization() result(output)
 
     implicit none
     type(Matrix) :: output
@@ -386,26 +380,26 @@ contains
 
     ssize = ParticleManager_getNumberOfCentersOfOptimization()
 
-    call Matrix_constructor( output, int(ssize,8), 3_8 )
+    call Matrix_constructor(output, int(ssize, 8), 3_8)
 
-    j =0
+    j = 0
 
     do i = 1, size(ParticleManager_instance)
 
-       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
+      if (ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
 
-          j = j + 1          
-          output%values(j,:) = ParticleManager_instance(i)%particlePtr%origin
+        j = j + 1
+        output%values(j, :) = ParticleManager_instance(i)%particlePtr%origin
 
-       end if
+      end if
 
     end do
 
   end function ParticleManager_getCartesianMatrixOfCentersOfOptimization
 
-  !> 
+  !>
   !! @brief Returns the distance matrix
-  function ParticleManager_getDistanceMatrix() result( output )
+  function ParticleManager_getDistanceMatrix() result(output)
     implicit none
     type(Matrix) :: output
 
@@ -416,25 +410,25 @@ contains
 
     auxMatrix = ParticleManager_getCartesianMatrixOfCentersOfOptimization()
 
-    ssize = size(auxMatrix%values,dim=1)
+    ssize = size(auxMatrix%values, dim=1)
 
-    call Matrix_constructor(output, int(ssize,8), int(ssize,8) )
+    call Matrix_constructor(output, int(ssize, 8), int(ssize, 8))
 
-    do i=1,ssize
-       do j=1, ssize
-          output%values(i,j) = sqrt( sum( ( auxMatrix%values(i,:) - auxMatrix%values(j,:) )**2) )
-       end do
+    do i = 1, ssize
+      do j = 1, ssize
+        output%values(i, j) = sqrt(sum((auxMatrix%values(i, :) - auxMatrix%values(j, :))**2))
+      end do
     end do
 
-    call Matrix_destructor( auxMatrix )
+    call Matrix_destructor(auxMatrix)
 
   end function ParticleManager_getDistanceMatrix
 
   !>
   !! @brief Retorna las etiquetas asocoadas a los centros de optimizacion
-  function ParticleManager_getLabelsOfCentersOfOptimization(flags) result( output )
+  function ParticleManager_getLabelsOfCentersOfOptimization(flags) result(output)
     implicit none
-    character(10),allocatable :: output(:)
+    character(10), allocatable :: output(:)
     integer, optional :: flags
 
     character(20) :: number
@@ -443,37 +437,37 @@ contains
     integer :: i
     integer :: j
 
-    internalFlags=0
-    if( present(flags) ) internalFlags=flags
+    internalFlags = 0
+    if (present(flags)) internalFlags = flags
 
     numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
 
-    if ( allocated( output ) ) deallocate( output )
-    allocate( output( numberOfCenters ) )
+    if (allocated(output)) deallocate (output)
+    allocate (output(numberOfCenters))
 
     j = 0
 
-    do i=1, size(ParticleManager_instance )
+    do i = 1, size(ParticleManager_instance)
 
-       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
+      if (ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
 
-          j = j + 1
+        j = j + 1
 
-          select case(internalFlags)
+        select case (internalFlags)
 
-          case( LABELS_NUMERATED )
+        case (LABELS_NUMERATED)
 
-             write(number,*) j
-             number = adjustl(trim(number))
-             output(j) = trim( ParticleManager_instance(i)%particlePtr%nickname )//"("//trim(number)//")"
+          write (number, *) j
+          number = adjustl(trim(number))
+          output(j) = trim(ParticleManager_instance(i)%particlePtr%nickname)//"("//trim(number)//")"
 
-          case default
+        case default
 
-             output(j) = trim( ParticleManager_instance(i)%particlePtr%nickname )
+          output(j) = trim(ParticleManager_instance(i)%particlePtr%nickname)
 
-          end select
+        end select
 
-       end if
+      end if
 
     end do
 
@@ -483,7 +477,7 @@ contains
   !   !! @brief Indica si la particula es un centro de optimizacion o no
   !   !!
   !   !>
-  function ParticleManager_isCenterOfOptimization( iterator ) result( output )
+  function ParticleManager_isCenterOfOptimization(iterator) result(output)
     implicit none
     integer, intent(in) :: iterator
     logical :: output
@@ -491,8 +485,6 @@ contains
     output = ParticleManager_instance(iterator)%particlePtr%isCenterOfOptimization
 
   end function ParticleManager_isCenterOfOptimization
-
-
 
   !   !<
   !   !! @brief Indica si la componete cartesiana debe modificarse durante la optimzacion de geometria
@@ -507,8 +499,6 @@ contains
   !     output = ParticleManager_instance%particlesPtr(iterator)%fixComponent(component)
 
   !   end function ParticleManager_isComponentFixed
-
-
 
   !   !<
   !   !! @brief Retorna el nombre de especie cuantica
@@ -541,7 +531,6 @@ contains
   !   !>
   !   subroutine ParticleManager_rewindSpecies()
   !     implicit none
-
 
   !     if ( ParticleManager_instance%isInstanced ) then
 
@@ -619,7 +608,6 @@ contains
 
   !     type(ContractedGaussian), pointer :: output
 
-
   !     integer :: particleID
   !     integer :: contractionID
 
@@ -648,15 +636,14 @@ contains
   !   !! @brief Retorna el origen de la particula especificada
   !   !!
   !   !>
-    function ParticleManager_getOrigin( iterator) result( output )
-      implicit none
-      integer, intent(in) :: iterator
-      real(8) :: output(3)
+  function ParticleManager_getOrigin(iterator) result(output)
+    implicit none
+    integer, intent(in) :: iterator
+    real(8) :: output(3)
 
+    output = ParticleManager_instance(iterator)%particlePtr%origin
 
-      output = ParticleManager_instance( iterator )%particlePtr%origin
-
-    end function ParticleManager_getOrigin
+  end function ParticleManager_getOrigin
 
   !   !<
   !   !! @brief Retorna el nombre de la particula especificada
@@ -669,7 +656,6 @@ contains
   !     character(30) :: output
 
   !     output = trim( ParticleManager_instance%particlesPtr( iterator )%name )
-
 
   !   end function ParticleManager_getName
 
@@ -685,22 +671,21 @@ contains
 
   !     output = trim(ParticleManager_instance%particlesPtr(iterator)%nickname)
 
-
   !   end function ParticleManager_getNickName
 
   !   !<
   !   !! @brief Retorna el simbolo de la particula especificada
   !   !!
   !   !>
-    function ParticleManager_getSymbol( iterator) result( output )
-      implicit none
-      integer, intent(in) :: iterator
+  function ParticleManager_getSymbol(iterator) result(output)
+    implicit none
+    integer, intent(in) :: iterator
 
-      character(30) :: output
+    character(30) :: output
 
-      output = trim( ParticleManager_instance( iterator )%particlePtr%symbol )
+    output = trim(ParticleManager_instance(iterator)%particlePtr%symbol)
 
-    end function ParticleManager_getSymbol
+  end function ParticleManager_getSymbol
 
   !   !<
   !   !! @brief Retorna un puntero a la particula especificada .
@@ -714,10 +699,7 @@ contains
 
   !     output => ParticleManager_instance%particlesPtr( iindex )
 
-
   !   end function ParticleManager_getParticlePtr
-
-
 
   !   !<
   !   !! @brief Retorna un vector con los valores de las coordenadas libres del sistema molecular
@@ -727,7 +709,6 @@ contains
   !   function ParticleManager_getValuesOfFreeCoordinates() result( output )
   !     implicit none
   !     type(Vector) :: output
-
 
   !     real(8), allocatable :: auxVector(:)
   !     integer, allocatable :: auxCentersOfOptimization(:,:)
@@ -772,10 +753,9 @@ contains
   !   !!
   !   !! @todo Este algoritmo dede ser optimizado
   !   !>
-  function ParticleManager_getPositionOfCenterOfOptimizacion() result( output )
+  function ParticleManager_getPositionOfCenterOfOptimizacion() result(output)
     implicit none
     type(Vector) :: output
-
 
     real(8), allocatable :: auxVector(:)
     ! integer, allocatable :: auxCentersOfOptimization(:,:)
@@ -784,41 +764,37 @@ contains
     integer :: j
     integer :: k
 
-
     numberOfParticles = size(ParticleManager_instance)
-    allocate(auxVector(numberOfParticles*3) )
+    allocate (auxVector(numberOfParticles*3))
     ! allocate(auxCentersOfOptimization(numberOfParticles*3,2) )
 
-    k=0
+    k = 0
     !! Determina el numero de coordenadas libres durante la optimizacion
-    do i=1, numberOfParticles
-       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
-          do j=1, 3
-             k = k +1
-             auxVector(k) = ParticleManager_instance(i)%particlePtr%origin(j)
-             ! auxCentersOfOptimization(k,1) = ParticleManager_instance%particlesPtr(i)%owner
-             ! auxCentersOfOptimization(k,2) = j
-          end do
-       end if
+    do i = 1, numberOfParticles
+      if (ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
+        do j = 1, 3
+          k = k + 1
+          auxVector(k) = ParticleManager_instance(i)%particlePtr%origin(j)
+          ! auxCentersOfOptimization(k,1) = ParticleManager_instance%particlesPtr(i)%owner
+          ! auxCentersOfOptimization(k,2) = j
+        end do
+      end if
 
     end do
 
-    call Vector_constructor(output, int(k,8) )
+    call Vector_constructor(output, int(k, 8))
     output%values = auxVector(1:k)
     ! if( .not.allocated( ParticleManager_instance%centersOfOptimization)) allocate( ParticleManager_instance%centersOfOptimization(k,2) )
     ! ParticleManager_instance%centersOfOptimization = auxCentersOfOptimization(1:k,:)
 
     ! deallocate(auxCentersOfOptimization)
-    deallocate(auxVector)
+    deallocate (auxVector)
 
   end function ParticleManager_getPositionOfCenterOfOptimizacion
-
-
 
   !   function ParticleManager_getNumberOfCoordinates() result( output )
   !     implicit none
   !     integer :: output
-
 
   !     integer :: i
   !     integer :: j
@@ -838,7 +814,6 @@ contains
   !     output = output*3
 
   !   end function ParticleManager_getNumberOfCoordinates
-
 
   !   function ParticleManager_getNumberOfFreeCoordinates() result( output )
   !     implicit none
@@ -861,8 +836,7 @@ contains
 
   !   end function ParticleManager_getNumberOfFreeCoordinates
 
-
-  function ParticleManager_getNumberOfCentersOfOptimization( fragmentNumber ) result( output)
+  function ParticleManager_getNumberOfCentersOfOptimization(fragmentNumber) result(output)
 
     implicit none
     integer :: output
@@ -877,19 +851,15 @@ contains
     !                ParticleManager_instance(i)%particlePtr%fragmentNumber == fragmentNumber) output =output + 1
     !        end do
     !     else
-    do i=1, size(ParticleManager_instance)
-       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) output =output + 1
+    do i = 1, size(ParticleManager_instance)
+      if (ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) output = output + 1
     end do
 
     !     end if
 
-
   end function ParticleManager_getNumberOfCentersOfOptimization
 
-
-
-
-  function ParticleManager_getCenterOfOptimization( coordinate ) result( output )
+  function ParticleManager_getCenterOfOptimization(coordinate) result(output)
     implicit none
     integer, intent(in) :: coordinate
     integer :: output(2)
@@ -901,23 +871,22 @@ contains
 
     numberOfParticles = size(ParticleManager_instance)
 
-    k=0
+    k = 0
     !! Determina el numero de coordenadas libres durante la optimizacion
-    do i=1, numberOfParticles
-       if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
-          do j=1, 3
-             k = k +1
-             if(coordinate == k) then
-                output(1) = ParticleManager_instance(i)%particlePtr%owner
-                output(2) = j
-             end if
-          end do
-       end if
+    do i = 1, numberOfParticles
+      if (ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
+        do j = 1, 3
+          k = k + 1
+          if (coordinate == k) then
+            output(1) = ParticleManager_instance(i)%particlePtr%owner
+            output(2) = j
+          end if
+        end do
+      end if
 
     end do
 
-  end  function ParticleManager_getCenterOfOptimization
-
+  end function ParticleManager_getCenterOfOptimization
 
   !   !<
   !   !! @brief Retorna la carga de la particula puntual especificada
@@ -947,7 +916,6 @@ contains
 
   !   end function ParticleManager_getOwnerOfPuntualParticle
 
-
   !   !<
   !   !! @brief Retorna el numero de fragmento en el sistema molecular
   !   !!
@@ -959,7 +927,6 @@ contains
   !     output = ParticleManager_instance%numberOfFragments
 
   !   end function ParticleManager_getNumberOfFragments
-
 
   !   !<
   !   !! @brief Retorna el indice del porpietario de la particula puntual especificada
@@ -999,10 +966,9 @@ contains
 
   !   end function ParticleManager_getSymbolOfPuntualParticle
 
-
   !   !<
-  !   !! @brief 	Retorna el factor multiplicativo para las integrals de intercambio en la construccion
-  !   !!		de la matrix de particula independiente (G)
+  !   !! @brief         Retorna el factor multiplicativo para las integrals de intercambio en la construccion
+  !   !!                de la matrix de particula independiente (G)
   !   !>
   !   function ParticleManager_getFactorOfInterchangeIntegrals( specieID) result( output )
   !     implicit none
@@ -1015,9 +981,8 @@ contains
 
   !   end function ParticleManager_getFactorOfInterchangeIntegrals
 
-
   !   !<
-  !   !! @brief 	Retorna el numero de ocupacion para la especie solicitada
+  !   !! @brief         Retorna el numero de ocupacion para la especie solicitada
   !   !>
   !   function ParticleManager_getOcupationNumber( specieID) result( output )
   !     implicit none
@@ -1029,23 +994,20 @@ contains
 
   !   end function ParticleManager_getOcupationNumber
 
-
   !   !<
-  !   !! @brief 	Retorna la multiplicidad para la especie solicitada
+  !   !! @brief         Retorna la multiplicidad para la especie solicitada
   !   !>
   !   function ParticleManager_getMultiplicity( specieID) result( output )
   !     implicit none
   !     integer, intent(in) :: specieID
   !     integer :: output
 
-
   !     output = Map_getValue( ParticleManager_instance%multiplicity, iterator=specieID )
 
   !   end function ParticleManager_getMultiplicity
 
-
   !   !<
-  !   !! @brief 	Retorna la constante de acoplamiento "eta" para la particula solicitada
+  !   !! @brief         Retorna la constante de acoplamiento "eta" para la particula solicitada
   !   !>
   !   function ParticleManager_getEta( specieID) result( output )
   !     implicit none
@@ -1058,7 +1020,7 @@ contains
   !   end function ParticleManager_getEta
 
   !   !<
-  !   !! @brief 	Retorna la constante de acoplamiento "lambda" para la particula solicitada
+  !   !! @brief         Retorna la constante de acoplamiento "lambda" para la particula solicitada
   !   !>
   !   function ParticleManager_getLambda( specieID) result( output )
   !     implicit none
@@ -1071,7 +1033,7 @@ contains
   !   end function ParticleManager_getLambda
 
   !   !<
-  !   !! @brief 	Retorna la constante de acoplamiento "kappa" para la particula solicitada
+  !   !! @brief         Retorna la constante de acoplamiento "kappa" para la particula solicitada
   !   !>
   !   function ParticleManager_getKappa( specieID) result( output )
   !     implicit none
@@ -1088,25 +1050,21 @@ contains
   !     integer, intent(in) :: specieID
   !     real(8) :: output
 
-
   !     output = real( Map_getValue( ParticleManager_instance%particlesFraction, iterator=specieID), 8 )
 
   !   end function ParticleManager_getParticlesFraction
 
-
   !   !<
-  !   !! @brief 	Retorna la masa de la especie solicitada
+  !   !! @brief         Retorna la masa de la especie solicitada
   !   !>
   !   function ParticleManager_getMass( specieID) result( output )
   !     implicit none
   !     integer :: specieID
   !     real(8) :: output
 
-
   !     output = real( Map_getValue( ParticleManager_instance%mass, iterator=specieID), 8 )
 
   !   end function ParticleManager_getMass
-
 
   !   !<
   !   !! @brief Retorna la masa de la especie solicitada
@@ -1115,7 +1073,6 @@ contains
   !     implicit none
   !     real(8) :: output
   !     character(*), optional :: unid
-
 
   !     integer :: i
 
@@ -1146,12 +1103,11 @@ contains
 
   !   end function ParticleManager_getTotalMass
 
-
   !   !<
-  !   !! @brief 	Retorna el centro de masa para las particulas en el administrados
+  !   !! @brief         Retorna el centro de masa para las particulas en el administrados
   !   !!
   !   !! @warning Se asume que la masa de toda parrticula esta localizada donde se centre
-  !   !!		    su funcion base o la particula fija.
+  !   !!                    su funcion base o la particula fija.
   !   !>
   !   function ParticleManager_getCenterOfMass( ) result( output )
   !     implicit none
@@ -1164,9 +1120,8 @@ contains
 
   !   end function ParticleManager_getCenterOfMass
 
-
   !<
-  !! @brief 	Retorna la carga de la especie solicitada
+  !! @brief         Retorna la carga de la especie solicitada
   !>
   ! function ParticleManager_getCharge( specieID, iterator) result( output )
   !   implicit none
@@ -1184,8 +1139,8 @@ contains
   ! end function ParticleManager_getCharge
 
   !   !<
-  !   !! @brief 	Retorna las etiquetas de las contracciones gaussianas asociadas al
-  !   !!		momento angular de la especie es especificada
+  !   !! @brief         Retorna las etiquetas de las contracciones gaussianas asociadas al
+  !   !!                momento angular de la especie es especificada
   !   !>
   !   function ParticleManager_getLabelsOfContractions( specieID) result( output )
   !     implicit none
@@ -1224,13 +1179,12 @@ contains
   !              allocate(shellCode(ParticleManager_instance%particlesPtr(particleID)%basis%contractions(contractionID)%numCartesianOrbital))
 
   !              shellCode = ContractedGaussian_getShellCode(ParticleManager_instance%particlesPtr(particleID)%basis%contractions(contractionID))
-  !              do k = 1, ParticleManager_instance%particlesPtr(particleID)%basis%contractions(contractionID)%numCartesianOrbital				
+  !              do k = 1, ParticleManager_instance%particlesPtr(particleID)%basis%contractions(contractionID)%numCartesianOrbital
   !                 m = m + 1
 
   !                 write (output(m),"(I5,A2,A6,A2,A4)") m,"  ", &
   !                      trim(ParticleManager_instance%particlesPtr(particleID)%basis%contractions(contractionID)%name), "  ", &
   !                      trim(shellCode(k))//" "
-
 
   !              end do
   !           end do
@@ -1241,74 +1195,71 @@ contains
 
   !   end function ParticleManager_getLabelsOfContractions
 
-
-  !>                                                                                                                  !! @brief Retorna las cargas asociadas a los centros de optimizacion. 24-02-2014 
+  !>                                                                                                                  !! @brief Retorna las cargas asociadas a los centros de optimizacion. 24-02-2014
   !>
 
-  function ParticleManager_getChargesOfCentersOfOptimization( fragmentNumber ) result( output )
+  function ParticleManager_getChargesOfCentersOfOptimization(fragmentNumber) result(output)
     implicit none
 
     integer, optional, intent(in) :: fragmentNumber
 
-    real(8),allocatable :: output(:)
+    real(8), allocatable :: output(:)
 
     integer :: numberOfCenters
     integer :: i
     integer :: j
 
-
-
-    if ( present(fragmentNumber) ) then
-       numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization(fragmentNumber)
+    if (present(fragmentNumber)) then
+      numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization(fragmentNumber)
     else
 
-       numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
+      numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
     end if
 
-    if ( allocated( output ) ) deallocate( output )
-    allocate( output( numberOfCenters ) )
+    if (allocated(output)) deallocate (output)
+    allocate (output(numberOfCenters))
 
-    j=0
+    j = 0
 
-    if ( present(fragmentNumber) ) then
+    if (present(fragmentNumber)) then
 
-       do i=1, size(ParticleManager_instance )
+      do i = 1, size(ParticleManager_instance)
 
-          if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then !.and. &
-             !                ParticleManager_instance(i)%particlePtr%fragmentNumber == fragmentNumber ) then
+        if (ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then !.and. &
+          !                ParticleManager_instance(i)%particlePtr%fragmentNumber == fragmentNumber ) then
 
-             j = j + 1
+          j = j + 1
 
-             output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
+          output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
 
-          end if
+        end if
 
-       end do
+      end do
 
-       numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
+      numberOfCenters = ParticleManager_getNumberOfCentersOfOptimization()
 
     else
 
-       do i=1, size(ParticleManager_instance)
+      do i = 1, size(ParticleManager_instance)
 
-          if ( ParticleManager_instance(i)%particlePtr%isCenterOfOptimization ) then
+        if (ParticleManager_instance(i)%particlePtr%isCenterOfOptimization) then
 
-             j = j + 1
+          j = j + 1
 
-             output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
+          output(j) = ParticleManager_instance(i)%particlePtr%totalCharge
 
-          end if
+        end if
 
-       end do
+      end do
 
     end if
 
   end function ParticleManager_getChargesOfCentersOfOptimization
 
   !   !<
-  !   !! @brief 	Indica si es una particula fija
+  !   !! @brief         Indica si es una particula fija
   !   !>
-  function ParticleManager_isQuantum( specieID) result( output )
+  function ParticleManager_isQuantum(specieID) result(output)
     implicit none
     integer, intent(in) :: specieID
 
@@ -1341,7 +1292,7 @@ contains
 
   !              if ( .not.ParticleManager_instance%particlesPtr(j)%isQuantum ) then
 
-  !                 deltaOrigin = 	ParticleManager_instance%particlesPtr(i)%origin &
+  !                 deltaOrigin =         ParticleManager_instance%particlesPtr(i)%origin &
   !                      - ParticleManager_instance%particlesPtr(j)%origin
 
   !                 output=output + ( ( ParticleManager_instance%particlesPtr(i)%charge &
@@ -1356,10 +1307,6 @@ contains
   !     end do
 
   !   end function ParticleManager_puntualParticlesEnergy
-
-
-
-
 
   !   subroutine ParticleManager_fixAllNucleous()
   !     implicit none
@@ -1391,27 +1338,23 @@ contains
 
   !   !<
   !   !! @brief metodo con propositos de depuracion
-  !   !!	permite evaluar el cambio en coeficientes de contraccion durante tiempo de ejecucion
-  !   !!	se pueden incluir otras verificaciones
+  !   !!        permite evaluar el cambio en coeficientes de contraccion durante tiempo de ejecucion
+  !   !!        se pueden incluir otras verificaciones
   !   !>
   !   subroutine ParticleManager_verifyCoefficients( message, threshold )
   !     implicit none
   !     character(*) :: message
   !     real(8) :: threshold
 
-
   !     integer ::i
   !     integer ::j
   !     integer :: particleID
   !     integer :: contractionID
 
-
-
   !     print *,""
   !     print *,"Begin Verification"
   !     print *,"---------------------------------------------------------------------------------"
   !     print *,trim(message)
-
 
   !     do i=1,ParticleManager_instance%numberOfQuantumSpecies
 
@@ -1440,7 +1383,7 @@ contains
   !>
   !! @brief  Maneja excepciones de la clase
   !<
-  subroutine ParticleManager_exception( typeMessage, description, debugDescription)
+  subroutine ParticleManager_exception(typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -1448,11 +1391,11 @@ contains
 
     type(Exception) :: ex
 
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine ParticleManager_exception
 

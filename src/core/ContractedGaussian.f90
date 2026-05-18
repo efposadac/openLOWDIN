@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -47,7 +47,7 @@
 !!   - <tt> 2007-07-12 </tt>: Sergio A. Gonzalez M. ( sagonzalezm@unal.edu.co )
 !!        -# Se adapta al estandar de codificacion propuesto.
 !!   - <tt> 2010-09-25 </tt>: Edwin F. Posada C. (efposadac@unal.edu.co)
-!!	  -# Cambia de indices de momento angular a capas, amplía hasta momento angular l.
+!!          -# Cambia de indices de momento angular a capas, amplía hasta momento angular l.
 !!   - <tt> 2011-02-11 </tt>: Fernando Posada ( efposadac@unal.edu.co )
 !!        -# Reescribe y adapta el módulo para su inclusion en Lowdin
 !!
@@ -58,39 +58,38 @@ module ContractedGaussian_
   use String_
   use Matrix_
   implicit none
-  
+
   type :: contractedGaussian
-     integer :: id
-     integer :: length
-     integer :: angularMoment
-     integer :: numCartesianOrbital
-     integer :: owner
-     integer :: subsystem
-     real(8) :: origin(3)
-     real(8) , allocatable :: orbitalExponents(:)
-     real(8) , allocatable :: contractionCoefficients(:)
-     real(8) , allocatable :: contNormalization(:)
-     real(8) , allocatable :: primNormalization(:,:)
+    integer :: id
+    integer :: length
+    integer :: angularMoment
+    integer :: numCartesianOrbital
+    integer :: owner
+    integer :: subsystem
+    real(8) :: origin(3)
+    real(8), allocatable :: orbitalExponents(:)
+    real(8), allocatable :: contractionCoefficients(:)
+    real(8), allocatable :: contNormalization(:)
+    real(8), allocatable :: primNormalization(:, :)
   end type contractedGaussian
-  
 
   public :: &
-       ContractedGaussian_saveToFile, &
-       ContractedGaussian_loadFromFile, &
-       ContractedGaussian_constructor, &
-       ContractedGaussian_showInCompactForm, &
-       ContractedGaussian_showInSimpleForm,  &
-       ContractedGaussian_normalizePrimitive, &
-       ContractedGaussian_normalizeContraction, &
-       ContractedGaussian_product, &
-       ContractedGaussian_primitiveProduct, &
-       ContractedGaussian_primitiveProductConstant, &
-       ContractedGaussian_overlapIntegral, &
-       ContractedGaussian_getShellCode, &
-       ContractedGaussian_getAllAngularMomentIndex
-  
+    ContractedGaussian_saveToFile, &
+    ContractedGaussian_loadFromFile, &
+    ContractedGaussian_constructor, &
+    ContractedGaussian_showInCompactForm, &
+    ContractedGaussian_showInSimpleForm, &
+    ContractedGaussian_normalizePrimitive, &
+    ContractedGaussian_normalizeContraction, &
+    ContractedGaussian_product, &
+    ContractedGaussian_primitiveProduct, &
+    ContractedGaussian_primitiveProductConstant, &
+    ContractedGaussian_overlapIntegral, &
+    ContractedGaussian_getShellCode, &
+    ContractedGaussian_getAllAngularMomentIndex
+
   private :: &
-       ContractedGaussian_obaraSaikaRecursion
+    ContractedGaussian_obaraSaikaRecursion
 
 contains
 
@@ -100,28 +99,28 @@ contains
   !! @author E. F. Posada, 2013
   subroutine ContractedGaussian_saveToFile(this, unit)
     implicit none
-    
+
     type(ContractedGaussian) :: this
     integer :: unit
 
-    write(unit,*) this%id
-    write(unit,*) this%length
-    write(unit,*) this%angularMoment
-    write(unit,*) this%numCartesianOrbital
-    write(unit,*) this%owner
-    write(unit,*) this%subsystem
-    write(unit,*) this%origin
+    write (unit, *) this%id
+    write (unit, *) this%length
+    write (unit, *) this%angularMoment
+    write (unit, *) this%numCartesianOrbital
+    write (unit, *) this%owner
+    write (unit, *) this%subsystem
+    write (unit, *) this%origin
 
 #ifdef intel
-    write(unit,'(<size(this%orbitalExponents)>E)') this%orbitalExponents
-    write(unit,'(<size(this%contractionCoefficients)>E)') this%contractionCoefficients
-    write(unit,'(<size(this%contNormalization)>E)') this%contNormalization
-    write(unit,'(<size(this%primNormalization)>E)') this%primNormalization
+    write (unit, '(<size(this%orbitalExponents)>E)') this%orbitalExponents
+    write (unit, '(<size(this%contractionCoefficients)>E)') this%contractionCoefficients
+    write (unit, '(<size(this%contNormalization)>E)') this%contNormalization
+    write (unit, '(<size(this%primNormalization)>E)') this%primNormalization
 #else
-    write(unit,*) this%orbitalExponents
-    write(unit,*) this%contractionCoefficients
-    write(unit,*) this%contNormalization
-    write(unit,*) this%primNormalization
+    write (unit, *) this%orbitalExponents
+    write (unit, *) this%contractionCoefficients
+    write (unit, *) this%contNormalization
+    write (unit, *) this%primNormalization
 #endif
 
   end subroutine ContractedGaussian_saveToFile
@@ -132,29 +131,29 @@ contains
   !! @author E. F. Posada, 2013
   subroutine ContractedGaussian_loadFromFile(this, unit)
     implicit none
-    
+
     type(ContractedGaussian) :: this
     integer :: unit
-    
-    read(unit,*) this%id
-    read(unit,*) this%length
-    read(unit,*) this%angularMoment
-    read(unit,*) this%numCartesianOrbital
-    read(unit,*) this%owner
-    read(unit,*) this%subsystem
-    read(unit,*) this%origin
 
-    allocate(this%orbitalExponents(this%length))
-    allocate(this%contractionCoefficients(this%length))
-    
-    read(unit,*) this%orbitalExponents
-    read(unit,*) this%contractionCoefficients
+    read (unit, *) this%id
+    read (unit, *) this%length
+    read (unit, *) this%angularMoment
+    read (unit, *) this%numCartesianOrbital
+    read (unit, *) this%owner
+    read (unit, *) this%subsystem
+    read (unit, *) this%origin
 
-    allocate(this%contNormalization(this%numCartesianOrbital))
-    allocate(this%primNormalization(this%length, this%numCartesianOrbital))
-                 
-    read(unit,*) this%contNormalization
-    read(unit,*) this%primNormalization
+    allocate (this%orbitalExponents(this%length))
+    allocate (this%contractionCoefficients(this%length))
+
+    read (unit, *) this%orbitalExponents
+    read (unit, *) this%contractionCoefficients
+
+    allocate (this%contNormalization(this%numCartesianOrbital))
+    allocate (this%primNormalization(this%length, this%numCartesianOrbital))
+
+    read (unit, *) this%contNormalization
+    read (unit, *) this%primNormalization
 
   end subroutine ContractedGaussian_loadFromFile
 
@@ -162,16 +161,16 @@ contains
   !! @brief Constructs the ContractedGaussian structure.
   !! @param this contracted gaussian
   !! @author E. F. Posada, 2013
-  subroutine ContractedGaussian_constructor( this , orbitalsExponents , &
-       contractionCoefficients , origin , angularMoment, owner, subsystem, ssize, noNormalize )
+  subroutine ContractedGaussian_constructor(this, orbitalsExponents, &
+                                            contractionCoefficients, origin, angularMoment, owner, subsystem, ssize, noNormalize)
 
     implicit none
-    
+
     type(ContractedGaussian) :: this
     real(8), optional, intent(in) :: orbitalsExponents(:)
-    real(8), optional , intent(in) :: contractionCoefficients(:)
-    real(8), optional , intent(in) :: origin(3)
-    integer(4),optional, intent(in) :: angularMoment
+    real(8), optional, intent(in) :: contractionCoefficients(:)
+    real(8), optional, intent(in) :: origin(3)
+    integer(4), optional, intent(in) :: angularMoment
     integer, optional, intent(in) :: owner
     integer, optional, intent(in) :: subsystem
     integer, optional :: ssize
@@ -186,65 +185,65 @@ contains
     this%subsystem = 0
     this%origin = 0
 
-    if ( present(ssize) .and. .not. present(orbitalsExponents) .and. .not. present (contractionCoefficients) ) then
+    if (present(ssize) .and. .not. present(orbitalsExponents) .and. .not. present(contractionCoefficients)) then
 
-       this%length=ssize
+      this%length = ssize
 
-    else if( present(orbitalsExponents) ) then
+    else if (present(orbitalsExponents)) then
 
-       this%length = size(orbitalsExponents)
+      this%length = size(orbitalsExponents)
 
-    else if( present(contractionCoefficients) ) then
+    else if (present(contractionCoefficients)) then
 
-       this%length = size(contractionCoefficients)
+      this%length = size(contractionCoefficients)
 
     end if
 
-    if ( this%length > 0 ) then
+    if (this%length > 0) then
 
-      if (allocated(this%orbitalExponents) ) deallocate(this%orbitalExponents)
-      allocate(this%orbitalExponents(this%length))
-      if (allocated(this%contractionCoefficients)) deallocate(this%contractionCoefficients)
-      allocate(this%contractionCoefficients(this%length))
+      if (allocated(this%orbitalExponents)) deallocate (this%orbitalExponents)
+      allocate (this%orbitalExponents(this%length))
+      if (allocated(this%contractionCoefficients)) deallocate (this%contractionCoefficients)
+      allocate (this%contractionCoefficients(this%length))
 
-      this%orbitalExponents = 0 
+      this%orbitalExponents = 0
       this%contractionCoefficients = 0
 
-      if ( present(orbitalsExponents) ) then
-        this%orbitalExponents = orbitalsExponents 
+      if (present(orbitalsExponents)) then
+        this%orbitalExponents = orbitalsExponents
       end if
 
-      if ( present(contractionCoefficients) ) then
+      if (present(contractionCoefficients)) then
         this%contractionCoefficients = contractionCoefficients
       end if
 
     end if
-    
-    if ( present ( origin ) ) this%origin = origin
-    if ( present ( angularMoment ) ) this%angularMoment = angularMoment
-    if ( present ( owner ) ) this%owner = owner
-    if ( present ( subsystem ) ) this%subsystem = subsystem
-    
+
+    if (present(origin)) this%origin = origin
+    if (present(angularMoment)) this%angularMoment = angularMoment
+    if (present(owner)) this%owner = owner
+    if (present(subsystem)) this%subsystem = subsystem
+
     !! Calculates the number of cartesian orbitals, by dimensionality
-    select case(CONTROL_instance%DIMENSIONALITY)
-      case(3)
-        this%numCartesianOrbital = ( ( this%angularMoment + 1_8 )*( this%angularMoment + 2_8 ) ) / 2_8
-      case(2)
-        this%numCartesianOrbital = ( ( this%angularMoment + 1_8 ) )
-      case(1)
-        this%numCartesianOrbital = 1 
+    select case (CONTROL_instance%DIMENSIONALITY)
+    case (3)
+      this%numCartesianOrbital = ((this%angularMoment + 1_8)*(this%angularMoment + 2_8))/2_8
+    case (2)
+      this%numCartesianOrbital = ((this%angularMoment + 1_8))
+    case (1)
+      this%numCartesianOrbital = 1
     end select
-            
-    if (allocated(this%contNormalization)) deallocate(this%contNormalization)
-    allocate(this%contNormalization(this%numCartesianOrbital))
-    if (allocated(this%primNormalization)) deallocate(this%primNormalization)
-    allocate(this%primNormalization(this%length,this%length*this%numCartesianOrbital))
-    
+
+    if (allocated(this%contNormalization)) deallocate (this%contNormalization)
+    allocate (this%contNormalization(this%numCartesianOrbital))
+    if (allocated(this%primNormalization)) deallocate (this%primNormalization)
+    allocate (this%primNormalization(this%length, this%length*this%numCartesianOrbital))
+
     this%contNormalization = 1.0_8
     this%primNormalization = 1.0_8
 
     !! Normalize
-    if(.not. present(noNormalize) ) then
+    if (.not. present(noNormalize)) then
       call ContractedGaussian_normalizePrimitive(this)
       call ContractedGaussian_normalizeContraction(this)
     end if
@@ -255,38 +254,38 @@ contains
   !! @brief Copy the ContractedGaussian structure from otherThis to this.
   !! @param this contracted gaussian
   !! @author E. F. Posada, 2013
-  subroutine ContractedGaussian_copyConstructor( otherThis, this )
+  subroutine ContractedGaussian_copyConstructor(otherThis, this)
 
     implicit none
-    
+
     type(ContractedGaussian) :: this
     type(ContractedGaussian) :: otherThis
 
     !! Defaults values
     this%id = otherThis%id
     this%length = otherThis%length
-    this%angularMoment = otherThis%angularMoment 
-    this%numCartesianOrbital = otherThis%numCartesianOrbital 
-    this%owner = otherThis%owner 
+    this%angularMoment = otherThis%angularMoment
+    this%numCartesianOrbital = otherThis%numCartesianOrbital
+    this%owner = otherThis%owner
     this%subsystem = otherThis%subsystem
     this%origin = otherThis%origin
 
-    if ( allocated ( this%orbitalExponents ) ) deallocate (this%orbitalExponents)
-    allocate(this%orbitalExponents(this%length))
+    if (allocated(this%orbitalExponents)) deallocate (this%orbitalExponents)
+    allocate (this%orbitalExponents(this%length))
 
-    if ( allocated ( this%contractionCoefficients ) ) deallocate (this%contractionCoefficients)
-    allocate(this%contractionCoefficients(this%length))
+    if (allocated(this%contractionCoefficients)) deallocate (this%contractionCoefficients)
+    allocate (this%contractionCoefficients(this%length))
 
-    this%orbitalExponents = otherThis%orbitalExponents 
+    this%orbitalExponents = otherThis%orbitalExponents
     this%contractionCoefficients = otherThis%contractionCoefficients
 
-    if ( allocated (this%contNormalization )) deallocate (this%contNormalization )
-    allocate(this%contNormalization(this%numCartesianOrbital))
-    this%contNormalization = otherThis%contNormalization 
+    if (allocated(this%contNormalization)) deallocate (this%contNormalization)
+    allocate (this%contNormalization(this%numCartesianOrbital))
+    this%contNormalization = otherThis%contNormalization
 
-    if ( allocated(this%primNormalization )) deallocate(this%primNormalization )
-    allocate(this%primNormalization(this%length,this%length*this%numCartesianOrbital))
-    this%primNormalization = otherThis%primNormalization 
+    if (allocated(this%primNormalization)) deallocate (this%primNormalization)
+    allocate (this%primNormalization(this%length, this%length*this%numCartesianOrbital))
+    this%primNormalization = otherThis%primNormalization
 
   end subroutine ContractedGaussian_copyConstructor
 
@@ -294,22 +293,22 @@ contains
   !! Muestra en pantalla el valor de los atributos asociados a la gausiana
   !! contraida solicitada, En caso de indicarse una de sus gausianas primitivas,
   !! muestra informacion sobre dicha primitiva.
-  subroutine ContractedGaussian_showInCompactForm( this )
+  subroutine ContractedGaussian_showInCompactForm(this)
     implicit none
-    
-    type(ContractedGaussian) , intent(in) :: this
+
+    type(ContractedGaussian), intent(in) :: this
 
     integer :: i
     character(9) :: shellCode(this%numCartesianOrbital)
 
-    shellCode=ContractedGaussian_getShellCode(this)
+    shellCode = ContractedGaussian_getShellCode(this)
 
-    do i=1,this%length
+    do i = 1, this%length
 
-       write (6,"(T10,I5,A9,A1,A6,F20.8,F20.8)") i,"        ", trim(shellCode(1)),"      ",&
-            this%orbitalExponents(i) ,this%contractionCoefficients(i)
+      write (6, "(T10,I5,A9,A1,A6,F20.8,F20.8)") i, "        ", trim(shellCode(1)), "      ", &
+        this%orbitalExponents(i), this%contractionCoefficients(i)
     end do
-    
+
     !! TEST
     ! print*, "contraction normalization"
     ! do i=1, this%numCartesianOrbital
@@ -324,87 +323,83 @@ contains
 
   end subroutine ContractedGaussian_showInCompactForm
 
-  subroutine ContractedGaussian_showInSimpleForm( this, unidOfOutput)
+  subroutine ContractedGaussian_showInSimpleForm(this, unidOfOutput)
     implicit none
-    type(ContractedGaussian) , intent(in) :: this
+    type(ContractedGaussian), intent(in) :: this
     integer :: unidOfOutput
 
     integer :: i
     character(9) :: shellCode(this%numCartesianOrbital)
 
-    shellCode=ContractedGaussian_getShellCode(this)
+    shellCode = ContractedGaussian_getShellCode(this)
 
-    write (unidOfOutput,"(A1,I3,F5.2)") trim(String_getLowercase(shellCode(1)(1:1))),this%length,1.00
+    write (unidOfOutput, "(A1,I3,F5.2)") trim(String_getLowercase(shellCode(1) (1:1))), this%length, 1.00
 
-    do i=1,this%length
-       write (unidOfOutput,"(ES19.10,ES19.10)") this%orbitalExponents(i) ,this%contractionCoefficients(i)
+    do i = 1, this%length
+      write (unidOfOutput, "(ES19.10,ES19.10)") this%orbitalExponents(i), this%contractionCoefficients(i)
     end do
 
   end subroutine ContractedGaussian_showInSimpleForm
 
-
-    
   !>
   !! @brief Normalization constant for a primitive gaussian
   !! @author S. A. Gonzalez
   !! @par History
   !!      -2011.02.04: E.F.Posada: extends for shells
   !! @version 1.1
-  subroutine ContractedGaussian_normalizePrimitive( this )
+  subroutine ContractedGaussian_normalizePrimitive(this)
     implicit none
-    type(contractedGaussian) , intent( inout ) :: this
-    
-    integer, allocatable :: angularMomentIndex(:,:)
+    type(contractedGaussian), intent(inout) :: this
+
+    integer, allocatable :: angularMomentIndex(:, :)
     integer :: i, j
-    
-    if(allocated(angularMomentIndex)) deallocate(angularMomentIndex)
-    allocate(angularMomentIndex(3, this%numCartesianOrbital))
-    
-    call ContractedGaussian_getAllAngularMomentIndex( angularMomentIndex, this)
-    
-    
-    ! write(*,*) "Normalization" 
+
+    if (allocated(angularMomentIndex)) deallocate (angularMomentIndex)
+    allocate (angularMomentIndex(3, this%numCartesianOrbital))
+
+    call ContractedGaussian_getAllAngularMomentIndex(angularMomentIndex, this)
+
+    ! write(*,*) "Normalization"
     do i = 1, this%length
-       do j = 1, this%numCartesianOrbital
-          this%primNormalization(i,j) =( ( 2.0_8*this%orbitalExponents(i)/Math_PI )**0.75_8 ) &
-               / sqrt( &
-               Math_factorial( 2_8 * angularMomentIndex(1, j) - 1_8,2 )&
-               * Math_factorial( 2_8 * angularMomentIndex(2, j) - 1_8,2 )&
-               * Math_factorial( 2_8 * angularMomentIndex(3, j) - 1_8,2 )/&
-               ((4.0_8*this%orbitalExponents(i))**this%angularMoment))
-       end do
-          ! write(*,*) this%primNormalization(i,:)
+      do j = 1, this%numCartesianOrbital
+        this%primNormalization(i, j) = ((2.0_8*this%orbitalExponents(i)/Math_PI)**0.75_8) &
+                                       /sqrt( &
+                                       Math_factorial(2_8*angularMomentIndex(1, j) - 1_8, 2) &
+                                       *Math_factorial(2_8*angularMomentIndex(2, j) - 1_8, 2) &
+                                       *Math_factorial(2_8*angularMomentIndex(3, j) - 1_8, 2)/ &
+                                       ((4.0_8*this%orbitalExponents(i))**this%angularMoment))
+      end do
+      ! write(*,*) this%primNormalization(i,:)
     end do
-    
+
   end subroutine ContractedGaussian_normalizePrimitive
 
-  
   !>
   !! @brief Normalization constant for a contraction (shell)
   !! @author S. A. Gonzalez
   !! @par History
   !!      -2011.02.04: E.F.Posada: extends for shells
-  !! @version 1.1  
-  subroutine ContractedGaussian_normalizeContraction( this )
+  !! @version 1.1
+  subroutine ContractedGaussian_normalizeContraction(this)
     implicit none
 
-    type(ContractedGaussian) , intent(inout) :: this
-    real(8) :: integralValue(this%numCartesianOrbital * this%numCartesianOrbital)
+    type(ContractedGaussian), intent(inout) :: this
+    real(8) :: integralValue(this%numCartesianOrbital*this%numCartesianOrbital)
     integer :: i, j, m
 
     this%contNormalization = 1.0_8
-    
-    call ContractedGaussian_overlapIntegral( this , this, integralValue )
+
+    call ContractedGaussian_overlapIntegral(this, this, integralValue)
 
     do i = 1, this%numCartesianOrbital
-      m = (i - 1) * this%numCartesianOrbital + i
-      if ( integralValue(m) /= 0.0_8 ) then !! for external potential the coefficient could be zero, but that should be avoided
-        this%contNormalization(i) = 1.0_8 / sqrt(integralValue(m))
+      m = (i - 1)*this%numCartesianOrbital + i
+      if (integralValue(m) /= 0.0_8) then !! for external potential the coefficient could be zero, but that should be avoided
+        this%contNormalization(i) = 1.0_8/sqrt(integralValue(m))
       end if
     end do
-    
+
   end subroutine ContractedGaussian_normalizeContraction
-  
+
   !>
   !! @brief Calculates overlap integral between two contractions (shell)
   !! @author E. F. Posada, efposadac@unal.edu.co
@@ -414,9 +409,9 @@ contains
   !! @version 1.0
   subroutine ContractedGaussian_overlapIntegral(contractedGaussianA, contractedGaussianB, integral)
     implicit none
-    
+
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
-    real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
+    real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital*contractedGaussianB%numCartesianOrbital)
 
     integer ::  am1(0:3)
     integer ::  am2(0:3)
@@ -430,11 +425,11 @@ contains
     real(8) ::  coef2(0:contractedGaussianB%length)
     real(8) ::  nor1(0:contractedGaussianA%length)
     real(8) ::  nor2(0:contractedGaussianB%length)
-    integer, allocatable :: angularMomentIndexA(:,:)
-    integer, allocatable :: angularMomentIndexB(:,:)
+    integer, allocatable :: angularMomentIndexA(:, :)
+    integer, allocatable :: angularMomentIndexB(:, :)
     integer ::  m, p, q
-    
-    real(8), allocatable ::  x(:,:), y(:,:), z(:,:)
+
+    real(8), allocatable ::  x(:, :), y(:, :), z(:, :)
     real(8) :: AB2
     real(8) :: auxExponentA, auxCoefficientA, auxConstantA
     real(8) :: auxExponentB, auxCoefficientB, auxConstantB
@@ -448,14 +443,13 @@ contains
     integer :: p1, p2 !< iteradores
 
     real(8) :: integralValue
-    
-    if(allocated(angularMomentIndexA)) deallocate(angularMomentIndexA)
-    if(allocated(angularMomentIndexB)) deallocate(angularMomentIndexB)
-    
-    allocate(angularMomentIndexA(3, contractedGaussianA%numCartesianOrbital))
-    allocate(angularMomentIndexB(3, contractedGaussianB%numCartesianOrbital))
-    
-    
+
+    if (allocated(angularMomentIndexA)) deallocate (angularMomentIndexA)
+    if (allocated(angularMomentIndexB)) deallocate (angularMomentIndexB)
+
+    allocate (angularMomentIndexA(3, contractedGaussianA%numCartesianOrbital))
+    allocate (angularMomentIndexB(3, contractedGaussianB%numCartesianOrbital))
+
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexA, contractedGaussianA)
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexB, contractedGaussianB)
 
@@ -463,104 +457,103 @@ contains
     A(0) = contractedGaussianA%origin(1)
     A(1) = contractedGaussianA%origin(2)
     A(2) = contractedGaussianA%origin(3)
-    coef1(0:nprim1-1) =  contractedGaussianA%contractionCoefficients(1:nprim1)
-
+    coef1(0:nprim1 - 1) = contractedGaussianA%contractionCoefficients(1:nprim1)
 
     nprim2 = contractedGaussianB%length
     B(0) = contractedGaussianB%origin(1)
     B(1) = contractedGaussianB%origin(2)
     B(2) = contractedGaussianB%origin(3)
-    coef2(0:nprim2-1) =  contractedGaussianB%contractionCoefficients(1:nprim2)
-    
+    coef2(0:nprim2 - 1) = contractedGaussianB%contractionCoefficients(1:nprim2)
+
     m = 0
 
     do p = 1, contractedGaussianA%numcartesianOrbital
-       do q = 1, contractedGaussianB%numcartesianOrbital
+      do q = 1, contractedGaussianB%numcartesianOrbital
 
-          m = m + 1
+        m = m + 1
 
-          exp1(0:nprim1-1) = contractedGaussianA%orbitalExponents(1:nprim1)
-          nor1(0:nprim1-1) = contractedGaussianA%primNormalization(1:nprim1,p)
+        exp1(0:nprim1 - 1) = contractedGaussianA%orbitalExponents(1:nprim1)
+        nor1(0:nprim1 - 1) = contractedGaussianA%primNormalization(1:nprim1, p)
 
-          exp2(0:nprim2-1) = contractedGaussianB%orbitalExponents(1:nprim2)
-          nor2(0:nprim2-1) = contractedGaussianB%primNormalization(1:nprim2,q)
-             
-          am1 = 0
-          am2 = 0
+        exp2(0:nprim2 - 1) = contractedGaussianB%orbitalExponents(1:nprim2)
+        nor2(0:nprim2 - 1) = contractedGaussianB%primNormalization(1:nprim2, q)
 
-          am1(0:2) = angularMomentIndexA(1:3, p)
-          am2(0:2) = angularMomentIndexB(1:3, q)
-          
+        am1 = 0
+        am2 = 0
+
+        am1(0:2) = angularMomentIndexA(1:3, p)
+        am2(0:2) = angularMomentIndexB(1:3, q)
+
           !! Start calculating integrals
-          angularMomentA = sum(am1)
-          angularMomentB = sum(am2)
-          
-          integralValue = 0.0_8
-          
-          maxAngularMoment = max(angularMomentA, angularMomentB) + 1
-          
-          allocate(x(0:maxAngularMoment+2, 0:maxAngularMoment+2))
-          allocate(y(0:maxAngularMoment+2, 0:maxAngularMoment+2))
-          allocate(z(0:maxAngularMoment+2, 0:maxAngularMoment+2))
+        angularMomentA = sum(am1)
+        angularMomentB = sum(am2)
 
-          x = 0.0_8
-          y = 0.0_8
-          z = 0.0_8
-          
-          AB2 = 0.0_8
-          AB2 = AB2 + (A(0) - B(0)) * (A(0) - B(0))
-          AB2 = AB2 + (A(1) - B(1)) * (A(1) - B(1))
-          AB2 = AB2 + (A(2) - B(2)) * (A(2) - B(2))
-          
-          do p1=0, nprim1 - 1
-             auxExponentA = exp1(p1)
-             auxCoefficientA = coef1(p1)
-             auxConstantA = nor1(p1)
-             do p2=0, nprim2 - 1
-                auxExponentB = exp2(p2)
-                auxCoefficientB = coef2(p2)
-                auxConstantB = nor2(p2)
-                gamma = auxExponentA + auxExponentB
-                gammaInv = 1.0/gamma
-                
-                P0(0) = (auxExponentA*A(0) + auxExponentB*B(0))*gammaInv
-                P0(1) = (auxExponentA*A(1) + auxExponentB*B(1))*gammaInv
-                P0(2) = (auxExponentA*A(2) + auxExponentB*B(2))*gammaInv
-                PA(0) = P0(0) - A(0)
-                PA(1) = P0(1) - A(1)
-                PA(2) = P0(2) - A(2)
-                PB(0) = P0(0) - B(0)
-                PB(1) = P0(1) - B(1)
-                PB(2) = P0(2) - B(2)
-                
-                commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*gammaInv) &
-                     * sqrt(Math_PI*gammaInv) * Math_PI * gammaInv &
-                     * auxCoefficientA * auxCoefficientB * auxConstantA * auxConstantB
-                
+        integralValue = 0.0_8
+
+        maxAngularMoment = max(angularMomentA, angularMomentB) + 1
+
+        allocate (x(0:maxAngularMoment + 2, 0:maxAngularMoment + 2))
+        allocate (y(0:maxAngularMoment + 2, 0:maxAngularMoment + 2))
+        allocate (z(0:maxAngularMoment + 2, 0:maxAngularMoment + 2))
+
+        x = 0.0_8
+        y = 0.0_8
+        z = 0.0_8
+
+        AB2 = 0.0_8
+        AB2 = AB2 + (A(0) - B(0))*(A(0) - B(0))
+        AB2 = AB2 + (A(1) - B(1))*(A(1) - B(1))
+        AB2 = AB2 + (A(2) - B(2))*(A(2) - B(2))
+
+        do p1 = 0, nprim1 - 1
+          auxExponentA = exp1(p1)
+          auxCoefficientA = coef1(p1)
+          auxConstantA = nor1(p1)
+          do p2 = 0, nprim2 - 1
+            auxExponentB = exp2(p2)
+            auxCoefficientB = coef2(p2)
+            auxConstantB = nor2(p2)
+            gamma = auxExponentA + auxExponentB
+            gammaInv = 1.0/gamma
+
+            P0(0) = (auxExponentA*A(0) + auxExponentB*B(0))*gammaInv
+            P0(1) = (auxExponentA*A(1) + auxExponentB*B(1))*gammaInv
+            P0(2) = (auxExponentA*A(2) + auxExponentB*B(2))*gammaInv
+            PA(0) = P0(0) - A(0)
+            PA(1) = P0(1) - A(1)
+            PA(2) = P0(2) - A(2)
+            PB(0) = P0(0) - B(0)
+            PB(1) = P0(1) - B(1)
+            PB(2) = P0(2) - B(2)
+
+            commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*gammaInv) &
+                              *sqrt(Math_PI*gammaInv)*Math_PI*gammaInv &
+                              *auxCoefficientA*auxCoefficientB*auxConstantA*auxConstantB
+
                 !! recursion
-                call ContractedGaussian_obaraSaikaRecursion(x, y, z, PA, PB, gamma, angularMomentA+2, angularMomentB+2)
-                
-                x0 = x(am1(0),am2(0))
-                y0 = y(am1(1),am2(1))
-                z0 = z(am1(2),am2(2))
-                
-                !! Calculating integrals for primitives
-                integralValue = integralValue + commonPreFactor*x0*y0*z0
+            call ContractedGaussian_obaraSaikaRecursion(x, y, z, PA, PB, gamma, angularMomentA + 2, angularMomentB + 2)
 
-             end do
+            x0 = x(am1(0), am2(0))
+            y0 = y(am1(1), am2(1))
+            z0 = z(am1(2), am2(2))
+
+                !! Calculating integrals for primitives
+            integralValue = integralValue + commonPreFactor*x0*y0*z0
+
           end do
-          
-          deallocate(x)
-          deallocate(y)
-          deallocate(z)
+        end do
+
+        deallocate (x)
+        deallocate (y)
+        deallocate (z)
 
           !! Integral for shell
-          integralValue = integralValue * contractedGaussianA%contNormalization(p) &
-               * contractedGaussianB%contNormalization(q)
+        integralValue = integralValue*contractedGaussianA%contNormalization(p) &
+                        *contractedGaussianB%contNormalization(q)
 
-          integral(m) = integralValue
+        integral(m) = integralValue
 
-       end do
+      end do
     end do
 
   end subroutine ContractedGaussian_overlapIntegral
@@ -575,7 +568,7 @@ contains
   subroutine ContractedGaussian_obaraSaikaRecursion(x, y, z, PA, PB, gamma, angularMoment1, angularMoment2)
     implicit none
 
-    real(8), intent(inout), allocatable :: x(:,:), y(:,:), z(:,:)
+    real(8), intent(inout), allocatable :: x(:, :), y(:, :), z(:, :)
     real(8), intent(in) :: PA(0:3), PB(0:3)
     real(8), intent(in) :: gamma
     integer, intent(in) :: angularMoment1, angularMoment2
@@ -585,71 +578,71 @@ contains
 
     pp = 1/(2*gamma)
 
-    x(0,0) = 1.0_8
-    y(0,0) = 1.0_8
-    z(0,0) = 1.0_8
+    x(0, 0) = 1.0_8
+    y(0, 0) = 1.0_8
+    z(0, 0) = 1.0_8
 
     !! Upward recursion in j for i=0
-    x(0,1) = PB(0)
-    y(0,1) = PB(1)
-    z(0,1) = PB(2)
+    x(0, 1) = PB(0)
+    y(0, 1) = PB(1)
+    z(0, 1) = PB(2)
 
-    do j=1, angularMoment2 -1
-       x(0,j+1) = PB(0)*x(0,j)
-       y(0,j+1) = PB(1)*y(0,j)
-       z(0,j+1) = PB(2)*z(0,j)
-       x(0,j+1) = x(0,j+1) + j*pp*x(0,j-1)
-       y(0,j+1) = y(0,j+1) + j*pp*y(0,j-1)
-       z(0,j+1) = z(0,j+1) + j*pp*z(0,j-1)
+    do j = 1, angularMoment2 - 1
+      x(0, j + 1) = PB(0)*x(0, j)
+      y(0, j + 1) = PB(1)*y(0, j)
+      z(0, j + 1) = PB(2)*z(0, j)
+      x(0, j + 1) = x(0, j + 1) + j*pp*x(0, j - 1)
+      y(0, j + 1) = y(0, j + 1) + j*pp*y(0, j - 1)
+      z(0, j + 1) = z(0, j + 1) + j*pp*z(0, j - 1)
     end do
 
     !! Upward recursion in i for all j
-    x(1,0) = PA(0)
-    y(1,0) = PA(1)
-    z(1,0) = PA(2)
+    x(1, 0) = PA(0)
+    y(1, 0) = PA(1)
+    z(1, 0) = PA(2)
 
-    do j=1, angularMoment2
-       x(1,j) = PA(0)*x(0,j)
-       y(1,j) = PA(1)*y(0,j)
-       z(1,j) = PA(2)*z(0,j)
-       x(1,j) = x(1,j) + j*pp*x(0,j-1)
-       y(1,j) = y(1,j) + j*pp*y(0,j-1)
-       z(1,j) = z(1,j) + j*pp*z(0,j-1)
+    do j = 1, angularMoment2
+      x(1, j) = PA(0)*x(0, j)
+      y(1, j) = PA(1)*y(0, j)
+      z(1, j) = PA(2)*z(0, j)
+      x(1, j) = x(1, j) + j*pp*x(0, j - 1)
+      y(1, j) = y(1, j) + j*pp*y(0, j - 1)
+      z(1, j) = z(1, j) + j*pp*z(0, j - 1)
     end do
 
-    do i=1, angularMoment1 - 1
-       x(i+1,0) = PA(0)*x(i,0)
-       y(i+1,0) = PA(1)*y(i,0)
-       z(i+1,0) = PA(2)*z(i,0)
-       x(i+1,0) = x(i+1,0) + i*pp*x(i-1,0)
-       y(i+1,0) = y(i+1,0) + i*pp*y(i-1,0)
-       z(i+1,0) = z(i+1,0) + i*pp*z(i-1,0)
-       do j=1, angularMoment2
-          x(i+1,j) = PA(0)*x(i,j)
-          y(i+1,j) = PA(1)*y(i,j)
-          z(i+1,j) = PA(2)*z(i,j)
-          x(i+1,j) = x(i+1,j) + i*pp*x(i-1,j)
-          y(i+1,j) = y(i+1,j) + i*pp*y(i-1,j)
-          z(i+1,j) = z(i+1,j) + i*pp*z(i-1,j)
-          x(i+1,j) = x(i+1,j) + j*pp*x(i,j-1)
-          y(i+1,j) = y(i+1,j) + j*pp*y(i,j-1)
-          z(i+1,j) = z(i+1,j) + j*pp*z(i,j-1)
-       end do
+    do i = 1, angularMoment1 - 1
+      x(i + 1, 0) = PA(0)*x(i, 0)
+      y(i + 1, 0) = PA(1)*y(i, 0)
+      z(i + 1, 0) = PA(2)*z(i, 0)
+      x(i + 1, 0) = x(i + 1, 0) + i*pp*x(i - 1, 0)
+      y(i + 1, 0) = y(i + 1, 0) + i*pp*y(i - 1, 0)
+      z(i + 1, 0) = z(i + 1, 0) + i*pp*z(i - 1, 0)
+      do j = 1, angularMoment2
+        x(i + 1, j) = PA(0)*x(i, j)
+        y(i + 1, j) = PA(1)*y(i, j)
+        z(i + 1, j) = PA(2)*z(i, j)
+        x(i + 1, j) = x(i + 1, j) + i*pp*x(i - 1, j)
+        y(i + 1, j) = y(i + 1, j) + i*pp*y(i - 1, j)
+        z(i + 1, j) = z(i + 1, j) + i*pp*z(i - 1, j)
+        x(i + 1, j) = x(i + 1, j) + j*pp*x(i, j - 1)
+        y(i + 1, j) = y(i + 1, j) + j*pp*y(i, j - 1)
+        z(i + 1, j) = z(i + 1, j) + j*pp*z(i, j - 1)
+      end do
     end do
 
   end subroutine ContractedGaussian_obaraSaikaRecursion
 
   !>
-  !! @brief 	Retorna el codigo de capa y la direccion espacial
-  !!		de la contraccion especificada
+  !! @brief         Retorna el codigo de capa y la direccion espacial
+  !!                de la contraccion especificada
   !! @author E. F. Posada, efposadac@unal.edu.co
   !! @par History
   !!      -2011.02.04: E.F.Posada: creation.
   !! @version 1.0
-  function ContractedGaussian_getShellCode( this ) result( output )
+  function ContractedGaussian_getShellCode(this) result(output)
     implicit none
-    type(ContractedGaussian) , intent(in) :: this
-    character(9) :: output (this%numCartesianOrbital)
+    type(ContractedGaussian), intent(in) :: this
+    character(9) :: output(this%numCartesianOrbital)
 
     type(Exception) :: ex
 
@@ -657,123 +650,123 @@ contains
     character(1) :: shellCode(0:8) !< Codigo para una capa dada
     character(1) :: coordCode(3) !< Codigo de las coordenadas cartesianas
     integer :: nx, ny, nz !< Indices de momento angular
-    integer :: i, j, m, u, v,uu !< Iteradores
+    integer :: i, j, m, u, v, uu !< Iteradores
 
-    if ( this%angularMoment <= 8 ) then
-       
-       shellCode(0:8) = ["S", "P", "D", "F", "G", "H", "I", "J", "L"]
-       coordCode(1:3) = ["x", "y", "z"]
-       
-       indexCode(0) = trim(shellCode(this%angularMoment))
-       
-       m = 0
-       
-       select case(CONTROL_instance%DIMENSIONALITY)
-          
-       case(3)
-          
-          do i = 0 , this%angularMoment
-             nx = this%angularMoment - i
-             do j = 0 , i
-                ny = i - j
-                nz = j
-                m = m + 1
+    if (this%angularMoment <= 8) then
+
+      shellCode(0:8) = ["S", "P", "D", "F", "G", "H", "I", "J", "L"]
+      coordCode(1:3) = ["x", "y", "z"]
+
+      indexCode(0) = trim(shellCode(this%angularMoment))
+
+      m = 0
+
+      select case (CONTROL_instance%DIMENSIONALITY)
+
+      case (3)
+
+        do i = 0, this%angularMoment
+          nx = this%angularMoment - i
+          do j = 0, i
+            ny = i - j
+            nz = j
+            m = m + 1
                 !! nx
-                u = 0
-                do v = 1, nx
-                   u = u + 1
-                   indexCode(u) = trim(coordCode(1))
-                end do
+            u = 0
+            do v = 1, nx
+              u = u + 1
+              indexCode(u) = trim(coordCode(1))
+            end do
                 !! ny
-                do v = 1, ny
-                   u = u + 1
-                   indexCode(u) = trim(coordCode(2))
-                end do
+            do v = 1, ny
+              u = u + 1
+              indexCode(u) = trim(coordCode(2))
+            end do
                 !! nz
-                do v = 1, nz
-                   u = u + 1
-                   indexCode(u) = trim(coordCode(3))
-                end do
+            do v = 1, nz
+              u = u + 1
+              indexCode(u) = trim(coordCode(3))
+            end do
 
                 !!do uu = 0, size(indexCode)-1
                 !!  output(m)(uu+1:uu+1) = indexCode(uu)
                 !!end do
-                output(m) = trim(indexCode(1)(0:this%angularMoment))
+            output(m) = trim(indexCode(1) (0:this%angularMoment))
 
-             end do
           end do
-          
-       case(2)
-          
-          do i = 0 , this%angularMoment
-             nx = this%angularMoment - i
-             ny = i 
-             nz = 0
-             m = m + 1
-             !! nx
-             u = 0
-             do v = 1, nx
-                u = u + 1
-                indexCode(u) = trim(coordCode(1))
-             end do
-             !! ny
-             do v = 1, ny
-                u = u + 1
-                indexCode(u) = trim(coordCode(2))
-             end do
-             !! nz
-             do v = 1, nz
-                u = u + 1
-                indexCode(u) = trim(coordCode(3))
-             end do
-             output(m) = trim(indexCode(1)(0:this%angularMoment))
-          end do
-          
-       case(1)
-          
-          nx = this%angularMoment 
-          ny = 0
+        end do
+
+      case (2)
+
+        do i = 0, this%angularMoment
+          nx = this%angularMoment - i
+          ny = i
           nz = 0
-          
           m = m + 1
           !! nx
           u = 0
           do v = 1, nx
-             u = u + 1
-             indexCode(u) = trim(coordCode(1))
+            u = u + 1
+            indexCode(u) = trim(coordCode(1))
           end do
           !! ny
           do v = 1, ny
-             u = u + 1
-             indexCode(u) = trim(coordCode(2))
+            u = u + 1
+            indexCode(u) = trim(coordCode(2))
           end do
           !! nz
           do v = 1, nz
-             u = u + 1
-             indexCode(u) = trim(coordCode(3))
+            u = u + 1
+            indexCode(u) = trim(coordCode(3))
           end do
-          output(m) = trim(indexCode(1)(0:this%angularMoment))
-          
-       case default
-          
-          call ContractedGaussian_exception( ERROR, "Class object ContratedGaussian in the getShellCode function",&
-               "This Dimensionality is not avaliable") 
-          
-       end select
-       
+          output(m) = trim(indexCode(1) (0:this%angularMoment))
+        end do
+
+      case (1)
+
+        nx = this%angularMoment
+        ny = 0
+        nz = 0
+
+        m = m + 1
+        !! nx
+        u = 0
+        do v = 1, nx
+          u = u + 1
+          indexCode(u) = trim(coordCode(1))
+        end do
+        !! ny
+        do v = 1, ny
+          u = u + 1
+          indexCode(u) = trim(coordCode(2))
+        end do
+        !! nz
+        do v = 1, nz
+          u = u + 1
+          indexCode(u) = trim(coordCode(3))
+        end do
+        output(m) = trim(indexCode(1) (0:this%angularMoment))
+
+      case default
+
+        call ContractedGaussian_exception(ERROR, "Class object ContratedGaussian in the getShellCode function", &
+                                          "This Dimensionality is not avaliable")
+
+      end select
+
     else
-       
-       call Exception_constructor( ex , ERROR )
-       call Exception_setDebugDescription( ex, "Class object ContractedGaussian in the getShellCode function" )
-       call Exception_setDescription( ex, "This angular moment  isn't implemented" )
-       call Exception_show( ex )
-       
+
+      call Exception_constructor(ex, ERROR)
+      call Exception_setDebugDescription(ex, "Class object ContractedGaussian in the getShellCode function")
+      call Exception_setDescription(ex, "This angular moment  isn't implemented")
+      call Exception_show(ex)
+
     end if
-    
+
   end function ContractedGaussian_getShellCode
 
-    !>                                                                      
-  !! @brief return all angularMomentIndex for a contraction               
+  !>
+  !! @brief return all angularMomentIndex for a contraction
   !! @author E. F. Posada, efposadac@unal.edu.co
   !! @par History
   !!      -2011.02.04: E.F.Posada: creation.
@@ -782,29 +775,29 @@ contains
     implicit none
     type(contractedGaussian), optional :: this
     integer, optional :: angularMoment
-    integer, allocatable, intent(inout) :: output(:,:)
-    
+    integer, allocatable, intent(inout) :: output(:, :)
+
     integer :: totalAngularMoment
     integer :: counter
     integer :: x, y, z
     integer :: i, j
-    
-    if(present(this)) totalAngularMoment = this%angularMoment
-    if(present(angularMoment)) totalAngularMoment = angularMoment
-    
+
+    if (present(this)) totalAngularMoment = this%angularMoment
+    if (present(angularMoment)) totalAngularMoment = angularMoment
+
     counter = 1
-    
-    do i = 0 , totalAngularMoment
-       x = totalAngularMoment - i
-       do j = 0 , i
-          y = i - j
-          z = j          
-          output(1:3, counter) = [x, y, z]
-          counter = counter + 1
-       end do
+
+    do i = 0, totalAngularMoment
+      x = totalAngularMoment - i
+      do j = 0, i
+        y = i - j
+        z = j
+        output(1:3, counter) = [x, y, z]
+        counter = counter + 1
+      end do
     end do
-    
-  end subroutine  ContractedGaussian_getAllAngularMomentIndex
+
+  end subroutine ContractedGaussian_getAllAngularMomentIndex
 
   !>
   !!@brief Calcula el producto de dos funciones gausianas contraidas
@@ -823,41 +816,40 @@ contains
     real(8) :: auxValue
 
     call ContractedGaussian_constructor(output, ssize=(this%length*anotherThis%length), &
-         noNormalize=.true., angularMoment=this%angularMoment + anotherthis%angularMoment )
+                                        noNormalize=.true., angularMoment=this%angularMoment + anotherthis%angularMoment)
 
-    k=1
+    k = 1
     do i = 1, this%length
-       do j = 1 , anotherthis%length
+      do j = 1, anotherthis%length
 
-!!          call PrimitiveGaussian_product( this%primitives(i) , &
-!!               anotherthis%primitives(j), proportConstant=auxValue, output=output%primitives(k) )
-          call ContractedGaussian_primitiveproduct( this,  i, &
-               anotherthis, j , output, k, proportConstant=auxValue  )
+        !!call PrimitiveGaussian_product( this%primitives(i) , &
+        !!               anotherthis%primitives(j), proportConstant=auxValue, output=output%primitives(k) )
+        call ContractedGaussian_primitiveproduct(this, i, &
+                                                 anotherthis, j, output, k, proportConstant=auxValue)
 
+        !!output%primitives(k)%normalizationConstant =  &
+        !!     this%primitives(i)%normalizationConstant
+        output%contNormalization(k) = this%contNormalization(i)
 
-!!          output%primitives(k)%normalizationConstant =  &
-!!              this%primitives(i)%normalizationConstant
-          output%contNormalization(k) = this%contNormalization(i)
+        !!output%primitives(k)%owner =  &
+        !!              this%primitives(i)%owner
+        output%owner = this%owner
+        output%subsystem = this%subsystem
 
-!!          output%primitives(k)%owner =  &
-!!               this%primitives(i)%owner
-          output%owner = this%owner
-          output%subsystem = this%subsystem
+        !!output%contractionCoefficients(k)=this%contractionCoefficients(i)* &
+        !!    anotherthis%contractionCoefficients(j) * auxValue
+        output%contractionCoefficients(k) = this%contractionCoefficients(i)* &
+                                            anotherthis%contractionCoefficients(j)*auxValue
 
-!!          output%contractionCoefficients(k)=this%contractionCoefficients(i)* &
-!!               anotherthis%contractionCoefficients(j) * auxValue
-          output%contractionCoefficients(k)=this%contractionCoefficients(i)* &
-               anotherthis%contractionCoefficients(j) * auxValue
+        k = k + 1
 
-          k=k+1
-
-       end do
+      end do
     end do
 
     !!output%normalizationConstant=this%normalizationConstant !!?
     output%contNormalization = this%contNormalization !!?
     output%primNormalization = this%primNormalization !! check
-    output%owner= anotherthis%owner !! ?
+    output%owner = anotherthis%owner !! ?
     ! output%subsystem= anotherthis%subsystem !! ?
     !call ContractedGaussian_showInCompactForm( output )
 
@@ -875,9 +867,9 @@ contains
   !
   ! @see #gaussianProductConstant()
   !>
-  subroutine  ContractedGaussian_primitiveProduct( contractedGaussianA, ia, contractedGaussianB, ib, output, io ,proportConstant )
+  subroutine ContractedGaussian_primitiveProduct(contractedGaussianA, ia, contractedGaussianB, ib, output, io, proportConstant)
     implicit none
-    type(ContractedGaussian), intent( in ) :: contractedGaussianA , contractedGaussianB
+    type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
     type(ContractedGaussian), intent(inout) :: output
     integer :: ia, ib, io
     real(8), optional, intent(inout) :: proportConstant
@@ -896,24 +888,24 @@ contains
     !! la nueva funcion
     !!
     !! Componente x
-    output%origin( 1 ) = ( contractedGaussianA%origin( 1 ) * contractedGaussianA%orbitalExponents(ia) &
-             + contractedGaussianB%origin( 1 ) * contractedGaussianB%orbitalExponents(ib) ) &
-             /  ( output%orbitalExponents(io) )
+    output%origin(1) = (contractedGaussianA%origin(1)*contractedGaussianA%orbitalExponents(ia) &
+                        + contractedGaussianB%origin(1)*contractedGaussianB%orbitalExponents(ib)) &
+                       /(output%orbitalExponents(io))
 
     !! Componente y
-    output%origin( 2 ) = ( contractedGaussianA%origin( 2 ) * contractedGaussianA%orbitalExponents(ia) &
-             + contractedGaussianB%origin( 2 ) * contractedGaussianB%orbitalExponents(ib) ) &
-             / ( output%orbitalExponents(io) )
+    output%origin(2) = (contractedGaussianA%origin(2)*contractedGaussianA%orbitalExponents(ia) &
+                        + contractedGaussianB%origin(2)*contractedGaussianB%orbitalExponents(ib)) &
+                       /(output%orbitalExponents(io))
 
     !! Componente z
-    output%origin( 3 ) = ( contractedGaussianA%origin( 3 ) * contractedGaussianA%orbitalExponents(ia) &
-             + contractedGaussianB%origin( 3 ) * contractedGaussianB%orbitalExponents(ib) ) &
-             / ( output%orbitalExponents(io) )
+    output%origin(3) = (contractedGaussianA%origin(3)*contractedGaussianA%orbitalExponents(ia) &
+                        + contractedGaussianB%origin(3)*contractedGaussianB%orbitalExponents(ib)) &
+                       /(output%orbitalExponents(io))
     !!**************************************************************
 
-    if(present(proportConstant)) then
+    if (present(proportConstant)) then
       proportConstant = ContractedGaussian_primitiveProductConstant( &
-       contractedGaussianA, ia, contractedGaussianB, ib )
+                        contractedGaussianA, ia, contractedGaussianB, ib)
     end if
 
   end subroutine ContractedGaussian_primitiveProduct
@@ -930,8 +922,8 @@ contains
   ! @see gaussianProduct()
   !>
 
-  function ContractedGaussian_primitiveProductConstant( contractedGaussianA, ia, contractedGaussianB, ib ) result( output )
-    type( ContractedGaussian ) , intent( in ) :: contractedGaussianA , contractedGaussianB
+  function ContractedGaussian_primitiveProductConstant(contractedGaussianA, ia, contractedGaussianB, ib) result(output)
+    type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
     integer :: ia, ib
     real(8) :: output
 
@@ -942,27 +934,27 @@ contains
     orbitalExponent = contractedGaussianA%orbitalExponents(ia) + contractedGaussianB%orbitalExponents(ib)
 
     !! Calcula distancia entre gausianas
-    distanceGaussians = ( ( contractedGaussianA%origin( 1 ) - contractedGaussianB%origin( 1 ) ) ** 2.0_8 &
-            + ( contractedGaussianA%origin( 2 ) - contractedGaussianB%origin( 2 ) ) ** 2.0_8 &
-            + ( contractedGaussianA%origin( 3 ) - contractedGaussianB%origin( 3 ) ) ** 2.0_8 )
+    distanceGaussians = ((contractedGaussianA%origin(1) - contractedGaussianB%origin(1))**2.0_8 &
+                         + (contractedGaussianA%origin(2) - contractedGaussianB%origin(2))**2.0_8 &
+                         + (contractedGaussianA%origin(3) - contractedGaussianB%origin(3))**2.0_8)
 
     !! Calcula la constante de proporcionalidad
-    output = exp( - ( ( contractedGaussianA%orbitalExponents(ia) * contractedGaussianB%orbitalExponents(ib) ) &
-             / orbitalExponent ) * distanceGaussians )
+    output = exp(-((contractedGaussianA%orbitalExponents(ia)*contractedGaussianB%orbitalExponents(ib)) &
+                   /orbitalExponent)*distanceGaussians)
 
   end function ContractedGaussian_primitiveProductConstant
 
   !>
   !! @brief Returns the values of a contracted atomic shell in a set of coordinates
   !! grid: Matrix of gridSize*3 with the coordinates
-  !! orbital: Matrix of gridSize*numberOfCartesiansOrbitals that contains the gaussians calculated values 
+  !! orbital: Matrix of gridSize*numberOfCartesiansOrbitals that contains the gaussians calculated values
   !! Felix Moncada, 2022
   !<
-  subroutine ContractedGaussian_getValuesAtGrid( this, grid, gridSize, orbital)
+  subroutine ContractedGaussian_getValuesAtGrid(this, grid, gridSize, orbital)
     implicit none
-    type(ContractedGaussian) , intent(in) :: this
+    type(ContractedGaussian), intent(in) :: this
     type(Matrix) :: grid
-    type(Matrix) :: orbital    
+    type(Matrix) :: orbital
     integer :: gridSize
 
     integer :: h
@@ -972,47 +964,47 @@ contains
     real(8) :: coordinate(3)
     real(8) :: exponential, dx, dy, dz
     real(8) :: auxOutput(this%numCartesianOrbital)
-    real :: time1,time2
+    real :: time1, time2
 
-    time1=omp_get_wtime()
+    time1 = omp_get_wtime()
     !$omp parallel private(i, j, m, w,nx, ny, nz, h, point, coordinate,exponential, dx, dy, dz, auxOutput)
     !$omp do schedule (dynamic)
-    do point=1, gridSize
-       coordinate(1)=grid%values(point,1)-this%origin(1)
-       coordinate(2)=grid%values(point,2)-this%origin(2)
-       coordinate(3)=grid%values(point,3)-this%origin(3)
-       do h=1, this%length
-          exponential=dexp(-this%orbitalExponents(h)*(coordinate(1)**2 + coordinate(2)**2 +coordinate(3)**2) )
-          m = 0
-          do i = 0 , this%angularMoment
-             nx = this%angularMoment - i
-             do j = 0 , i
-                ny = i - j
-                nz = j
-                m = m + 1
+    do point = 1, gridSize
+      coordinate(1) = grid%values(point, 1) - this%origin(1)
+      coordinate(2) = grid%values(point, 2) - this%origin(2)
+      coordinate(3) = grid%values(point, 3) - this%origin(3)
+      do h = 1, this%length
+        exponential = dexp(-this%orbitalExponents(h)*(coordinate(1)**2 + coordinate(2)**2 + coordinate(3)**2))
+        m = 0
+        do i = 0, this%angularMoment
+          nx = this%angularMoment - i
+          do j = 0, i
+            ny = i - j
+            nz = j
+            m = m + 1
 
-                !!Orbital
-                auxOutput(m) = this%contNormalization(m) &
-                     * this%primNormalization(h,m) &
-                     * coordinate(1)** nx &
-                     * coordinate(2)** ny &
-                     * coordinate(3)** nz &
-                     * exponential 
+            !!Orbital
+            auxOutput(m) = this%contNormalization(m) &
+                           *this%primNormalization(h, m) &
+                           *coordinate(1)**nx &
+                           *coordinate(2)**ny &
+                           *coordinate(3)**nz &
+                           *exponential
 
-             end do
           end do
+        end do
 
-          auxOutput = auxOutput * this%contractionCoefficients(h)
+        auxOutput = auxOutput*this%contractionCoefficients(h)
 
-          do w=1, m
-             orbital%values(point,w) =   orbital%values(point,w)   + auxOutput(w) 
-          end do
-       end do
+        do w = 1, m
+          orbital%values(point, w) = orbital%values(point, w) + auxOutput(w)
+        end do
+      end do
     end do
-    !$omp end do 
+    !$omp end do
     !$omp end parallel
 
-    time2=omp_get_wtime()
+    time2 = omp_get_wtime()
     ! write(*,"(A,F10.3,A4)") "**getOrbitalAtGrid:", time2-time1 ," (s)"
 
   end subroutine ContractedGaussian_getValuesAtGrid
@@ -1020,15 +1012,15 @@ contains
   !>
   !! @brief Returns the values of a contracted atomic shell and its gradient in a set of coordinates
   !! grid: Matrix of gridSize*3 with the coordinates
-  !! orbital: Matrix of gridSize*numberOfCartesiansOrbitals that contains the gaussians calculated values 
+  !! orbital: Matrix of gridSize*numberOfCartesiansOrbitals that contains the gaussians calculated values
   !! orbitaldXYZ: Matrices of gridSize*numberOfCartesiansOrbitals that contains the derivatives calculated values
   !! Felix Moncada, 2022
   !<
-  subroutine ContractedGaussian_getGradientAtGrid( this, grid, gridSize, orbital, orbitaldX, orbitaldY, orbitaldZ)
+  subroutine ContractedGaussian_getGradientAtGrid(this, grid, gridSize, orbital, orbitaldX, orbitaldY, orbitaldZ)
     implicit none
-    type(ContractedGaussian) , intent(in) :: this
+    type(ContractedGaussian), intent(in) :: this
     type(Matrix) :: grid
-    type(Matrix) :: orbital    
+    type(Matrix) :: orbital
     type(Matrix) :: orbitaldX, orbitaldY, orbitaldZ
     integer(8) :: gridSize
 
@@ -1038,121 +1030,121 @@ contains
     integer(8) :: point
     real(8) :: coordinate(3)
     real(8) :: exponential, dx, dy, dz
-    real(8) :: auxOutput(this%numCartesianOrbital,4)
-    real :: time1,time2
+    real(8) :: auxOutput(this%numCartesianOrbital, 4)
+    real :: time1, time2
 
-    time1=omp_get_wtime()
+    time1 = omp_get_wtime()
     !$omp parallel private(i, j, m, w,nx, ny, nz, h, point, coordinate,exponential, dx, dy, dz, auxOutput)
     !$omp do schedule (dynamic)
-    do point=1, gridSize
-       coordinate(1)=grid%values(point,1)-this%origin(1)
-       coordinate(2)=grid%values(point,2)-this%origin(2)
-       coordinate(3)=grid%values(point,3)-this%origin(3)
-       do h=1, this%length
-          exponential=dexp(-this%orbitalExponents(h)*(coordinate(1)**2 + coordinate(2)**2 +coordinate(3)**2) )
-          m = 0
-          do i = 0 , this%angularMoment
-             nx = this%angularMoment - i
-             do j = 0 , i
-                ny = i - j
-                nz = j
-                m = m + 1
+    do point = 1, gridSize
+      coordinate(1) = grid%values(point, 1) - this%origin(1)
+      coordinate(2) = grid%values(point, 2) - this%origin(2)
+      coordinate(3) = grid%values(point, 3) - this%origin(3)
+      do h = 1, this%length
+        exponential = dexp(-this%orbitalExponents(h)*(coordinate(1)**2 + coordinate(2)**2 + coordinate(3)**2))
+        m = 0
+        do i = 0, this%angularMoment
+          nx = this%angularMoment - i
+          do j = 0, i
+            ny = i - j
+            nz = j
+            m = m + 1
 
-                !!Orbital
-                auxOutput(m,4) = this%contNormalization(m) &
-                     * this%primNormalization(h,m) &
-                     * coordinate(1)** nx &
-                     * coordinate(2)** ny &
-                     * coordinate(3)** nz &
-                     * exponential 
+            !!Orbital
+            auxOutput(m, 4) = this%contNormalization(m) &
+                              *this%primNormalization(h, m) &
+                              *coordinate(1)**nx &
+                              *coordinate(2)**ny &
+                              *coordinate(3)**nz &
+                              *exponential
 
-                dx=-2*this%orbitalExponents(h) &
-                     * coordinate(1)** (nx+1) &
-                     * coordinate(2)** ny &
-                     * coordinate(3)** nz 
+            dx = -2*this%orbitalExponents(h) &
+                 *coordinate(1)**(nx + 1) &
+                 *coordinate(2)**ny &
+                 *coordinate(3)**nz
 
-                ! Orbital derivative
-                if( nx .ge. 1 ) then
-                   dx= dx + &
-                        nx*coordinate(1)** (nx-1) &
-                        * coordinate(2)** ny &
-                        * coordinate(3)** nz 
-                end if
+            ! Orbital derivative
+            if (nx .ge. 1) then
+              dx = dx + &
+                   nx*coordinate(1)**(nx - 1) &
+                   *coordinate(2)**ny &
+                   *coordinate(3)**nz
+            end if
 
-                dy=-2*this%orbitalExponents(h) &
-                     * coordinate(1)** nx &
-                     * coordinate(2)** (ny+1) &
-                     * coordinate(3)** nz 
+            dy = -2*this%orbitalExponents(h) &
+                 *coordinate(1)**nx &
+                 *coordinate(2)**(ny + 1) &
+                 *coordinate(3)**nz
 
-                if( ny .ge. 1 ) then
-                   dy= dy + &
-                        coordinate(1)** nx &
-                        *ny*coordinate(2)** (ny-1) &
-                        * coordinate(3)** nz 
-                end if
+            if (ny .ge. 1) then
+              dy = dy + &
+                   coordinate(1)**nx &
+                   *ny*coordinate(2)**(ny - 1) &
+                   *coordinate(3)**nz
+            end if
 
-                dz=-2*this%orbitalExponents(h) &
-                     * coordinate(1)** nx &
-                     * coordinate(2)** ny &
-                     * coordinate(3)** (nz+1) 
+            dz = -2*this%orbitalExponents(h) &
+                 *coordinate(1)**nx &
+                 *coordinate(2)**ny &
+                 *coordinate(3)**(nz + 1)
 
-                if( nz .ge. 1 ) then
-                   dz= dz+ &
-                        coordinate(1)** nx &
-                        *coordinate(2)** ny &
-                        *nz*coordinate(3)** (nz-1) 
-                end if
+            if (nz .ge. 1) then
+              dz = dz + &
+                   coordinate(1)**nx &
+                   *coordinate(2)**ny &
+                   *nz*coordinate(3)**(nz - 1)
+            end if
 
-                auxOutput(m,1) = this%contNormalization(m) &
-                     *this%primNormalization(h,m) &
-                     *exponential*dx
+            auxOutput(m, 1) = this%contNormalization(m) &
+                              *this%primNormalization(h, m) &
+                              *exponential*dx
 
-                auxOutput(m,2) = this%contNormalization(m) &
-                     *this%primNormalization(h,m) &
-                     *exponential*dy
+            auxOutput(m, 2) = this%contNormalization(m) &
+                              *this%primNormalization(h, m) &
+                              *exponential*dy
 
-                auxOutput(m,3) = this%contNormalization(m) &
-                     *this%primNormalization(h,m) &
-                     *exponential*dz
+            auxOutput(m, 3) = this%contNormalization(m) &
+                              *this%primNormalization(h, m) &
+                              *exponential*dz
 
-             end do
           end do
+        end do
 
-          auxOutput = auxOutput * this%contractionCoefficients(h)
+        auxOutput = auxOutput*this%contractionCoefficients(h)
 
-          do w=1, m
-             orbital%values(point,w) =   orbital%values(point,w)   + auxOutput(w,4) 
-             orbitaldX%values(point,w) = orbitaldX%values(point,w) + auxOutput(w,1) 
-             orbitaldY%values(point,w) = orbitaldY%values(point,w) + auxOutput(w,2) 
-             orbitaldZ%values(point,w) = orbitaldZ%values(point,w) + auxOutput(w,3) 
-          end do
-       end do
+        do w = 1, m
+          orbital%values(point, w) = orbital%values(point, w) + auxOutput(w, 4)
+          orbitaldX%values(point, w) = orbitaldX%values(point, w) + auxOutput(w, 1)
+          orbitaldY%values(point, w) = orbitaldY%values(point, w) + auxOutput(w, 2)
+          orbitaldZ%values(point, w) = orbitaldZ%values(point, w) + auxOutput(w, 3)
+        end do
+      end do
     end do
-    !$omp end do 
+    !$omp end do
     !$omp end parallel
 
-    time2=omp_get_wtime()
+    time2 = omp_get_wtime()
     ! write(*,"(A,F10.3,A4)") "**getOrbitalGradientAtGrid:", time2-time1 ," (s)"
 
   end subroutine ContractedGaussian_getGradientAtGrid
 
   !>
   !! @brief  Maneja excepciones de la clase
-  subroutine ContractedGaussian_exception( typeMessage, description, debugDescription)
+  subroutine ContractedGaussian_exception(typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
     character(*) :: debugDescription
-    
+
     type(Exception) :: ex
-    
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
-    
+
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
+
   end subroutine ContractedGaussian_exception
-  
+
 end module ContractedGaussian_
 

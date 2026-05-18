@@ -1,6 +1,6 @@
 !!******************************************************************************
-!!  This code is part of LOWDIN Quantum chemistry package                 
-!!  
+!!  This code is part of LOWDIN Quantum chemistry package
+!!
 !!  this program has been developed under direction of:
 !!
 !!  Prof. A REYES' Lab. Universidad Nacional de Colombia
@@ -45,7 +45,7 @@ module List_
   !! @todo verificar la liberacion de memoria al eliminar elementos de la pila
   !<
 
-type, public :: List
+  type, public :: List
 
     character(30) :: name
     real(8), allocatable :: data(:)
@@ -55,7 +55,6 @@ type, public :: List
     logical :: isSizeUndefined
 
   end type List
-
 
   public :: &
     List_constructor, &
@@ -75,73 +74,72 @@ type, public :: List
     List_remove, &
     List_push_back, &
     List_push_front, &
-    List_resize  , &
+    List_resize, &
     List_reverse, &
     List_size, &
     List_sort, &
-    List_swap , &
+    List_swap, &
     List_unique, &
     List_iterate, &
     List_current
-
 
 contains
 
   !<
   !! @brief Crea una lista y la inicializa
   !>
-  subroutine List_constructor( this, name, ssize )
+  subroutine List_constructor(this, name, ssize)
     implicit none
     type(List), target, intent(inout) :: this
     character(*), optional :: name
     integer, optional, intent(in) :: ssize
 
-    this%maxSize =10
+    this%maxSize = 10
     this%name = "undefined"
     this%isSizeUndefined = .false.
 
-    if ( present(name) ) this%name = trim(name)
+    if (present(name)) this%name = trim(name)
 
     if (present(ssize)) then
 
-      this%maxSize =ssize
-      if( ssize < 0 ) then
+      this%maxSize = ssize
+      if (ssize < 0) then
         this%isSizeUndefined = .true.
-        this%maxSize =1
+        this%maxSize = 1
       end if
 
     end if
 
-                if(allocated(this%data)) deallocate(this%data)
-    allocate( this%data(1) )
+    if (allocated(this%data)) deallocate (this%data)
+    allocate (this%data(1))
     this%data = 0.0_8
     this%iterator = 0
     this%current => null()
 
-  end  subroutine List_constructor
+  end subroutine List_constructor
 
   !<
   !! @brief Elimina una lista previamente creada y libera la memoria asociada
   !!
   !! @ Verificar que la memoria priviamente separada sea liberada
   !>
-  subroutine List_destructor( this )
+  subroutine List_destructor(this)
     implicit none
     type(List), intent(inout) :: this
 
     integer :: i
     integer :: currentSize
 
-    if ( allocated(this%data) ) then
+    if (allocated(this%data)) then
 
       this%current => null()
       this%maxSize = 0
       this%iterator = 0
-      deallocate(this%data)
+      deallocate (this%data)
 
     end if
 
-  end  subroutine List_destructor
+  end subroutine List_destructor
 
   !<
   !! @brief Asigna un grupo elementos a la lista
@@ -161,23 +159,22 @@ contains
   !! @brief Retorna un puntero al ultimo elemento de la lista
   !!
   !>
-  function List_back( this ) result(output)
+  function List_back(this) result(output)
     implicit none
     type(List), target, intent(inout) :: this
-    real(8) ,pointer :: output
+    real(8), pointer :: output
 
     type(Exception) :: ex
 
-    if ( allocated( this%data) ) then
+    if (allocated(this%data)) then
 
       output => null()
-      this%iterator = size( this%data )
+      this%iterator = size(this%data)
       output => this%data(this%iterator)
 
-
     else
-      call List_exception( ERROR, "The list "// trim(this%name) //" is empty" , &
-                  "Class object List in the back() function" )
+      call List_exception(ERROR, "The list "//trim(this%name)//" is empty", &
+                          "Class object List in the back() function")
     end if
 
   end function List_back
@@ -186,20 +183,20 @@ contains
   !! @brief Coloca el puntero del iterador al inicio de la lista
   !!
   !>
-  subroutine List_begin( this)
+  subroutine List_begin(this)
     type(List), target, intent(inout) :: this
 
     type(Exception) :: ex
 
-    if ( allocated(this%data) ) then
+    if (allocated(this%data)) then
 
       this%current => null()
       this%current => this%data(1)
       this%iterator = 1
 
     else
-      call List_exception( ERROR, "The list "// trim(this%name) //" is empty" , &
-                  "Class object List in the begin() function")
+      call List_exception(ERROR, "The list "//trim(this%name)//" is empty", &
+                          "Class object List in the begin() function")
 
     end if
 
@@ -209,17 +206,16 @@ contains
   !! @brief Remueve todo los elementos del la lista
   !!
   !>
-  subroutine List_clear( this)
+  subroutine List_clear(this)
     type(List), intent(inout) :: this
 
-    if ( allocated(this%data) ) then
+    if (allocated(this%data)) then
 
-      this%current=> null()
-      deallocate( this%data )
-      allocate( this%data(1) )
+      this%current => null()
+      deallocate (this%data)
+      allocate (this%data(1))
       this%data = 0.0_8
       this%iterator = 0
-
 
     end if
 
@@ -228,14 +224,14 @@ contains
   !<
   !! @brief Indica si la lista tiene o no elementos
   !>
-  function List_empty( this ) result(output)
+  function List_empty(this) result(output)
     implicit none
     type(List), intent(in) :: this
     logical :: output
 
-    output=.false.
+    output = .false.
 
-    if( .not.allocated(this%data) .or. this%iterator == 0 ) output =.true.
+    if (.not. allocated(this%data) .or. this%iterator == 0) output = .true.
 
   end function List_empty
 
@@ -243,21 +239,20 @@ contains
   !! @brief Coloca el puntero del iterador al final de la lista
   !!
   !>
-  subroutine List_end( this)
+  subroutine List_end(this)
     type(List), target, intent(inout) :: this
 
     type(Exception) :: ex
 
-    if ( allocated( this%data ) ) then
+    if (allocated(this%data)) then
 
-      this%current=>null()
+      this%current => null()
       this%iterator = size(this%data)
-      this%current => this%data( this%iterator )
-
+      this%current => this%data(this%iterator)
 
     else
-      call List_exception( ERROR, "The list "// trim(this%name) //" is empty" , &
-                  "Class object List in the end() function")
+      call List_exception(ERROR, "The list "//trim(this%name)//" is empty", &
+                          "Class object List in the end() function")
 
     end if
 
@@ -267,34 +262,32 @@ contains
   !! @brief Remueve todo los elementos del la lista
   !!
   !>
-  subroutine List_erase( this)
+  subroutine List_erase(this)
     type(List), intent(inout) :: this
 
     type(Exception) :: ex
 
-
   end subroutine List_erase
-
 
   !<
   !! @brief Retorna una puntero al primer elemento de la lista
   !!
   !>
-  function List_front( this ) result(output)
+  function List_front(this) result(output)
     implicit none
     type(List), target, intent(inout) :: this
-    real(8),pointer :: output
+    real(8), pointer :: output
 
     type(Exception) :: ex
 
-    if ( allocated( this%data ) ) then
+    if (allocated(this%data)) then
 
       output => null()
       output => this%data(1)
 
     else
-      call List_exception( ERROR, "The list "// trim(this%name) //" is empty" , &
-                "Class object List in the front() function")
+      call List_exception(ERROR, "The list "//trim(this%name)//" is empty", &
+                          "Class object List in the front() function")
 
     end if
 
@@ -305,7 +298,7 @@ contains
   !!
   !! @todo Falta implementacion completa
   !>
-  subroutine List_insert( this, position)
+  subroutine List_insert(this, position)
     type(List), intent(inout) :: this
     integer :: position
 
@@ -315,9 +308,9 @@ contains
   !! @brief Retorna el maximo numero de elementos que se puden almacenar
   !!     en la lista.
   !>
-  function List_max_size( this) result(output)
+  function List_max_size(this) result(output)
     implicit none
-    type(List),  intent(in) :: this
+    type(List), intent(in) :: this
     integer :: output
 
     output = this%maxSize
@@ -329,18 +322,16 @@ contains
   !!
   !! @todo Falta implementacion completa
   !>
-  subroutine List_merge( this, otherThisToMerge )
+  subroutine List_merge(this, otherThisToMerge)
     type(List), intent(inout) :: this
     type(List), intent(inout) :: otherThisToMerge
 
-
   end subroutine List_merge
-
 
   !<
   !! @brief Elimina el ultimo elemento de la lista, el primer elemento no es eliminado
   !>
-  subroutine List_pop_back( this )
+  subroutine List_pop_back(this)
     implicit none
     type(List), target, intent(inout) :: this
 
@@ -348,28 +339,27 @@ contains
     real(8), allocatable :: auxData(:)
     integer :: ssize
 
-    if ( allocated(this%data)  ) then
+    if (allocated(this%data)) then
 
-      if ( size(this%data) > 1 ) then
+      if (size(this%data) > 1) then
 
-        this%current  => null()
+        this%current => null()
         ssize = size(this%data) - 1
-        allocate( auxData(ssize) )
+        allocate (auxData(ssize))
         auxData = this%data(1:ssize)
-        deallocate( this%data )
-        allocate( this%data(ssize) )
+        deallocate (this%data)
+        allocate (this%data(ssize))
         this%data = auxData
         this%iterator = ssize
         this%current => this%data(ssize)
-        deallocate( auxData )
+        deallocate (auxData)
 
       end if
 
     else
-      call List_exception(WARNING, "The list is empty" , &
-                "Class object List in the pop_back() function")
+      call List_exception(WARNING, "The list is empty", &
+                          "Class object List in the pop_back() function")
     end if
-
 
   end subroutine List_pop_back
 
@@ -378,7 +368,7 @@ contains
   !!
   !! @todo Falta toda la implemtacion
   !>
-  subroutine List_pop_front( this )
+  subroutine List_pop_front(this)
     implicit none
     type(List), intent(inout) :: this
 
@@ -389,45 +379,43 @@ contains
   !!
   !! @ Verificar que la memoria de cada nodo sea liberada cuando �ste se elimine
   !>
-  subroutine List_push_back( this, data )
+  subroutine List_push_back(this, data)
     implicit none
     type(List), target, intent(inout) :: this
-    real(8),intent(in) :: data
+    real(8), intent(in) :: data
 
     real(8), allocatable :: auxData(:)
     integer :: ssize
     type(Exception) :: ex
 
-    if ( allocated(this%data)  ) then
-    
+    if (allocated(this%data)) then
 
+      ssize = size(this%data)
 
-      ssize = size( this%data )
+      if (this%isSizeUndefined) this%maxSize = this%maxSize + 1
 
-      if ( this%isSizeUndefined  ) this%maxSize = this%maxSize + 1
-
-      if ( this%iterator /= 0 .and. ssize < this%maxSize ) then
+      if (this%iterator /= 0 .and. ssize < this%maxSize) then
 
         this%current => null()
-        allocate( auxData( ssize ) )
+        allocate (auxData(ssize))
         auxData = this%data
-        deallocate(this%data)
-        allocate( this%data( ssize + 1 ) )
+        deallocate (this%data)
+        allocate (this%data(ssize + 1))
         this%data(1:ssize) = auxData
-        this%data(ssize+1) = data
-        this%iterator = ssize+1
-        this%current => this%data(ssize+1)
-        deallocate(auxData)
+        this%data(ssize + 1) = data
+        this%iterator = ssize + 1
+        this%current => this%data(ssize + 1)
+        deallocate (auxData)
 
-      else if ( ssize== this%maxSize) then
+      else if (ssize == this%maxSize) then
 
         this%current => null()
-        allocate( auxData( ssize ) )
+        allocate (auxData(ssize))
         auxData = this%data
-        this%data(1:ssize-1) = auxData(2:ssize)
+        this%data(1:ssize - 1) = auxData(2:ssize)
         this%data(ssize) = data
         this%current => this%data(ssize)
-        deallocate(auxData)
+        deallocate (auxData)
 
       else
 
@@ -438,8 +426,8 @@ contains
       end if
 
     else
-      call List_exception(ERROR, "The list "// trim(this%name) //" is empty" , &
-                "Class object List in the push back() function")
+      call List_exception(ERROR, "The list "//trim(this%name)//" is empty", &
+                          "Class object List in the push back() function")
 
     end if
 
@@ -450,7 +438,7 @@ contains
   !!
   !! @todo Falta toda la implemtacion
   !>
-  subroutine List_push_front( this )
+  subroutine List_push_front(this)
     implicit none
     type(List), intent(inout) :: this
 
@@ -461,7 +449,7 @@ contains
   !!
   !! @todo Falta toda la implemtacion
   !>
-  subroutine List_remove( this, position )
+  subroutine List_remove(this, position)
     implicit none
     type(List), intent(inout) :: this
     integer :: position
@@ -472,7 +460,7 @@ contains
   !! @brief Redefine el tama�o maximo de la lista
   !!
   !>
-  subroutine List_resize( this, resize )
+  subroutine List_resize(this, resize)
     implicit none
     type(List), intent(inout) :: this
     integer :: resize
@@ -486,7 +474,7 @@ contains
   !!
   !! @todo Falta toda la implemtacion
   !>
-  subroutine List_reverse( this)
+  subroutine List_reverse(this)
     implicit none
     type(List), intent(inout) :: this
 
@@ -495,16 +483,16 @@ contains
   !<
   !! @brief Retorna el tama�o actual o ocupacion de la pila
   !>
-  function List_size( this) result(output)
+  function List_size(this) result(output)
     implicit none
-    type(List),  intent(in) :: this
+    type(List), intent(in) :: this
     integer :: output
 
-    output=0
+    output = 0
 
-    if( allocated(this%data) ) then
+    if (allocated(this%data)) then
 
-      output =size( this%data )
+      output = size(this%data)
 
     end if
 
@@ -515,10 +503,9 @@ contains
   !!
   !! @todo Falta toda la implemtacion
   !>
-  subroutine List_sort( this)
+  subroutine List_sort(this)
     implicit none
     type(List), intent(inout) :: this
-
 
   end subroutine List_sort
 
@@ -527,11 +514,10 @@ contains
   !!
   !! @todo Falta toda la implemtacion
   !>
-  subroutine List_swap( this, otherThis)
+  subroutine List_swap(this, otherThis)
     implicit none
     type(List), intent(inout) :: this
     type(List), intent(inout) :: otherThis
-
 
   end subroutine List_swap
 
@@ -541,10 +527,9 @@ contains
   !!
   !! @todo Falta toda la implemtacion
   !>
-  subroutine List_unique( this)
+  subroutine List_unique(this)
     implicit none
     type(List), intent(inout) :: this
-
 
   end subroutine List_unique
 
@@ -552,7 +537,7 @@ contains
   !! @brief Mueve el iterador de la lista el numero de nodo que se especifique
   !!
   !>
-  subroutine List_iterate( this, iterator)
+  subroutine List_iterate(this, iterator)
     implicit none
     type(List), target, intent(inout) :: this
     integer, optional :: iterator
@@ -561,19 +546,19 @@ contains
     integer :: auxIterator
     integer :: i
 
-    auxIterator=1
+    auxIterator = 1
 
 !    print*, this%maxSize, this%iterator+auxIterator
 
-    if ( present(iterator) ) auxIterator = iterator
+    if (present(iterator)) auxIterator = iterator
 
-    if ( allocated(this%data) ) then
+    if (allocated(this%data)) then
 
-      if( ( ( this%iterator + auxIterator ) >= 1 ) .and.  ( ( this%iterator + auxIterator) <= this%maxSize  )  ) then
+      if (((this%iterator + auxIterator) >= 1) .and. ((this%iterator + auxIterator) <= this%maxSize)) then
 
-        do i=1, abs(auxIterator)
+        do i = 1, abs(auxIterator)
 
-          if ( auxIterator > 0) then
+          if (auxIterator > 0) then
 
             this%iterator = this%iterator + 1
             this%current => this%data(this%iterator)
@@ -589,7 +574,7 @@ contains
 
       else
         call List_exception(ERROR, "The current iterator is greater than  the size of the List", &
-                        "Class object List in the iterate(i) function")
+                            "Class object List in the iterate(i) function")
 
       end if
 
@@ -597,21 +582,19 @@ contains
 
   end subroutine List_iterate
 
-
   !<
   !! @brief Retorna un puntero (referencia) al valor del nodo donde se encuentra el iterador
   !!
   !! @todo Hacer que el procedimineto salga mediante una excepcion.
   !>
-  function List_current( this ) result( output )
+  function List_current(this) result(output)
     implicit none
     type(List), target, intent(inout) :: this
     real(8), pointer :: output
-    
-  
-    if ( associated(this%current) ) then
 
-      output => this%data( this%iterator )
+    if (associated(this%current)) then
+
+      output => this%data(this%iterator)
 
     else
 
@@ -625,18 +608,18 @@ contains
   !! @brief  Maneja excepciones de la clase
   !<
   subroutine List_exception(typeMessage, description, debugDescription)
-      implicit none
-      integer :: typeMessage
-      character(*) :: description
-      character(*) :: debugDescription
+    implicit none
+    integer :: typeMessage
+    character(*) :: description
+    character(*) :: debugDescription
 
-      type(Exception) :: ex
+    type(Exception) :: ex
 
-      call Exception_constructor( ex , typeMessage )
-      call Exception_setDebugDescription( ex, debugDescription )
-      call Exception_setDescription( ex, description )
-      call Exception_show( ex )
-      call Exception_destructor( ex )
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine List_exception
 

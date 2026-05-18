@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -27,7 +27,7 @@
 !!   - <tt> 2015-02-23 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
 !!        -# Rewrite the code to Lowdin v 2.0 and prepare the module for new optimizers
 !!
-!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 module GeometryOptimizer_
@@ -59,56 +59,56 @@ module GeometryOptimizer_
 
   type, public :: GeometryOptimizer
 
-     character(30) :: name
-     integer :: method ! using by MR
-     ! integer :: minimizationType  ! using by MR
-     integer :: numberOfIterations ! using by MR
-     real(8) :: toleranceGradient ! using by MR
-     real(8) :: toleranceDx ! using by MR
-     integer :: numberOfIndependVariables ! using by MR
-     type(Vector) :: valuesOfIndependentVariables ! using by MR
-     type(Vector) :: gradient
-     real(8) :: functionValue
-     real(8) :: stepSize ! using by MR
-     logical :: isInitialExecution ! using by MR
-     logical :: isInstanced ! using by MR
+    character(30) :: name
+    integer :: method ! using by MR
+    ! integer :: minimizationType  ! using by MR
+    integer :: numberOfIterations ! using by MR
+    real(8) :: toleranceGradient ! using by MR
+    real(8) :: toleranceDx ! using by MR
+    integer :: numberOfIndependVariables ! using by MR
+    type(Vector) :: valuesOfIndependentVariables ! using by MR
+    type(Vector) :: gradient
+    real(8) :: functionValue
+    real(8) :: stepSize ! using by MR
+    logical :: isInitialExecution ! using by MR
+    logical :: isInstanced ! using by MR
 
   end type GeometryOptimizer
 
-  type(GeometryOptimizer), pointer , private :: this_pointer
+  type(GeometryOptimizer), pointer, private :: this_pointer
   type(GeometryOptimizer), target :: GeometryOptimizer_instance
 
   public :: &
-       GeometryOptimizer_constructor, &
-       GeometryOptimizer_destructor, &
-       GeometryOptimizer_run, &
-                                ! GeometryOptimizer_setName, &
-                                ! GeometryOptimizer_getNumberOfIterations, &
-       GeometryOptimizer_getFunctionValue, &
-       GeometryOptimizer_getGradient
+    GeometryOptimizer_constructor, &
+    GeometryOptimizer_destructor, &
+    GeometryOptimizer_run, &
+    ! GeometryOptimizer_setName, &
+    ! GeometryOptimizer_getNumberOfIterations, &
+    GeometryOptimizer_getFunctionValue, &
+    GeometryOptimizer_getGradient
 
 contains
   !**
   ! @brief Define el constructor
   !**
-  subroutine GeometryOptimizer_constructor( this )
+  subroutine GeometryOptimizer_constructor(this)
     implicit none
     type(GeometryOptimizer) :: this
     ! type(Vector) :: initialGeometry
     integer :: i
     integer :: numberOfCenterofOptimization
 
-    this%isInstanced =.true.
+    this%isInstanced = .true.
 
     numberOfCenterofOptimization = ParticleManager_getNumberOfCentersOfOptimization()
     this%valuesOfIndependentVariables = ParticleManager_getPositionOfCenterOfOptimizacion()
     ! initialGeometry = ParticleManager_getPositionOfCenterOfOptimizacion()
 
     this%name = ""
-    this%isInitialExecution=.true.
-    this%numberOfIndependVariables = size( this%valuesOfIndependentVariables%values )
+    this%isInitialExecution = .true.
+    this%numberOfIndependVariables = size(this%valuesOfIndependentVariables%values)
     this%method = CONTROL_instance%MINIMIZATION_METHOD
-    this%toleranceGradient =  CONTROL_instance%MINIMIZATION_TOLERANCE_GRADIENT
+    this%toleranceGradient = CONTROL_instance%MINIMIZATION_TOLERANCE_GRADIENT
     this%toleranceDx = CONTROL_instance%MINIMIZATION_LINE_TOLERANCE
     this%stepSize = CONTROL_instance%MINIMIZATION_INITIAL_STEP_SIZE
     this%numberOfIterations = CONTROL_instance%MINIMIZATION_MAX_ITERATION
@@ -145,7 +145,7 @@ contains
   !>
   !! @brief Ejecuta el minimizador hasta encontrar un minimo de la estructura
   !<
-  subroutine GeometryOptimizer_run(this )
+  subroutine GeometryOptimizer_run(this)
     implicit none
     type(GeometryOptimizer), target :: this
     real(8), allocatable :: coordinates(:)
@@ -159,27 +159,27 @@ contains
     logical :: lastStep
     logical :: firstStep
 
-    allocate(coordinates(this%numberOfIndependVariables))
+    allocate (coordinates(this%numberOfIndependVariables))
 
     coordinates = this%valuesOfIndependentVariables%values
 
-    print   *,""
+    print *, ""
     print *, " BEGIN GEOMETRY OPTIMIZATION: "
-    print *,"------------------------------------------------------------"
-    print   *,""
+    print *, "------------------------------------------------------------"
+    print *, ""
 
     isMinumum = .false.
     lastStep = .false.
 
-    open(unit=40, file="lowdin.dat", status="replace", form="formatted")
+    open (unit=40, file="lowdin.dat", status="replace", form="formatted")
 
     !!save all options
     call CONTROL_save(40, lastStep)
 
-    close(40)
+    close (40)
 
-    CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="energy"
-    if( CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT ) CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "energy"
+    CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "energy"
+    if (CONTROL_instance%MINIMIZATION_WITH_SINGLE_POINT) CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "energy"
 
     this_pointer => this
 
@@ -187,45 +187,45 @@ contains
     !! Inicia proceso de minimizacion
     !!***
 
-    infoError = tolow_minimize(this%method, this%numberOfIndependVariables, coordinates(1),&
-         this%stepSize, this%toleranceGradient, this%toleranceDx, this%numberOfIterations, &
-         GeometryOptimizer_calculatePoint, GeometryOptimizer_showIterationInfo, energy)
+    infoError = tolow_minimize(this%method, this%numberOfIndependVariables, coordinates(1), &
+                               this%stepSize, this%toleranceGradient, this%toleranceDx, this%numberOfIterations, &
+                               GeometryOptimizer_calculatePoint, GeometryOptimizer_showIterationInfo, energy)
 
     if (infoError /= 0) then
-       write(6,*) "Error occurred during the GSL minimization procedure"
-       stop
+      write (6, *) "Error occurred during the GSL minimization procedure"
+      stop
     else
-       write(6,*) ""
-       write (6,"(T20,A30)") " FINAL GEOMETRY: ANGSTROM"
-       write (6,"(T18,A35)") "------------------------------------------"
-       write(6,*) ""
+      write (6, *) ""
+      write (6, "(T20,A30)") " FINAL GEOMETRY: ANGSTROM"
+      write (6, "(T18,A35)") "------------------------------------------"
+      write (6, *) ""
 
-       call Vector_constructor( geometry, int(size(coordinates),8) )
-       geometry%values = coordinates
+      call Vector_constructor(geometry, int(size(coordinates), 8))
+      geometry%values = coordinates
 
        !! Ajusta el origen de las particulas presentes en el sistema
-       call ParticleManager_setParticlesPositions(geometry)
-       call Vector_destructor( geometry )
-       call MolecularSystem_showCartesianMatrix()
-       call MolecularSystem_showDistanceMatrix()
-       call MolecularSystem_saveToFile()
-       ! call MolecularSystem_showZMatrix( MolecularSystem_instance )
-       CONTROL_instance%OPTIMIZE=.false.
-       CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="density"
-       lastStep = .true.
+      call ParticleManager_setParticlesPositions(geometry)
+      call Vector_destructor(geometry)
+      call MolecularSystem_showCartesianMatrix()
+      call MolecularSystem_showDistanceMatrix()
+      call MolecularSystem_saveToFile()
+      ! call MolecularSystem_showZMatrix( MolecularSystem_instance )
+      CONTROL_instance%OPTIMIZE = .false.
+      CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "density"
+      lastStep = .true.
 
-       open(unit=40, file="lowdin.dat", status="replace", form="formatted")
+      open (unit=40, file="lowdin.dat", status="replace", form="formatted")
 
        !!save all options
-       call CONTROL_save(40, lastStep)
+      call CONTROL_save(40, lastStep)
 
-       close(40)
+      close (40)
 
-       print *,""
-       print *,"END GEOMETRY OPTIMIZATION "
-       print *,""
+      print *, ""
+      print *, "END GEOMETRY OPTIMIZATION "
+      print *, ""
 
-       call Solver_run()
+      call Solver_run()
 
     end if
 
@@ -240,15 +240,14 @@ contains
     integer, intent(in)    :: getgrad
     real(8), intent(inout) :: gradients(size)
 
-
     ! write(6,*) "Entre a la funcion"
     functionValue = GeometryOptimizer_getFunctionValue(coordinates)
     ! write(6,*) "Energia: ", functionValue
 
-    if(getgrad .eq. 1) then
-       ! write(6,*) "Voy a calcular gradientes"
-       call GeometryOptimizer_getGradient( coordinates, gradients )
-       ! write(6,*) "Saliendo de calcular gradientes"
+    if (getgrad .eq. 1) then
+      ! write(6,*) "Voy a calcular gradientes"
+      call GeometryOptimizer_getGradient(coordinates, gradients)
+      ! write(6,*) "Saliendo de calcular gradientes"
     end if
 
   end subroutine GeometryOptimizer_calculatePoint
@@ -260,7 +259,7 @@ contains
   !! @warning Anque no se define como privada de la clase por propositos de conveniencia
   !!          no debe ser empleada fuera de la clase
   !<
-  function GeometryOptimizer_getFunctionValue( evaluationPoint ) result(output)
+  function GeometryOptimizer_getFunctionValue(evaluationPoint) result(output)
     implicit none
     real(8):: evaluationPoint(:)
     real(8) :: output
@@ -274,30 +273,30 @@ contains
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
 
-    call Vector_constructor( valuesOfIndependentVariables, int( size(evaluationPoint), 8) )
+    call Vector_constructor(valuesOfIndependentVariables, int(size(evaluationPoint), 8))
     valuesOfIndependentVariables%values = evaluationPoint
 
     !! Ajusta el origen de las particulas presentes en el sistema
-    call ParticleManager_setParticlesPositions( valuesOfIndependentVariables)
-    call Vector_destructor( valuesOfIndependentVariables )
+    call ParticleManager_setParticlesPositions(valuesOfIndependentVariables)
+    call Vector_destructor(valuesOfIndependentVariables)
     call MolecularSystem_saveToFile()
 
     lastStep = .false.
 
-    open(unit=40, file="lowdin.dat", status="replace", form="formatted")
+    open (unit=40, file="lowdin.dat", status="replace", form="formatted")
 
     !!save all options
     call CONTROL_save(40, lastStep)
 
-    close(40)
+    close (40)
 
-    CONTROL_instance%SCF_CONVERGENCE_CRITERIUM="energy"
+    CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "energy"
 
     call Solver_run()
-    open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+    open (unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
     !! Load results...
     call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalEnergy, arguments=["TOTALENERGY"])
-    close(wfnUnit)
+    close (wfnUnit)
 
     output = totalEnergy
 
@@ -312,7 +311,7 @@ contains
   ! @warning Anque no se define como privada de la clase por propositos de conveniencia
   !          no debe ser empleada fuera de la clase
   ! <
-  subroutine GeometryOptimizer_getGradient( evaluationPoint, gradientVector )
+  subroutine GeometryOptimizer_getGradient(evaluationPoint, gradientVector)
     implicit none
     real(8) :: evaluationPoint(:)
     real(8) :: gradientVector(:)
@@ -320,7 +319,7 @@ contains
     integer :: i
     ! integer :: sizeGradients !Only for debug
 
-    call Vector_constructor( valuesOfIndependentVariables, int(size(evaluationPoint),8) )
+    call Vector_constructor(valuesOfIndependentVariables, int(size(evaluationPoint), 8))
     valuesOfIndependentVariables%values = evaluationPoint
 
     ! write(*,"(A)") "Dentro de GeometryOptimizer_getGradient"
@@ -328,21 +327,21 @@ contains
     !    write(*,"(F17.12)") valuesOfIndependentVariables%values(i)
     ! end do
 
-    if( .not. CONTROL_instance%ANALYTIC_GRADIENT ) then
-       gradientVector = EnergyGradients_getNumericGradient( valuesOfIndependentVariables, GeometryOptimizer_getFunctionValue )
+    if (.not. CONTROL_instance%ANALYTIC_GRADIENT) then
+      gradientVector = EnergyGradients_getNumericGradient(valuesOfIndependentVariables, GeometryOptimizer_getFunctionValue)
     else
-       call EnergyGradients_getDerivative(valuesOfIndependentVariables,  GeometryOptimizer_getFunctionValue, gradientVector )
+      call EnergyGradients_getDerivative(valuesOfIndependentVariables, GeometryOptimizer_getFunctionValue, gradientVector)
     end if
 
     ! Debug Mauricio Rodas
-    ! sizeGradients = size(gradientVector) 
+    ! sizeGradients = size(gradientVector)
     ! write(*,"(A)") "Gradientes"
     ! do i=1, sizeGradients
     !    write(*,"(f20.12)") gradientVector(i)
     ! end do
     ! print *,""
 
-    call Vector_destructor( valuesOfIndependentVariables )
+    call Vector_destructor(valuesOfIndependentVariables)
 
   end subroutine GeometryOptimizer_getGradient
 
@@ -352,7 +351,7 @@ contains
   !!  @warning Anque no se define como privada de la clase por propositos de conveniencia
   !!          no debe ser empleada fuera de la clase
   !<
-  subroutine GeometryOptimizer_showMinimum( evaluationPoint, gradient, functionValue )
+  subroutine GeometryOptimizer_showMinimum(evaluationPoint, gradient, functionValue)
     implicit none
     real(8) :: evaluationPoint(:)
     real(8) :: gradient(:)
@@ -363,46 +362,45 @@ contains
     real(8) :: origin(3)
     integer :: totalNumberOfParticles
 
-    totalNumberOfParticles = size( ParticleManager_instance )
+    totalNumberOfParticles = size(ParticleManager_instance)
 
-    write (6,*) ""
-    write (6,"(T20,A25)") "COORDINATES: "//trim(CONTROL_instance%UNITS)
-    write (6,"(A10,A16,A20,A20)") "Particle","<x>","<y>","<z>"
-    do i = 1, totalNumberOfParticles!ParticleManager_getTotalNumberOfParticles()
+    write (6, *) ""
+    write (6, "(T20,A25)") "COORDINATES: "//trim(CONTROL_instance%UNITS)
+    write (6, "(A10,A16,A20,A20)") "Particle", "<x>", "<y>", "<z>"
+    do i = 1, totalNumberOfParticles !ParticleManager_getTotalNumberOfParticles()
 
-       if ( ParticleManager_isCenterOfOptimization( i ) ) then
-          origin = ParticleManager_getOrigin( iterator = i )
-          if ( CONTROL_instance%UNITS=="ANGSTROMS") then
-             origin = origin * ANGSTROM
-          end if
+      if (ParticleManager_isCenterOfOptimization(i)) then
+        origin = ParticleManager_getOrigin(iterator=i)
+        if (CONTROL_instance%UNITS == "ANGSTROMS") then
+          origin = origin*ANGSTROM
+        end if
 #ifdef intel
-          write (6,"(A10,<3>F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
+        write (6, "(A10,<3>F20.10)") trim(ParticleManager_getSymbol(iterator=i)), origin(1), origin(2), origin(3)
 #else
-          write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), origin(1), origin(2), origin(3)
+        write (6, "(A10,3F20.10)") trim(ParticleManager_getSymbol(iterator=i)), origin(1), origin(2), origin(3)
 #endif
-       end if
+      end if
 
     end do
-
 
     ! print *,""
-    write (6,"(A)") ""
-    write (6,"(T20,A25)") "GRADIENT: HARTREE/BOHR"
-    write (6,"(A10,A16,A20,A20)") "Particle","dE/dx","dE/dy","dE/dz"
-    k=1
+    write (6, "(A)") ""
+    write (6, "(T20,A25)") "GRADIENT: HARTREE/BOHR"
+    write (6, "(A10,A16,A20,A20)") "Particle", "dE/dx", "dE/dy", "dE/dz"
+    k = 1
     do i = 1, totalNumberOfParticles
 
-       if ( ParticleManager_isCenterOfOptimization( i ) .and. k < size(gradient)) then
+      if (ParticleManager_isCenterOfOptimization(i) .and. k < size(gradient)) then
 
-          write (6,"(A10,3F20.10)") trim( ParticleManager_getSymbol( iterator = i ) ), &
-               gradient(k), gradient(k+1),gradient(k+2)
-          k=k+3
+        write (6, "(A10,3F20.10)") trim(ParticleManager_getSymbol(iterator=i)), &
+          gradient(k), gradient(k + 1), gradient(k + 2)
+        k = k + 3
 
-       end if
+      end if
 
     end do
-    write (6,*) ""
-    write (6,"(T10,A24,F20.10)") "TOTAL ENERGY (Hartree) =", functionValue
+    write (6, *) ""
+    write (6, "(T10,A24,F20.10)") "TOTAL ENERGY (Hartree) =", functionValue
 
   end subroutine GeometryOptimizer_showMinimum
 
@@ -428,14 +426,14 @@ contains
 
     ! totalNumberOfParticles = size( ParticleManager_instance )
 
-    write(6,"(T20,A65)") "-----------------------------------------------------------------"
-    write(6,"(T20,A29,I4)") "GEOMETRY OPTIMIZATION POINT: ", iterationPoint
-    write(6,"(T20,A65)") "-----------------------------------------------------------------"
-    write(6,"(T20,A9,F20.10)") "ENERGY = ", energy
-    write(6,"(T20,A22,F20.10)") "MAX POSITION CHANGE = ", maxdx
-    write(6,"(T20,A22,F20.10)") "MAX GRADIENT CHANGE = ", maxdf
-    write(6,"(T20,A65)") "-----------------------------------------------------------------"
-    write(6,*) ""
+    write (6, "(T20,A65)") "-----------------------------------------------------------------"
+    write (6, "(T20,A29,I4)") "GEOMETRY OPTIMIZATION POINT: ", iterationPoint
+    write (6, "(T20,A65)") "-----------------------------------------------------------------"
+    write (6, "(T20,A9,F20.10)") "ENERGY = ", energy
+    write (6, "(T20,A22,F20.10)") "MAX POSITION CHANGE = ", maxdx
+    write (6, "(T20,A22,F20.10)") "MAX GRADIENT CHANGE = ", maxdf
+    write (6, "(T20,A65)") "-----------------------------------------------------------------"
+    write (6, *) ""
     ! write(6,"(T20,A25)") "COORDINATES: "//trim(CONTROL_instance%UNITS)
     ! do i = 1, size
     !    write(6,"(T20,F20.10)") coordinates(i)
@@ -456,7 +454,6 @@ contains
     !        end if
 
     !     end do
-
 
     !     ! print *,""
     !     write (6,"(A)") ""
@@ -491,7 +488,6 @@ contains
   !   real(8) :: projectedGradient(:)
 
   !   type(vector) :: pprojectedGradient
-
 
   !   !           if ( CONTROL_instance%PROJECT_HESSIANE ) then
   !   !

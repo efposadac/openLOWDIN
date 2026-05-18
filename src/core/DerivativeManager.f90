@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -17,7 +17,7 @@
 !!        This module contains all basic functions of the derivatives calculations
 !! @author  E. Posada
 !! @author  J.M. Rodas
-!! 
+!!
 !! <b> Creation date : </b> 2011-12-14
 !!
 !! <b> History: </b>
@@ -27,7 +27,7 @@
 !!   - <tt> 2015-02-27 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
 !!        -# Rewrite the code to Lowdin v 2.0 and prepare the module for new methods
 !!
-!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 module DerivativeManager_
@@ -48,26 +48,25 @@ module DerivativeManager_
   use Exception_
   implicit none
 
-  integer, parameter, public :: OVERLAP_DERIVATIVES       = 7
-  integer, parameter, public :: KINETIC_DERIVATIVES       = 8
-  integer, parameter, public :: ATTRACTION_DERIVATIVES    = 9
-  integer, parameter, public :: MOMENT_DERIVATIVES        = 10
-  integer, parameter, public :: MOMENTUM_DERIVATIVES      = 11
-  integer, parameter, public :: REPULSION_DERIVATIVES     = 12
+  integer, parameter, public :: OVERLAP_DERIVATIVES = 7
+  integer, parameter, public :: KINETIC_DERIVATIVES = 8
+  integer, parameter, public :: ATTRACTION_DERIVATIVES = 9
+  integer, parameter, public :: MOMENT_DERIVATIVES = 10
+  integer, parameter, public :: MOMENTUM_DERIVATIVES = 11
+  integer, parameter, public :: REPULSION_DERIVATIVES = 12
   integer, parameter, public :: TWOPARTICLE_REPULSION_DERIVATIVES = 13
 
-
   type, public :: DerivativeManager
-     character(20) :: name
-     logical :: isInstanced
+    character(20) :: name
+    logical :: isInstanced
   end type DerivativeManager
 
   public :: &
-       DerivativeManager_constructor, &
-       DerivativeManager_destructor, &
-                                ! DerivativeManager_show, &
-       DerivativeManager_getElement!, &
-  ! DerivativeManager_getLabels
+    DerivativeManager_constructor, &
+    DerivativeManager_destructor, &
+    !DerivativeManager_show, &
+    DerivativeManager_getElement !, &
+    !DerivativeManager_getLabels
 
   private
 contains
@@ -85,7 +84,6 @@ contains
 
   end subroutine DerivativeManager_constructor
 
-
   !>
   !! @brief Destructor por omision
   !!
@@ -99,7 +97,6 @@ contains
 
   end subroutine DerivativeManager_destructor
 
-
   !**
   ! @brief Retorna valor de las derivadas sin almacenar su valor en ningun arreglo
   !
@@ -107,7 +104,7 @@ contains
   !               KINETIC_INTEGRALS, ATTRACTION_INTEGRALS, MOMENT_INTEGRALS, MOMENTUM_INTEGRALS,
   !               OVERLAP_DERIVATIVES, KINETIC_DERIVATIVES, ATTRACTION_DERIVATIVES
   !**
-  subroutine DerivativeManager_getElement( thisID, deriveVector, surface, i, j, k, l, nameOfSpecie, otherNameOfSpecie, A, B )
+  subroutine DerivativeManager_getElement(thisID, deriveVector, surface, i, j, k, l, nameOfSpecie, otherNameOfSpecie, A, B)
     implicit none
     integer :: thisID
     real(8), allocatable :: deriveVector(:)
@@ -128,59 +125,58 @@ contains
     type(surfaceSegment), intent(in), optional :: surface
 
     nameOfSpecieSelected = "E-"
-    if ( present( nameOfSpecie ) ) then
-       nameOfSpecieSelected= nameOfSpecie
+    if (present(nameOfSpecie)) then
+      nameOfSpecieSelected = nameOfSpecie
     end if
-    specieID = MolecularSystem_getSpeciesID( nameOfSpecieSelected )
+    specieID = MolecularSystem_getSpeciesID(nameOfSpecieSelected)
     call MolecularSystem_getBasisSet(specieID, contractions)
 
-    if ( present( otherNameOfSpecie ) ) then
-       otherSpecieID = MolecularSystem_getSpeciesID( otherNameOfSpecie )
+    if (present(otherNameOfSpecie)) then
+      otherSpecieID = MolecularSystem_getSpeciesID(otherNameOfSpecie)
     end if
 
     call MolecularSystem_getBasisSet(specieID, contractions)
-
 
     select case (thisID)
 
-    case( KINETIC_DERIVATIVES )
+    case (KINETIC_DERIVATIVES)
 
-       call KineticDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)
+      call KineticDerivatives_getDerive(contractions, i, j, deriveVector, specieID)
 
-    case( ATTRACTION_DERIVATIVES )
+    case (ATTRACTION_DERIVATIVES)
 
-       if(present(surface)) then
-          call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID, surface)
-       else
-          call AttractionDerivatives_getDerive( contractions, i, j,  deriveVector, A, B, specieID)
-       end if
+      if (present(surface)) then
+        call AttractionDerivatives_getDerive(contractions, i, j, deriveVector, A, B, specieID, surface)
+      else
+        call AttractionDerivatives_getDerive(contractions, i, j, deriveVector, A, B, specieID)
+      end if
 
-    case( OVERLAP_DERIVATIVES )
+    case (OVERLAP_DERIVATIVES)
 
-       call OverlapDerivatives_getDerive( contractions, i, j,  deriveVector, specieID)
+      call OverlapDerivatives_getDerive(contractions, i, j, deriveVector, specieID)
 
-    case( REPULSION_DERIVATIVES )
+    case (REPULSION_DERIVATIVES)
 
-       if ( present(k) .and. present(l) ) then
-          call RepulsionDerivatives_getDerive( contractions, i, j, k, l, deriveVector, specieID)
-       else
-          call Exception_constructor( ex , ERROR )
-          call Exception_setDebugDescription( ex, "Class object DerivativeManager in the getElement(i,j) function" )
-          call Exception_setDescription( ex, "For repulsion derivatives is necessary four indices (p,q|r,s)" )
-          call Exception_show( ex )
-       end if
+      if (present(k) .and. present(l)) then
+        call RepulsionDerivatives_getDerive(contractions, i, j, k, l, deriveVector, specieID)
+      else
+        call Exception_constructor(ex, ERROR)
+        call Exception_setDebugDescription(ex, "Class object DerivativeManager in the getElement(i,j) function")
+        call Exception_setDescription(ex, "For repulsion derivatives is necessary four indices (p,q|r,s)")
+        call Exception_show(ex)
+      end if
 
-    case( TWOPARTICLE_REPULSION_DERIVATIVES )
-       call RepulsionDerivatives_getInterDerive(i, j, k, l, deriveVector, specieID, otherSpecieID)
+    case (TWOPARTICLE_REPULSION_DERIVATIVES)
+      call RepulsionDerivatives_getInterDerive(i, j, k, l, deriveVector, specieID, otherSpecieID)
 
     case default
 
-       call Exception_constructor( ex , WARNING )
-       call Exception_setDebugDescription( ex, "Class object DerivativeManager in the get(i) function" )
-       call Exception_setDescription( ex, "This ID hasn't been defined, returning zero value" )
-       call Exception_show( ex )
+      call Exception_constructor(ex, WARNING)
+      call Exception_setDebugDescription(ex, "Class object DerivativeManager in the get(i) function")
+      call Exception_setDescription(ex, "This ID hasn't been defined, returning zero value")
+      call Exception_show(ex)
 
-       return
+      return
 
     end select
 
@@ -213,7 +209,6 @@ contains
 
   ! end function DerivativeManager_getLabels
 
-
   ! !>
   ! !! @brief Muestra informacion del objeto
   ! !!
@@ -240,7 +235,7 @@ contains
   !>
   !! @brief  Maneja excepciones de la clase
   !<
-  subroutine DerivativeManager_exception( typeMessage, description, debugDescription)
+  subroutine DerivativeManager_exception(typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -248,11 +243,11 @@ contains
 
     type(Exception) :: ex
 
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine DerivativeManager_exception
 

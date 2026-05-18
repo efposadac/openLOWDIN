@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -31,9 +31,9 @@ module Exception_
   use Stopwatch_
 
   type, public :: Exception
-     character(100) :: debugDescription
-     character(255) :: description
-     integer :: typeMessage
+    character(100) :: debugDescription
+    character(255) :: description
+    integer :: typeMessage
   end type Exception
 
   integer, public, parameter :: INFORMATION = 1
@@ -41,111 +41,110 @@ module Exception_
   integer, public, parameter :: ERROR = 3
 
   public :: &
-       Exception_stopError, &
-       Exception_sendWarning, &
-       Exception_constructor, &
-       Exception_destructor, &
-       Exception_show, &
-       Exception_setDebugDescription, &
-       Exception_setDescription
+    Exception_stopError, &
+    Exception_sendWarning, &
+    Exception_constructor, &
+    Exception_destructor, &
+    Exception_show, &
+    Exception_setDebugDescription, &
+    Exception_setDescription
 
 contains
 
-  subroutine Exception_constructor( this, typeMessage,  debugDescription, description )
+  subroutine Exception_constructor(this, typeMessage, debugDescription, description)
     implicit none
     type(Exception) :: this
     integer :: typeMessage
     character(*), optional :: debugDescription
     character(*), optional :: description
 
-    select case ( typeMessage )
+    select case (typeMessage)
 
-    case( INFORMATION )
-       this%typeMessage=INFORMATION
+    case (INFORMATION)
+      this%typeMessage = INFORMATION
 
-    case( WARNING )
-       this%typeMessage=WARNING
+    case (WARNING)
+      this%typeMessage = WARNING
 
-    case( ERROR )
-       this%typeMessage=ERROR
+    case (ERROR)
+      this%typeMessage = ERROR
 
     end select
 
-    if ( present(debugDescription) ) then
+    if (present(debugDescription)) then
 
-       this%debugDescription = trim(debugDescription)
+      this%debugDescription = trim(debugDescription)
     else
 
-       this%debugDescription = "Undefined"
+      this%debugDescription = "Undefined"
 
     end if
 
-    if ( present(description) ) then
+    if (present(description)) then
 
-       this%description = trim(description)
+      this%description = trim(description)
 
     else
 
-       this%description = "Undefined"
+      this%description = "Undefined"
 
     end if
 
   end subroutine Exception_constructor
 
-  subroutine Exception_destructor( this )
+  subroutine Exception_destructor(this)
     implicit none
     type(Exception) :: this
 
     this%description = ""
     this%debugDescription = ""
-    
+
   end subroutine Exception_destructor
 
-  subroutine Exception_show( this )
+  subroutine Exception_show(this)
     implicit none
     type(Exception) :: this
 
-    select case  ( this%typeMessage )
+    select case (this%typeMessage)
 
-    case( INFORMATION )
+    case (INFORMATION)
 
-       print *,""
-       print *,"+++ INFORMATION +++"
-       print *,"   Debug description: ", trim(this%debugDescription)
-       print *,"   Description: ", trim(this%description)
-       print *,"+++"
-       print *,""
+      print *, ""
+      print *, "+++ INFORMATION +++"
+      print *, "   Debug description: ", trim(this%debugDescription)
+      print *, "   Description: ", trim(this%description)
+      print *, "+++"
+      print *, ""
 
-    case( WARNING )
+    case (WARNING)
 
-       print *,""
-       print *,"!!! WARNING !!!"
-       print *,"   Debug description: ", trim(this%debugDescription)
-       print *,"   Description: ", trim(this%description)
-       print *,"!!!"
-       print *,""
+      print *, ""
+      print *, "!!! WARNING !!!"
+      print *, "   Debug description: ", trim(this%debugDescription)
+      print *, "   Description: ", trim(this%description)
+      print *, "!!!"
+      print *, ""
 
-    case( ERROR )
+    case (ERROR)
 
-       print *,""
-       print *,"### ERROR ###"
-       print *,"   Debug description: ", trim(this%debugDescription)
-       print *,"   Description: ", trim(this%description)
-       print *,"###"
-       print *,""
-       call Stopwatch_stop( lowdin_stopwatch )
-       write(6, *)
-       write(6,"(A16,ES10.2,A4)") "Elapsed Time : ", lowdin_stopwatch%enlapsetTime ," (s)"
-       write(6,*) "lowdin execution terminated ABNORMALLY at : ", trim( Stopwatch_getCurretData( lowdin_stopwatch ) )
-       call Stopwatch_destructor( lowdin_stopwatch )
-       STOP
+      print *, ""
+      print *, "### ERROR ###"
+      print *, "   Debug description: ", trim(this%debugDescription)
+      print *, "   Description: ", trim(this%description)
+      print *, "###"
+      print *, ""
+      call Stopwatch_stop(lowdin_stopwatch)
+      write (6, *)
+      write (6, "(A16,ES10.2,A4)") "Elapsed Time : ", lowdin_stopwatch%enlapsetTime, " (s)"
+      write (6, *) "lowdin execution terminated ABNORMALLY at : ", trim(Stopwatch_getCurretData(lowdin_stopwatch))
+      call Stopwatch_destructor(lowdin_stopwatch)
+      STOP
 
     end select
 
-
   end subroutine Exception_show
 
-  subroutine Exception_setDebugDescription( this, debugDescription )
+  subroutine Exception_setDebugDescription(this, debugDescription)
     implicit none
     type(Exception) :: this
     character(*) :: debugDescription
@@ -154,7 +153,7 @@ contains
 
   end subroutine Exception_setDebugDescription
 
-  subroutine Exception_setDescription( this , description )
+  subroutine Exception_setDescription(this, description)
     implicit none
     type(Exception) :: this
     character(*) :: description
@@ -166,38 +165,37 @@ contains
   !>
   !! @brief  A nice way to stop the code in other routines
   !<
-  subroutine Exception_stopError( description, debugDescription)
+  subroutine Exception_stopError(description, debugDescription)
     implicit none
     character(*) :: description
     character(*) :: debugDescription
 
     type(Exception) :: ex
 
-    call Exception_constructor( ex , ERROR )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    call Exception_constructor(ex, ERROR)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine Exception_stopError
-
 
   !>
   !! @brief  A nice way to send warnings in other routines
   !<
-  subroutine Exception_sendWarning( description, debugDescription)
+  subroutine Exception_sendWarning(description, debugDescription)
     implicit none
     character(*) :: description
     character(*) :: debugDescription
 
     type(Exception) :: ex
 
-    call Exception_constructor( ex , WARNING )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    call Exception_constructor(ex, WARNING)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine Exception_sendWarning
-  
+
 end module Exception_

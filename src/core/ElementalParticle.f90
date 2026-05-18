@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -32,30 +32,30 @@ module ElementalParticle_
   use CONTROL_
   use Exception_
   implicit none
-  
-  type , public :: ElementalParticle
-     character(30) :: name
-     character(30) :: symbol
-     character(30) :: category
-     real(8) :: mass
-     real(8) :: charge
-     real(8) :: spin
-     logical :: custom
+
+  type, public :: ElementalParticle
+    character(30) :: name
+    character(30) :: symbol
+    character(30) :: category
+    real(8) :: mass
+    real(8) :: charge
+    real(8) :: spin
+    logical :: custom
   end type ElementalParticle
-  
+
   public :: &
-       ElementalParticle_load, &
-       ElementalParticle_show
-  
+    ElementalParticle_load, &
+    ElementalParticle_show
+
 contains
-    
+
   !>
   !! @brief Loads an elemental particles from library.
   !! @author E. F. Posada, 2013
   !! @version 1.0
-  subroutine ElementalParticle_load( this, symbolSelected )
+  subroutine ElementalParticle_load(this, symbolSelected)
     implicit none
-    
+
     type(ElementalParticle), intent(inout) :: this
     character(*) :: symbolSelected
 
@@ -63,7 +63,7 @@ contains
     logical :: custom
     integer :: stat
     integer :: i
-    
+
     !! Namelist definition
     character(30) :: name
     character(30) :: symbol
@@ -73,115 +73,114 @@ contains
     real(8) :: spin
 
     NAMELIST /particle/ &
-         name, &
-         symbol, &
-         category, &
-         charge, &
-         mass, &
-         spin
-    
-    !! Looking for library    
-    inquire(file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), exist=existFile)
-    
-    if ( .not. existFile ) call ElementalParticle_exception( ERROR, "LOWDIN library not found!! please export lowdinvars.sh file.", "In ElementalParticle at load function.")
+      name, &
+      symbol, &
+      category, &
+      charge, &
+      mass, &
+      spin
+
+    !! Looking for library
+    inquire (file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), exist=existFile)
+
+    if (.not. existFile) call ElementalParticle_exception(ERROR, "LOWDIN library not found!! please export lowdinvars.sh file.", "In ElementalParticle at load function.")
 
     !! Open library
-    open(unit=11, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), status="old", form="formatted" )
+    open (unit=11, file=trim(CONTROL_instance%DATA_DIRECTORY)//trim(CONTROL_instance%ELEMENTAL_PARTICLES_DATABASE), status="old", form="formatted")
 
     !! Read information
     symbol = "NONE"
     stat = 0
 
-    do while(trim(symbol) /= trim(symbolSelected))
+    do while (trim(symbol) /= trim(symbolSelected))
 
        !! Setting defaults
-       name = "NONE"
-       category = "NONE"
-       mass = -1
-       charge = 0
-       spin = 0
-       custom = .false.
-       
-       if (stat == -1 ) then
+      name = "NONE"
+      category = "NONE"
+      mass = -1
+      charge = 0
+      spin = 0
+      custom = .false.
 
-          ! call ElementalParticle_exception( WARNING, "Elemental particle: "//trim(symbolSelected)//" NOT found in ElementalParticles.lib", "Setting default values")
-          name = trim(symbolSelected)
-          symbol = trim(symbolSelected)
-          category = "FERMION"
-          mass = 1.0
-          charge = 1.0
-          spin = 0.5
-          custom = .true.
-          
-          exit
-          
-       end if
+      if (stat == -1) then
 
-       read(11,NML=particle, iostat=stat)
+        ! call ElementalParticle_exception( WARNING, "Elemental particle: "//trim(symbolSelected)//" NOT found in ElementalParticles.lib", "Setting default values")
+        name = trim(symbolSelected)
+        symbol = trim(symbolSelected)
+        category = "FERMION"
+        mass = 1.0
+        charge = 1.0
+        spin = 0.5
+        custom = .true.
 
-       if (stat > 0 ) then
+        exit
 
-          call ElementalParticle_exception( ERROR, "Failed reading ElementalParticles.lib file!! please check this file.", "In ElementalParticle at load function.")
+      end if
 
-       end if
+      read (11, NML=particle, iostat=stat)
+
+      if (stat > 0) then
+
+        call ElementalParticle_exception(ERROR, "Failed reading ElementalParticles.lib file!! please check this file.", "In ElementalParticle at load function.")
+
+      end if
 
     end do
 
     !! Set object variables
     this%name = name
     this%symbol = symbol
-    this%category = category 
+    this%category = category
     this%mass = mass
     this%charge = charge
     this%spin = spin
     this%custom = custom
-    
+
     !! Debug information.
     ! call ElementalParticle_show(this)
 
-    close(11)
-       
+    close (11)
+
     !! Done
-    
+
   end subroutine ElementalParticle_load
-  
+
   !<
   !! @brief print out the object
-  subroutine ElementalParticle_show( this )
+  subroutine ElementalParticle_show(this)
     implicit none
-    type(ElementalParticle) , intent(in) :: this
-    
-    
-    print *,""
-    print *,"====================="
-    print *,"  Particle Properties"
-    print *,"====================="
-    print *,""
-    write (6,"(T10,A10,A12)") "Name    = ",this%name
-    write (6,"(T10,A10,A12)") "Symbol  = ",this%symbol
-    write (6,"(T10,A10,F12.5)") "Mass    = ",this%mass
-    write (6,"(T10,A10,F12.5)") "Charge  = ",this%charge
-    write (6,"(T10,A10,F12.5)") "Spin    = ",this%spin
-    print *,""
-    
+    type(ElementalParticle), intent(in) :: this
+
+    print *, ""
+    print *, "====================="
+    print *, "  Particle Properties"
+    print *, "====================="
+    print *, ""
+    write (6, "(T10,A10,A12)") "Name    = ", this%name
+    write (6, "(T10,A10,A12)") "Symbol  = ", this%symbol
+    write (6, "(T10,A10,F12.5)") "Mass    = ", this%mass
+    write (6, "(T10,A10,F12.5)") "Charge  = ", this%charge
+    write (6, "(T10,A10,F12.5)") "Spin    = ", this%spin
+    print *, ""
+
   end subroutine ElementalParticle_show
-  
+
   !>
   !! @brief  Maneja excepciones de la clase
-  subroutine ElementalParticle_exception( typeMessage, description, debugDescription)
+  subroutine ElementalParticle_exception(typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
     character(*) :: debugDescription
-    
+
     type(Exception) :: ex
-    
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
-    
+
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
+
   end subroutine ElementalParticle_exception
-  
+
 end module ElementalParticle_

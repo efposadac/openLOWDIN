@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -25,45 +25,44 @@ module Stopwatch_
   implicit none
 
   type, public :: Stopwatch
-     character(20) :: name
-     logical :: isInstanced
-     real(8) :: startTime
-     real(8) :: enlapsetTime
-     real(8) :: currentTime
-     real(8) :: startWTime
-     real(8) :: elapsetWTime
-     real(8) :: currentWTime
-     character(255) :: initialDate
-     character(255) :: currentDate
-     integer :: initTime(8)
-     integer :: endTime(8)
+    character(20) :: name
+    logical :: isInstanced
+    real(8) :: startTime
+    real(8) :: enlapsetTime
+    real(8) :: currentTime
+    real(8) :: startWTime
+    real(8) :: elapsetWTime
+    real(8) :: currentWTime
+    character(255) :: initialDate
+    character(255) :: currentDate
+    integer :: initTime(8)
+    integer :: endTime(8)
   end type Stopwatch
 
   type(Stopwatch), public :: lowdin_stopwatch
 
   public :: &
-       Stopwatch_constructor, &
-       Stopwatch_destructor, &
-       Stopwatch_show, &
-       Stopwatch_start, &
-       Stopwatch_stop, &
-       Stopwatch_splitTime, &
-       Stopwatch_splitWTime, &
-       Stopwatch_getCurretData
+    Stopwatch_constructor, &
+    Stopwatch_destructor, &
+    Stopwatch_show, &
+    Stopwatch_start, &
+    Stopwatch_stop, &
+    Stopwatch_splitTime, &
+    Stopwatch_splitWTime, &
+    Stopwatch_getCurretData
 
   private
 
 contains
 
-  
   !>
-  !! @brief Default constructor 
+  !! @brief Default constructor
   !! @param this
-  subroutine Stopwatch_constructor( this )
+  subroutine Stopwatch_constructor(this)
     implicit none
     type(Stopwatch) :: this
 
-    this%name="UNTITLED"
+    this%name = "UNTITLED"
     this%startTime = 0.0_8
     call FDATE(this%initialDate)
     this%currentDate = trim(this%initialDate)
@@ -74,15 +73,14 @@ contains
 
   end subroutine Stopwatch_constructor
 
-
   !>
-  !! @brief Default destructor 
+  !! @brief Default destructor
   !! @param this
-  subroutine Stopwatch_destructor( this )
+  subroutine Stopwatch_destructor(this)
     implicit none
     type(Stopwatch) :: this
 
-    this%name=""
+    this%name = ""
     this%startTime = 0.0_8
     this%initialDate = ""
     this%currentDate = ""
@@ -93,9 +91,7 @@ contains
 
   end subroutine Stopwatch_destructor
 
-
-
-  subroutine Stopwatch_start( this )
+  subroutine Stopwatch_start(this)
     implicit none
     type(Stopwatch) :: this
 
@@ -111,48 +107,47 @@ contains
   !> @brief stops the global clock
   !! @author E. F. Posada, S. A. Gonzalez
   !! @version 2.0
-  subroutine Stopwatch_stop( this )
+  subroutine Stopwatch_stop(this)
     implicit none
     type(Stopwatch) :: this
     real(8) :: currentTime
     real(8) :: currentWTime
     real(8) :: iinit, eend
-    
+
     call DATE_AND_TIME(values=this%EndTime)
-    
+
     iinit = this%initTime(8)
-    eend =  this%endTime(8)
-    
+    eend = this%endTime(8)
+
     iinit = iinit/1000
     eend = eend/1000
-    
-    iinit = iinit + (this%initTime(3)*24*3600)+(this%initTime(5)*3600)+(this%initTime(6)*60)+this%initTime(7)
-    eend = eend + (this%endTime(3)*24*3600)+(this%endTime(5)*3600)+(this%endTime(6)*60)+this%endTime(7)
-    
+
+    iinit = iinit + (this%initTime(3)*24*3600) + (this%initTime(5)*3600) + (this%initTime(6)*60) + this%initTime(7)
+    eend = eend + (this%endTime(3)*24*3600) + (this%endTime(5)*3600) + (this%endTime(6)*60) + this%endTime(7)
+
     eend = eend - iinit
-    eend = eend / 3600
-    this%endTime(5) = floor(eend) 
+    eend = eend/3600
+    this%endTime(5) = floor(eend)
     eend = eend - this%endTime(5)
-     
-    eend = eend * 60
+
+    eend = eend*60
     this%endTime(6) = floor(eend)
     eend = eend - this%endTime(6)
-     
-    eend = eend * 60
+
+    eend = eend*60
     this%endTime(7) = floor(eend)
     eend = eend - this%endTime(7)
-     
-    eend = eend * 1000
+
+    eend = eend*1000
     this%endTime(8) = ceiling(eend)
-    
+
     call cpu_time(currentTime)
     currentWTime = omp_get_wtime()
 
-    this%enlapsetTime =  currentTime - this%startTime
-    this%elapsetWTime =  currentWTime - this%startWTime
+    this%enlapsetTime = currentTime - this%startTime
+    this%elapsetWTime = currentWTime - this%startWTime
 
   end subroutine Stopwatch_stop
-
 
   subroutine Stopwatch_splitTime()
     implicit none
@@ -160,10 +155,10 @@ contains
 
     call cpu_time(currentTime)
 
-    lowdin_stopwatch%enlapsetTime =  currentTime - lowdin_stopwatch%currentTime
+    lowdin_stopwatch%enlapsetTime = currentTime - lowdin_stopwatch%currentTime
     lowdin_stopwatch%currentTime = currentTime
 
-    write(*,"(F10.3)", advance="no") lowdin_stopwatch%enlapsetTime
+    write (*, "(F10.3)", advance="no") lowdin_stopwatch%enlapsetTime
 
   end subroutine Stopwatch_splitTime
 
@@ -173,27 +168,26 @@ contains
 
     currentWTime = omp_get_wtime()
 
-    lowdin_stopwatch%elapsetWTime =  currentWTime - lowdin_stopwatch%currentWTime
+    lowdin_stopwatch%elapsetWTime = currentWTime - lowdin_stopwatch%currentWTime
     lowdin_stopwatch%currentWTime = currentWTime
 
-    write(*,"(F10.3)", advance="no") lowdin_stopwatch%elapsetWTime
+    write (*, "(F10.3)", advance="no") lowdin_stopwatch%elapsetWTime
 
   end subroutine Stopwatch_splitWTime
 
-
-  function Stopwatch_getCurretData( this ) result( output )
+  function Stopwatch_getCurretData(this) result(output)
     implicit none
     type(Stopwatch) :: this
     character(100) :: output
 
     call FDATE(this%currentDate)
-    output=trim(this%currentDate)
+    output = trim(this%currentDate)
 
   end function Stopwatch_getCurretData
 
   !>
   !! @brief Muestra informacion del objeto
-  !! @param this 
+  !! @param this
   subroutine Stopwatch_show(this)
     implicit none
     type(Stopwatch) :: this
@@ -201,8 +195,8 @@ contains
 
   !!>
   !! @brief Indica si el objeto ha sido instanciado o no
-  function Stopwatch_isInstanced( this ) result( output )
-    implicit  none
+  function Stopwatch_isInstanced(this) result(output)
+    implicit none
     type(Stopwatch), intent(in) :: this
     logical :: output
     output = this%isInstanced
