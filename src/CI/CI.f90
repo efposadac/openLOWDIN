@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -39,49 +39,48 @@ program CI
   character(50) :: job
   integer :: numberOfSpeciesInCI
 
-  job = ""  
-  call get_command_argument(1,value=job)  
+  job = ""
+  call get_command_argument(1, value=job)
   job = trim(String_getUppercase(job))
-  
+
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
   call Stopwatch_start(lowdin_stopwatch)
 
   !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
+  call MolecularSystem_loadFromFile("LOWDIN.DAT")
 
   ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
   !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  call MolecularSystem_loadFromFile("LOWDIN.SYS")
   ! else
   !    !!Load the system in lowdin.sys format
   !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
   ! end if
 
-  read(job,"(I10)") numberOfSpeciesInCI
+  read (job, "(I10)") numberOfSpeciesInCI
 
-  write (*,*) "==============================================="
-  call InputCI_constructor( )
-  if(numberOfSpeciesInCI .ne. 0) then
-     call InputCI_load( numberOfSpeciesInCI )
+  write (*, *) "==============================================="
+  call InputCI_constructor()
+  if (numberOfSpeciesInCI .ne. 0) then
+    call InputCI_load(numberOfSpeciesInCI)
   else
-     call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
+    call InputCI_load(MolecularSystem_getNumberOfQuantumSpecies())
   end if
-  call CIcore_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL )
+  call CIcore_constructor(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL)
   call CImod_run()
   call CImod_show()
   call CImod_showEigenVectors()
   call CImod_densityMatrices()
   call CImod_destructor()
-  
+
   !!stop time
   call Stopwatch_stop(lowdin_stopwatch)
-  
-  write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL CPU Time CI : ", lowdin_stopwatch%enlapsetTime ," (s)"
-  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time CI : ", lowdin_stopwatch%elapsetWTime ," (s)"
-  write(*, *) ""
-  write (*,*) "==============================================="
 
+  write (*, *) ""
+  write (*, "(A,F10.3,A4)") "** TOTAL CPU Time CI : ", lowdin_stopwatch%enlapsetTime, " (s)"
+  write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time CI : ", lowdin_stopwatch%elapsetWTime, " (s)"
+  write (*, *) ""
+  write (*, *) "==============================================="
 
 end program CI
