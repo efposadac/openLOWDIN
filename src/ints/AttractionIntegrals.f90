@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -79,23 +79,22 @@ module AttractionIntegrals_
   use ContractedGaussian_
   implicit none
 
-
   !>
   !! Puntual particle atributes
   type, public :: pointCharge
-     real(8) :: x
-     real(8) :: y
-     real(8) :: z
-     real(8) :: charge
-     character(15) :: qdoCenterOf
+    real(8) :: x
+    real(8) :: y
+    real(8) :: z
+    real(8) :: charge
+    character(15) :: qdoCenterOf
   end type pointCharge
 
-  public ::  &
-       AttractionIntegrals_computeShell, &
-       AttractionIntegrals_computePrimitive
+  public :: &
+    AttractionIntegrals_computeShell, &
+    AttractionIntegrals_computePrimitive
 
   private :: &
-       AttractionIntegrals_obaraSaikaRecursion
+    AttractionIntegrals_obaraSaikaRecursion
 
 contains
 
@@ -116,7 +115,7 @@ contains
     integer, intent(in) :: speciesID
     character(*), intent(in) :: symbolOfSpecies
 
-    real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
+    real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital*contractedGaussianB%numCartesianOrbital)
 
     integer ::  am1(0:3)
     integer ::  am2(0:3)
@@ -131,66 +130,61 @@ contains
     real(8) ::  nor1(0:contractedGaussianA%length)
     real(8) ::  nor2(0:contractedGaussianB%length)
     real(8) :: auxIntegral
-    integer, allocatable :: angularMomentIndexA(:,:)
-    integer, allocatable :: angularMomentIndexB(:,:)
+    integer, allocatable :: angularMomentIndexA(:, :)
+    integer, allocatable :: angularMomentIndexB(:, :)
     integer ::  i, m, p, q
 
     integral = 0.0_8
     auxIntegral = 0.0_8
 
-    if(allocated(angularMomentIndexA)) deallocate(angularMomentIndexA)
-    if(allocated(angularMomentIndexB)) deallocate(angularMomentIndexB)
+    if (allocated(angularMomentIndexA)) deallocate (angularMomentIndexA)
+    if (allocated(angularMomentIndexB)) deallocate (angularMomentIndexB)
 
-    allocate(angularMomentIndexA(3, contractedGaussianA%numCartesianOrbital))
-    allocate(angularMomentIndexB(3, contractedGaussianB%numCartesianOrbital))
+    allocate (angularMomentIndexA(3, contractedGaussianA%numCartesianOrbital))
+    allocate (angularMomentIndexB(3, contractedGaussianB%numCartesianOrbital))
 
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexA, contractedGaussianA)
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexB, contractedGaussianB)
-
-
 
     nprim1 = contractedGaussianA%length
     A(0) = contractedGaussianA%origin(1)
     A(1) = contractedGaussianA%origin(2)
     A(2) = contractedGaussianA%origin(3)
-    coef1(0:nprim1-1) =  contractedGaussianA%contractionCoefficients(1:nprim1)
-
+    coef1(0:nprim1 - 1) = contractedGaussianA%contractionCoefficients(1:nprim1)
 
     nprim2 = contractedGaussianB%length
     B(0) = contractedGaussianB%origin(1)
     B(1) = contractedGaussianB%origin(2)
     B(2) = contractedGaussianB%origin(3)
-    coef2(0:nprim2-1) =  contractedGaussianB%contractionCoefficients(1:nprim2)
+    coef2(0:nprim2 - 1) = contractedGaussianB%contractionCoefficients(1:nprim2)
 
     m = 0
 
-
     do p = 1, contractedGaussianA%numcartesianOrbital
-       do q = 1, contractedGaussianB%numcartesianOrbital
+      do q = 1, contractedGaussianB%numcartesianOrbital
 
-          m = m + 1
+        m = m + 1
 
-          exp1(0:nprim1-1) = contractedGaussianA%orbitalExponents(1:nprim1)
-          nor1(0:nprim1-1) = contractedGaussianA%primNormalization(1:nprim1,p)
+        exp1(0:nprim1 - 1) = contractedGaussianA%orbitalExponents(1:nprim1)
+        nor1(0:nprim1 - 1) = contractedGaussianA%primNormalization(1:nprim1, p)
 
-          exp2(0:nprim2-1) = contractedGaussianB%orbitalExponents(1:nprim2)
-          nor2(0:nprim2-1) = contractedGaussianB%primNormalization(1:nprim2,q)
+        exp2(0:nprim2 - 1) = contractedGaussianB%orbitalExponents(1:nprim2)
+        nor2(0:nprim2 - 1) = contractedGaussianB%primNormalization(1:nprim2, q)
 
-          am1 = 0
-          am2 = 0
+        am1 = 0
+        am2 = 0
 
-          am1(0:2) = angularMomentIndexA(1:3, p)
-          am2(0:2) = angularMomentIndexB(1:3, q)
+        am1(0:2) = angularMomentIndexA(1:3, p)
+        am2(0:2) = angularMomentIndexB(1:3, q)
 
-          call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral, speciesID, symbolOfSpecies)
+        call AttractionIntegrals_computePrimitive(am1, am2, nprim1, nprim2, npoints, A, B, exp1, exp2, coef1, coef2, nor1, nor2, point, auxintegral, speciesID, symbolOfSpecies)
 
+        auxIntegral = auxIntegral*contractedGaussianA%contNormalization(p) &
+                      *contractedGaussianB%contNormalization(q)
 
-          auxIntegral = auxIntegral * contractedGaussianA%contNormalization(p) &
-               * contractedGaussianB%contNormalization(q)
+        integral(m) = auxIntegral
 
-          integral(m) = auxIntegral
-
-       end do
+      end do
     end do
 
   end subroutine AttractionIntegrals_computeShell
@@ -200,26 +194,26 @@ contains
   !! @author Edwin Posada, 2010
   !! @return integral values for all shell (all possibles combinations if angular momentum index) (output)
   subroutine AttractionIntegrals_computePrimitive(angularMomentindexA, angularMomentindexB, lengthA, lengthB, &
-       numberOfPointCharges, A, B, &
-       orbitalExponentsA, orbitalExponentsB, &
-       contractionCoefficientsA, contractionCoefficientsB, &
-       normalizationConstantsA, normalizationConstantsB, &
-       pointCharges, integralValue, speciesID, symbolOfSpecies )
+                                                  numberOfPointCharges, A, B, &
+                                                  orbitalExponentsA, orbitalExponentsB, &
+                                                  contractionCoefficientsA, contractionCoefficientsB, &
+                                                  normalizationConstantsA, normalizationConstantsB, &
+                                                  pointCharges, integralValue, speciesID, symbolOfSpecies)
     implicit none
 
     integer, intent(in) :: angularMomentindexA(0:3), angularMomentindexB(0:3)
     integer, intent(in) :: lengthA, lengthB
     integer, intent(in) :: numberOfPointCharges
     real(8), intent(in) :: A(0:3), B(0:3)
-    real(8), intent(in) :: orbitalExponentsA(0:lengthA) ,orbitalExponentsB(0:lengthB)
+    real(8), intent(in) :: orbitalExponentsA(0:lengthA), orbitalExponentsB(0:lengthB)
     real(8), intent(in) :: contractionCoefficientsA(0:lengthA), contractionCoefficientsB(0:lengthB)
     real(8), intent(in) :: normalizationConstantsA(0:lengthA), normalizationConstantsB(0:lengthB)
-    type(pointCharge), intent(in) :: pointCharges(0:numberOfPointCharges-1)
+    type(pointCharge), intent(in) :: pointCharges(0:numberOfPointCharges - 1)
     real(8), intent(inout) :: integralValue
     integer, intent(in) :: speciesID
     character(50), intent(in) :: symbolOfSpecies
 
-    real(8), allocatable :: AI0(:,:,:)
+    real(8), allocatable :: AI0(:, :, :)
     real(8) :: PA(0:3), PB(0:3), PC(0:3), P(0:3)
     real(8) :: auxExponentA, auxCoefficentA, auxConstantA
     real(8) :: auxExponentB, auxCoefficentB, auxConstantB
@@ -244,75 +238,75 @@ contains
 
     maxAngularMoment = max(angularMomentA, angularMomentB) + 1
 
-    maxIndex = (maxAngularMoment-1)*maxAngularMoment*maxAngularMoment+1
+    maxIndex = (maxAngularMoment - 1)*maxAngularMoment*maxAngularMoment + 1
 
-    if(allocated(AI0))deallocate(AI0)
-    allocate(AI0(0:maxIndex, 0:maxIndex, 0:2*maxAngularMoment+1))
+    if (allocated(AI0)) deallocate (AI0)
+    allocate (AI0(0:maxIndex, 0:maxIndex, 0:2*maxAngularMoment + 1))
 
     AI0 = 0.0_8
 
     AB2 = 0.0_8
-    AB2 = AB2 + (A(0) - B(0)) * (A(0) - B(0))
-    AB2 = AB2 + (A(1) - B(1)) * (A(1) - B(1))
-    AB2 = AB2 + (A(2) - B(2)) * (A(2) - B(2))
+    AB2 = AB2 + (A(0) - B(0))*(A(0) - B(0))
+    AB2 = AB2 + (A(1) - B(1))*(A(1) - B(1))
+    AB2 = AB2 + (A(2) - B(2))*(A(2) - B(2))
 
     izm = 1
-    iym = angularMomentA+1
+    iym = angularMomentA + 1
     ixm = iym*iym
 
     jzm = 1
-    jym = angularMomentB+1
+    jym = angularMomentB + 1
     jxm = jym*jym
 
-    do p1=0, lengthA-1
-       auxExponentA = orbitalExponentsA(p1)
-       auxCoefficentA = contractionCoefficientsA(p1)
-       auxConstantA = normalizationConstantsA(p1)
-       do p2=0, lengthB -1
-          auxExponentB = orbitalExponentsB(p2)
-          auxCoefficentB = contractionCoefficientsB(p2)
-          auxConstantB = normalizationConstantsB(p2)
-          zeta = auxExponentA + auxExponentB
-          zetaInv = 1.0/zeta
+    do p1 = 0, lengthA - 1
+      auxExponentA = orbitalExponentsA(p1)
+      auxCoefficentA = contractionCoefficientsA(p1)
+      auxConstantA = normalizationConstantsA(p1)
+      do p2 = 0, lengthB - 1
+        auxExponentB = orbitalExponentsB(p2)
+        auxCoefficentB = contractionCoefficientsB(p2)
+        auxConstantB = normalizationConstantsB(p2)
+        zeta = auxExponentA + auxExponentB
+        zetaInv = 1.0/zeta
 
-          P(0) = (auxExponentA*A(0) + auxExponentB*B(0))*zetaInv
-          P(1) = (auxExponentA*A(1) + auxExponentB*B(1))*zetaInv
-          P(2) = (auxExponentA*A(2) + auxExponentB*B(2))*zetaInv
-          PA(0) = P(0) - A(0)
-          PA(1) = P(1) - A(1)
-          PA(2) = P(2) - A(2)
-          PB(0) = P(0) - B(0)
-          PB(1) = P(1) - B(1)
-          PB(2) = P(2) - B(2)
+        P(0) = (auxExponentA*A(0) + auxExponentB*B(0))*zetaInv
+        P(1) = (auxExponentA*A(1) + auxExponentB*B(1))*zetaInv
+        P(2) = (auxExponentA*A(2) + auxExponentB*B(2))*zetaInv
+        PA(0) = P(0) - A(0)
+        PA(1) = P(1) - A(1)
+        PA(2) = P(2) - A(2)
+        PB(0) = P(0) - B(0)
+        PB(1) = P(1) - B(1)
+        PB(2) = P(2) - B(2)
 
-          commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*zetaInv) * sqrt(Math_PI*zetaInv) * Math_PI * zetaInv * auxCoefficentA * auxCoefficentB * auxConstantA * auxConstantB
-          ! write(*,*)"fragmentos y length a y b",numberOfPointCharges,lengthA,lengthB
+        commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*zetaInv)*sqrt(Math_PI*zetaInv)*Math_PI*zetaInv*auxCoefficentA*auxCoefficentB*auxConstantA*auxConstantB
+        ! write(*,*)"fragmentos y length a y b",numberOfPointCharges,lengthA,lengthB
 
-          do atom = 0, numberOfPointCharges - 1
+        do atom = 0, numberOfPointCharges - 1
 
-             !! Skip integral for qdo centers
-             if ( trim( pointCharges(atom)%qdoCenterOf) .eq. trim(symbolOfSpecies)) cycle
+          !! Skip integral for qdo centers
+          if (trim(pointCharges(atom)%qdoCenterOf) .eq. trim(symbolOfSpecies)) cycle
 
-             !! Skip integral for charge zero centers (dummy particles)
-             if ( pointCharges(atom)%charge .eq. 0.0_8 ) cycle
+          !! Skip integral for charge zero centers (dummy particles)
+          if (pointCharges(atom)%charge .eq. 0.0_8) cycle
 
-             PC(0) = P(0) - pointCharges(atom)%x
-             PC(1) = P(1) - pointCharges(atom)%y
-             PC(2) = P(2) - pointCharges(atom)%z
-                
-             sumAngularMoment = angularMomentA + angularMomentB + 1
+          PC(0) = P(0) - pointCharges(atom)%x
+          PC(1) = P(1) - pointCharges(atom)%y
+          PC(2) = P(2) - pointCharges(atom)%z
 
-             call AttractionIntegrals_obaraSaikaRecursion(AI0,PA,PB,PC,zeta,sumAngularMoment,angularMomentA,angularMomentB)
+          sumAngularMoment = angularMomentA + angularMomentB + 1
 
-             indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
+          call AttractionIntegrals_obaraSaikaRecursion(AI0, PA, PB, PC, zeta, sumAngularMoment, angularMomentA, angularMomentB)
 
-             indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
+          indexI = angularMomentindexA(2)*izm + angularMomentindexA(1)*iym + angularMomentindexA(0)*ixm
 
-             integralValue = integralValue - AI0(indexI,indexJ,0) * pointCharges(atom)%charge * commonPreFactor
+          indexJ = angularMomentindexB(2)*jzm + angularMomentindexB(1)*jym + angularMomentindexB(0)*jxm
 
-          end do
-          ! write(*,*) "se ha llamado obara-saika ",atom," veces"
-       end do
+          integralValue = integralValue - AI0(indexI, indexJ, 0)*pointCharges(atom)%charge*commonPreFactor
+
+        end do
+        ! write(*,*) "se ha llamado obara-saika ",atom," veces"
+      end do
     end do
     ! write(*,*)"finaliza_computePrimitives"
 
@@ -320,10 +314,10 @@ contains
 
   !> @brief Obara-Saika recursion for nucleo-electron attraction integrals. Supports all angular momentum numbers
   !! @author E. F. Posada, 2010
-  !! @version 1.0  
+  !! @version 1.0
   subroutine AttractionIntegrals_obaraSaikaRecursion(AI0, PA, PB, PC, zeta, sumAngularMoment, angularMomentA, angularMomentB)
     implicit none
-    real(8), intent(inout), allocatable :: AI0(:,:,:)
+    real(8), intent(inout), allocatable :: AI0(:, :, :)
     real(8), intent(in) :: PA(0:3)
     real(8), intent(in) :: PB(0:3)
     real(8), intent(in) :: PC(0:3)
@@ -332,157 +326,157 @@ contains
     integer, intent(in) :: angularMomentA
     integer, intent(in) :: angularMomentB
 
-    real(8), dimension(0: sumAngularMoment) :: F
+    real(8), dimension(0:sumAngularMoment) :: F
     real(8) :: twoZetaInv
     real(8) :: tmp
     real(8) :: u
     integer :: a, b, m
     integer :: izm, iym, ixm
     integer :: jzm, jym, jxm
-    integer :: ix,iy,iz,jx,jy,jz
-    integer :: iind,jind
+    integer :: ix, iy, iz, jx, jy, jz
+    integer :: iind, jind
 
     izm = 1
     iym = angularMomentA + 1
-    ixm = iym * iym
+    ixm = iym*iym
     jzm = 1
     jym = angularMomentB + 1
-    jxm = jym * jym
-    twoZetaInv = 1 / (2 * zeta)
+    jxm = jym*jym
+    twoZetaInv = 1/(2*zeta)
     tmp = sqrt(zeta)*(2.0_8/Math_SQRT_PI)
-    u = zeta*(PC(0) * PC(0) + PC(1) * PC(1) + PC(2) * PC(2))
-    
-    call Math_fgamma0(sumAngularMoment,u,F)
+    u = zeta*(PC(0)*PC(0) + PC(1)*PC(1) + PC(2)*PC(2))
+
+    call Math_fgamma0(sumAngularMoment, u, F)
 
     do m = 0, sumAngularMoment
-       AI0(0, 0, m) = tmp * F(m)
+      AI0(0, 0, m) = tmp*F(m)
     end do
 
     !! Upward recursion in j with i=0
     do b = 1, angularMomentB
-       do jx = 0, b
-          do jy=0, b - jx
-             jz = b - jx - jy
-             jind = jx * jxm + jy * jym + jz * jzm
-             if (jz > 0) then
-                do m=0, sumAngularMoment - b	!! Electrostatic potential integrals
-                   AI0(0,jind,m) = PB(2)*AI0(0,jind-jzm,m) - PC(2)*AI0(0, jind-jzm, m+1)
-                end do
+      do jx = 0, b
+        do jy = 0, b - jx
+          jz = b - jx - jy
+          jind = jx*jxm + jy*jym + jz*jzm
+          if (jz > 0) then
+            do m = 0, sumAngularMoment - b        !! Electrostatic potential integrals
+              AI0(0, jind, m) = PB(2)*AI0(0, jind - jzm, m) - PC(2)*AI0(0, jind - jzm, m + 1)
+            end do
 
-                if (jz > 1) then
-                   do m=0, sumAngularMoment-b
-                      AI0(0,jind,m) = AI0(0,jind,m) + twoZetaInv*(jz-1)*(AI0(0,jind-2*jzm,m) - AI0(0,jind-2*jzm,m+1))
-                   end do
-                end if
+            if (jz > 1) then
+              do m = 0, sumAngularMoment - b
+                AI0(0, jind, m) = AI0(0, jind, m) + twoZetaInv*(jz - 1)*(AI0(0, jind - 2*jzm, m) - AI0(0, jind - 2*jzm, m + 1))
+              end do
+            end if
 
-             else if (jy > 0) then
-                do m=0, sumAngularMoment-b
-                   AI0(0,jind,m) = PB(1)*AI0(0,jind-jym,m) -	PC(1)*AI0(0,jind-jym,m+1)
-                end do
+          else if (jy > 0) then
+            do m = 0, sumAngularMoment - b
+              AI0(0, jind, m) = PB(1)*AI0(0, jind - jym, m) - PC(1)*AI0(0, jind - jym, m + 1)
+            end do
 
-                if (jy > 1) then
-                   do m=0, sumAngularMoment-b
-                      AI0(0,jind,m) = AI0(0,jind,m) + twoZetaInv*(jy-1)*(AI0(0,jind-2*jym,m) - AI0(0,jind-2*jym,m+1))
-                   end do
-                end if
+            if (jy > 1) then
+              do m = 0, sumAngularMoment - b
+                AI0(0, jind, m) = AI0(0, jind, m) + twoZetaInv*(jy - 1)*(AI0(0, jind - 2*jym, m) - AI0(0, jind - 2*jym, m + 1))
+              end do
+            end if
 
-             else if (jx > 0) then
-                do m=0, sumAngularMoment-b
-                   AI0(0,jind,m) = PB(0)*AI0(0,jind-jxm,m) -	PC(0)*AI0(0,jind-jxm,m+1)
-                end do
+          else if (jx > 0) then
+            do m = 0, sumAngularMoment - b
+              AI0(0, jind, m) = PB(0)*AI0(0, jind - jxm, m) - PC(0)*AI0(0, jind - jxm, m + 1)
+            end do
 
-                if (jx > 1) then
-                   do m=0, sumAngularMoment-b
-                      AI0(0,jind,m) = AI0(0,jind,m) + twoZetaInv*(jx-1)*(AI0(0,jind-2*jxm,m) - AI0(0,jind-2*jxm,m+1))
-                   end do
-                end if
+            if (jx > 1) then
+              do m = 0, sumAngularMoment - b
+                AI0(0, jind, m) = AI0(0, jind, m) + twoZetaInv*(jx - 1)*(AI0(0, jind - 2*jxm, m) - AI0(0, jind - 2*jxm, m + 1))
+              end do
+            end if
 
-             else
-                call AttractionIntegrals_exception( ERROR, "AttractionIntegrals in obaraSaikaRecursion Function", &
-                     "There's some error in the obaraSaika algorithm")
-             end if
-          end do
-       end do
+          else
+            call AttractionIntegrals_exception(ERROR, "AttractionIntegrals in obaraSaikaRecursion Function", &
+                                               "There's some error in the obaraSaika algorithm")
+          end if
+        end do
+      end do
     end do
 
     !! The following fragment cannot be vectorized easily, I guess :-)
     !! Upward recursion in i with all possible j's
-    do b=0, angularMomentB
-       do jx=0, b
-          do jy=0, b-jx
-             jz = b-jx-jy
-             jind = jx*jxm + jy*jym + jz*jzm
-             do a=1, angularMomentA
-                do ix=0, a
-                   do iy=0, a-ix
-                      iz = a-ix-iy
-                      iind = ix*ixm + iy*iym + iz*izm
-                      if (iz > 0) then
-                         do m=0, sumAngularMoment-a-b
-                            AI0(iind,jind,m) = PA(2)*AI0(iind-izm,jind,m) - PC(2)*AI0(iind-izm,jind,m+1)
-                         end do
+    do b = 0, angularMomentB
+      do jx = 0, b
+        do jy = 0, b - jx
+          jz = b - jx - jy
+          jind = jx*jxm + jy*jym + jz*jzm
+          do a = 1, angularMomentA
+            do ix = 0, a
+              do iy = 0, a - ix
+                iz = a - ix - iy
+                iind = ix*ixm + iy*iym + iz*izm
+                if (iz > 0) then
+                  do m = 0, sumAngularMoment - a - b
+                    AI0(iind, jind, m) = PA(2)*AI0(iind - izm, jind, m) - PC(2)*AI0(iind - izm, jind, m + 1)
+                  end do
 
-                         if (iz > 1) then
-                            do m=0, sumAngularMoment-a-b
-                               AI0(iind,jind,m) = AI0(iind,jind,m) + twoZetaInv*(iz-1)*(AI0(iind-2*izm,jind,m) - AI0(iind-2*izm,jind,m+1))
-                            end do
-                         end if
+                  if (iz > 1) then
+                    do m = 0, sumAngularMoment - a - b
+                      AI0(iind, jind, m) = AI0(iind, jind, m) + twoZetaInv*(iz - 1)*(AI0(iind - 2*izm, jind, m) - AI0(iind - 2*izm, jind, m + 1))
+                    end do
+                  end if
 
-                         if (jz > 0) then
-                            do m=0, sumAngularMoment-a-b
-                               AI0(iind,jind,m) = AI0(iind,jind,m) + twoZetaInv*jz*(AI0(iind-izm,jind-jzm,m) - AI0(iind-izm,jind-jzm,m+1))
-                            end do
-                         end if
+                  if (jz > 0) then
+                    do m = 0, sumAngularMoment - a - b
+                      AI0(iind, jind, m) = AI0(iind, jind, m) + twoZetaInv*jz*(AI0(iind - izm, jind - jzm, m) - AI0(iind - izm, jind - jzm, m + 1))
+                    end do
+                  end if
 
-                      else if (iy > 0) then
-                         do m=0, sumAngularMoment-a-b
-                            AI0(iind,jind,m) = PA(1)*AI0(iind-iym,jind,m) - PC(1)*AI0(iind-iym,jind,m+1)
-                         end do
+                else if (iy > 0) then
+                  do m = 0, sumAngularMoment - a - b
+                    AI0(iind, jind, m) = PA(1)*AI0(iind - iym, jind, m) - PC(1)*AI0(iind - iym, jind, m + 1)
+                  end do
 
-                         if (iy > 1) then
-                            do m=0, sumAngularMoment-a-b
-                               AI0(iind,jind,m) = AI0(iind,jind,m) + twoZetaInv*(iy-1)*(AI0(iind-2*iym,jind,m) - AI0(iind-2*iym,jind,m+1))
-                            end do
-                         end if
+                  if (iy > 1) then
+                    do m = 0, sumAngularMoment - a - b
+                      AI0(iind, jind, m) = AI0(iind, jind, m) + twoZetaInv*(iy - 1)*(AI0(iind - 2*iym, jind, m) - AI0(iind - 2*iym, jind, m + 1))
+                    end do
+                  end if
 
-                         if (jy > 0) then
-                            do m=0, sumAngularMoment-a-b
-                               AI0(iind,jind,m) = AI0(iind,jind,m) + twoZetaInv*jy*(AI0(iind-iym,jind-jym,m) - AI0(iind-iym,jind-jym,m+1))
-                            end do
-                         end if
+                  if (jy > 0) then
+                    do m = 0, sumAngularMoment - a - b
+                      AI0(iind, jind, m) = AI0(iind, jind, m) + twoZetaInv*jy*(AI0(iind - iym, jind - jym, m) - AI0(iind - iym, jind - jym, m + 1))
+                    end do
+                  end if
 
-                      else if (ix > 0) then
-                         do m=0, sumAngularMoment-a-b
-                            AI0(iind,jind,m) = PA(0)*AI0(iind-ixm,jind,m) - PC(0)*AI0(iind-ixm,jind,m+1)
-                         end do
+                else if (ix > 0) then
+                  do m = 0, sumAngularMoment - a - b
+                    AI0(iind, jind, m) = PA(0)*AI0(iind - ixm, jind, m) - PC(0)*AI0(iind - ixm, jind, m + 1)
+                  end do
 
-                         if (ix > 1) then
-                            do m=0, sumAngularMoment-a-b
-                               AI0(iind,jind,m) = AI0(iind,jind,m) + twoZetaInv*(ix-1)*(AI0(iind-2*ixm,jind,m) - AI0(iind-2*ixm,jind,m+1))
-                            end do
-                         end if
+                  if (ix > 1) then
+                    do m = 0, sumAngularMoment - a - b
+                      AI0(iind, jind, m) = AI0(iind, jind, m) + twoZetaInv*(ix - 1)*(AI0(iind - 2*ixm, jind, m) - AI0(iind - 2*ixm, jind, m + 1))
+                    end do
+                  end if
 
-                         if (jx > 0) then
-                            do m=0, sumAngularMoment-a-b
-                               AI0(iind,jind,m) = AI0(iind,jind,m) + twoZetaInv*jx*(AI0(iind-ixm,jind-jxm,m) - AI0(iind-ixm,jind-jxm,m+1))
-                            end do
-                         end if
-                      else
-                         call AttractionIntegrals_exception( ERROR, "AttractionIntegrals in obaraSaikaRecursion Function", &
-                              "There's some error in the obaraSaika algorithm")
-                      end if
-                   end do
-                end do
-             end do
+                  if (jx > 0) then
+                    do m = 0, sumAngularMoment - a - b
+                      AI0(iind, jind, m) = AI0(iind, jind, m) + twoZetaInv*jx*(AI0(iind - ixm, jind - jxm, m) - AI0(iind - ixm, jind - jxm, m + 1))
+                    end do
+                  end if
+                else
+                  call AttractionIntegrals_exception(ERROR, "AttractionIntegrals in obaraSaikaRecursion Function", &
+                                                     "There's some error in the obaraSaika algorithm")
+                end if
+              end do
+            end do
           end do
-       end do
+        end do
+      end do
     end do
 
   end subroutine AttractionIntegrals_obaraSaikaRecursion
 
   !>
   !! @brief  Handle exceptions of this module
-  subroutine AttractionIntegrals_exception( typeMessage, description, debugDescription)
+  subroutine AttractionIntegrals_exception(typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -490,11 +484,11 @@ contains
 
     type(Exception) :: ex
 
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine AttractionIntegrals_exception
 

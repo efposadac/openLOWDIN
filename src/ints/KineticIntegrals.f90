@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2011
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2011
 !!
 !!******************************************************************************
 
@@ -64,16 +64,15 @@ module KineticIntegrals_
   use Math_
   implicit none
 
-  
   public :: &
-       kineticIntegrals_computeShell, &
-       kineticIntegrals_computePrimitive
+    kineticIntegrals_computeShell, &
+    kineticIntegrals_computePrimitive
 
   private :: &
-       KineticIntegrals_obaraSaikaRecursion
+    KineticIntegrals_obaraSaikaRecursion
 
 contains
-  
+
   !>
   !! Calculates kinetic integral between two contractions (shell)
   !! @author E. F. Posada, efposadac@unal.edu.co
@@ -83,9 +82,9 @@ contains
   !! @version 1.0
   subroutine kineticIntegrals_computeShell(contractedGaussianA, contractedGaussianB, integral)
     implicit none
-    
+
     type(ContractedGaussian), intent(in) :: contractedGaussianA, contractedGaussianB
-    real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital * contractedGaussianB%numCartesianOrbital)
+    real(8), intent(inout) :: integral(contractedGaussianA%numCartesianOrbital*contractedGaussianB%numCartesianOrbital)
 
     integer ::  am1(0:3)
     integer ::  am2(0:3)
@@ -100,15 +99,15 @@ contains
     real(8) ::  nor1(0:contractedGaussianA%length)
     real(8) ::  nor2(0:contractedGaussianB%length)
     real(8) :: auxIntegral
-    integer, allocatable :: angularMomentIndexA(:,:)
-    integer, allocatable :: angularMomentIndexB(:,:)
+    integer, allocatable :: angularMomentIndexA(:, :)
+    integer, allocatable :: angularMomentIndexB(:, :)
     integer ::  m, p, q
-    
-    if(allocated(angularMomentIndexA)) deallocate(angularMomentIndexA)
-    if(allocated(angularMomentIndexB)) deallocate(angularMomentIndexB)
 
-    allocate(angularMomentIndexA(3, contractedGaussianA%numCartesianOrbital))
-    allocate(angularMomentIndexB(3, contractedGaussianB%numCartesianOrbital))
+    if (allocated(angularMomentIndexA)) deallocate (angularMomentIndexA)
+    if (allocated(angularMomentIndexB)) deallocate (angularMomentIndexB)
+
+    allocate (angularMomentIndexA(3, contractedGaussianA%numCartesianOrbital))
+    allocate (angularMomentIndexB(3, contractedGaussianB%numCartesianOrbital))
 
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexA, contractedGaussianA)
     call contractedGaussian_getAllAngularMomentIndex(angularMomentIndexB, contractedGaussianB)
@@ -117,47 +116,45 @@ contains
     A(0) = contractedGaussianA%origin(1)
     A(1) = contractedGaussianA%origin(2)
     A(2) = contractedGaussianA%origin(3)
-    coef1(0:nprim1-1) =  contractedGaussianA%contractionCoefficients(1:nprim1)
-
+    coef1(0:nprim1 - 1) = contractedGaussianA%contractionCoefficients(1:nprim1)
 
     nprim2 = contractedGaussianB%length
     B(0) = contractedGaussianB%origin(1)
     B(1) = contractedGaussianB%origin(2)
     B(2) = contractedGaussianB%origin(3)
-    coef2(0:nprim2-1) =  contractedGaussianB%contractionCoefficients(1:nprim2)
-    
+    coef2(0:nprim2 - 1) = contractedGaussianB%contractionCoefficients(1:nprim2)
+
     m = 0
 
     do p = 1, contractedGaussianA%numcartesianOrbital
-       do q = 1, contractedGaussianB%numcartesianOrbital
+      do q = 1, contractedGaussianB%numcartesianOrbital
 
-          m = m + 1
+        m = m + 1
 
-          exp1(0:nprim1-1) = contractedGaussianA%orbitalExponents(1:nprim1)
-          nor1(0:nprim1-1) = contractedGaussianA%primNormalization(1:nprim1,p)
+        exp1(0:nprim1 - 1) = contractedGaussianA%orbitalExponents(1:nprim1)
+        nor1(0:nprim1 - 1) = contractedGaussianA%primNormalization(1:nprim1, p)
 
-          exp2(0:nprim2-1) = contractedGaussianB%orbitalExponents(1:nprim2)
-          nor2(0:nprim2-1) = contractedGaussianB%primNormalization(1:nprim2,q)
-             
-          am1 = 0
-          am2 = 0
+        exp2(0:nprim2 - 1) = contractedGaussianB%orbitalExponents(1:nprim2)
+        nor2(0:nprim2 - 1) = contractedGaussianB%primNormalization(1:nprim2, q)
 
-          am1(0:2) = angularMomentIndexA(1:3, p)
-          am2(0:2) = angularMomentIndexB(1:3, q)
+        am1 = 0
+        am2 = 0
 
+        am1(0:2) = angularMomentIndexA(1:3, p)
+        am2(0:2) = angularMomentIndexB(1:3, q)
 
-          call KineticIntegrals_computePrimitive(am1, am2, nprim1, nprim2, A, B, exp1, exp2, coef1, coef2, nor1, nor2, auxIntegral)
+        call KineticIntegrals_computePrimitive(am1, am2, nprim1, nprim2, A, B, exp1, exp2, coef1, coef2, nor1, nor2, auxIntegral)
 
-          auxIntegral = auxIntegral * contractedGaussianA%contNormalization(p) &
-               * contractedGaussianB%contNormalization(q)
-          
-          integral(m) = auxIntegral
+        auxIntegral = auxIntegral*contractedGaussianA%contNormalization(p) &
+                      *contractedGaussianB%contNormalization(q)
 
-       end do
+        integral(m) = auxIntegral
+
+      end do
     end do
-    
+
   end subroutine KineticIntegrals_computeShell
-  
+
   !>
   !! @brief Evalua integrales overlap para cualquier momento angular
   !! @author Edwin Posada, 2010
@@ -174,7 +171,7 @@ contains
     real(8), intent(in) :: normalizationConstantA(0:lengthA), normalizationConstantB(0:lengthB)
     real(8), intent(out) :: integralValue
 
-    real(8), allocatable ::  x(:,:), y(:,:), z(:,:)
+    real(8), allocatable ::  x(:, :), y(:, :), z(:, :)
     real(8) :: AB2
     real(8) :: auxExponentA, auxCoefficientA, auxConstantA
     real(8) :: auxExponentB, auxCoefficientB, auxConstantB
@@ -200,113 +197,113 @@ contains
 
     maxAngularMoment = max(angularMomentA, angularMomentB) + 1
 
-    allocate(x(0:maxAngularMoment+2, 0:maxAngularMoment+2), y(0:maxAngularMoment+2, 0:maxAngularMoment+2), z(0:maxAngularMoment+2, 0:maxAngularMoment+2))
+    allocate (x(0:maxAngularMoment + 2, 0:maxAngularMoment + 2), y(0:maxAngularMoment + 2, 0:maxAngularMoment + 2), z(0:maxAngularMoment + 2, 0:maxAngularMoment + 2))
 
     AB2 = 0.0_8
-    AB2 = AB2 + (A(0) - B(0)) * (A(0) - B(0))
-    AB2 = AB2 + (A(1) - B(1)) * (A(1) - B(1))
-    AB2 = AB2 + (A(2) - B(2)) * (A(2) - B(2))
+    AB2 = AB2 + (A(0) - B(0))*(A(0) - B(0))
+    AB2 = AB2 + (A(1) - B(1))*(A(1) - B(1))
+    AB2 = AB2 + (A(2) - B(2))*(A(2) - B(2))
 
-    do p1=0, lengthA - 1
-       auxExponentA = orbitalExponentsA(p1)
-       auxCoefficientA = contractionCoefficientsA(p1)
-       auxConstantA = normalizationConstantA(p1)
-       do p2=0, lengthB - 1
-          auxExponentB = orbitalExponentsB(p2)
-          auxCoefficientB = contractionCoefficientsB(p2)
-          auxConstantB = normalizationConstantB(p2)
-          zeta = auxExponentA + auxExponentB
-          zetaInv = 1.0/zeta
+    do p1 = 0, lengthA - 1
+      auxExponentA = orbitalExponentsA(p1)
+      auxCoefficientA = contractionCoefficientsA(p1)
+      auxConstantA = normalizationConstantA(p1)
+      do p2 = 0, lengthB - 1
+        auxExponentB = orbitalExponentsB(p2)
+        auxCoefficientB = contractionCoefficientsB(p2)
+        auxConstantB = normalizationConstantB(p2)
+        zeta = auxExponentA + auxExponentB
+        zetaInv = 1.0/zeta
 
-          P(0) = (auxExponentA*A(0) + auxExponentB*B(0))*zetaInv
-          P(1) = (auxExponentA*A(1) + auxExponentB*B(1))*zetaInv
-          P(2) = (auxExponentA*A(2) + auxExponentB*B(2))*zetaInv
-          PA(0) = P(0) - A(0)
-          PA(1) = P(1) - A(1)
-          PA(2) = P(2) - A(2)
-          PB(0) = P(0) - B(0)
-          PB(1) = P(1) - B(1)
-          PB(2) = P(2) - B(2)
+        P(0) = (auxExponentA*A(0) + auxExponentB*B(0))*zetaInv
+        P(1) = (auxExponentA*A(1) + auxExponentB*B(1))*zetaInv
+        P(2) = (auxExponentA*A(2) + auxExponentB*B(2))*zetaInv
+        PA(0) = P(0) - A(0)
+        PA(1) = P(1) - A(1)
+        PA(2) = P(2) - A(2)
+        PB(0) = P(0) - B(0)
+        PB(1) = P(1) - B(1)
+        PB(2) = P(2) - B(2)
 
-          commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*zetaInv) * sqrt(Math_PI*zetaInv) * Math_PI * zetaInv * auxCoefficientA * auxCoefficientB * auxConstantA * auxConstantB
+        commonPreFactor = exp(-auxExponentA*auxExponentB*AB2*zetaInv)*sqrt(Math_PI*zetaInv)*Math_PI*zetaInv*auxCoefficientA*auxCoefficientB*auxConstantA*auxConstantB
 
-          !! recursion
-          call KineticIntegrals_obaraSaikaRecursion(x, y, z, PA, PB, zeta, angularMomentA+2, angularMomentB+2)
+        !! recursion
+        call KineticIntegrals_obaraSaikaRecursion(x, y, z, PA, PB, zeta, angularMomentA + 2, angularMomentB + 2)
 
-          if (angularMomentIndexA(0) == 0 .or. angularMomentIndexB(0) == 0) then
-             I1 = 0.0_8
-          else
-             I1 = x(angularMomentIndexA(0)-1,angularMomentIndexB(0)-1) * y(angularMomentIndexA(1),angularMomentIndexB(1)) * z(angularMomentIndexA(2),angularMomentIndexB(2)) * commonPreFactor
-          end if
+        if (angularMomentIndexA(0) == 0 .or. angularMomentIndexB(0) == 0) then
+          I1 = 0.0_8
+        else
+          I1 = x(angularMomentIndexA(0) - 1, angularMomentIndexB(0) - 1)*y(angularMomentIndexA(1), angularMomentIndexB(1))*z(angularMomentIndexA(2), angularMomentIndexB(2))*commonPreFactor
+        end if
 
-          I2 = x(angularMomentIndexA(0)+1,angularMomentIndexB(0)+1) * y(angularMomentIndexA(1),angularMomentIndexB(1)) * z(angularMomentIndexA(2),angularMomentIndexB(2)) * commonPreFactor
+        I2 = x(angularMomentIndexA(0) + 1, angularMomentIndexB(0) + 1)*y(angularMomentIndexA(1), angularMomentIndexB(1))*z(angularMomentIndexA(2), angularMomentIndexB(2))*commonPreFactor
 
-          if (angularMomentIndexB(0) == 0) then
-             I3 = 0.0_8
-          else
-             I3 = x(angularMomentIndexA(0)+1,angularMomentIndexB(0)-1) * y(angularMomentIndexA(1),angularMomentIndexB(1)) * z(angularMomentIndexA(2),angularMomentIndexB(2)) * commonPreFactor
-          end if
+        if (angularMomentIndexB(0) == 0) then
+          I3 = 0.0_8
+        else
+          I3 = x(angularMomentIndexA(0) + 1, angularMomentIndexB(0) - 1)*y(angularMomentIndexA(1), angularMomentIndexB(1))*z(angularMomentIndexA(2), angularMomentIndexB(2))*commonPreFactor
+        end if
 
-          if (angularMomentIndexA(0) == 0) then
-             I4 = 0.0_8
-          else
-             I4 = x(angularMomentIndexA(0)-1,angularMomentIndexB(0)+1) * y(angularMomentIndexA(1),angularMomentIndexB(1)) * z(angularMomentIndexA(2),angularMomentIndexB(2)) * commonPreFactor
-          end if
+        if (angularMomentIndexA(0) == 0) then
+          I4 = 0.0_8
+        else
+          I4 = x(angularMomentIndexA(0) - 1, angularMomentIndexB(0) + 1)*y(angularMomentIndexA(1), angularMomentIndexB(1))*z(angularMomentIndexA(2), angularMomentIndexB(2))*commonPreFactor
+        end if
 
-          Ix = 0.5 * angularMomentIndexA(0) * angularMomentIndexB(0) * I1 + 2.0 * auxExponentA * auxExponentB * I2 - auxExponentA * angularMomentIndexB(0) * I3 - angularMomentIndexA(0) * auxExponentB * I4
+        Ix = 0.5*angularMomentIndexA(0)*angularMomentIndexB(0)*I1 + 2.0*auxExponentA*auxExponentB*I2 - auxExponentA*angularMomentIndexB(0)*I3 - angularMomentIndexA(0)*auxExponentB*I4
 
-          if (angularMomentIndexA(1) == 0 .or. angularMomentIndexB(1) == 0) then
-             I1 = 0.0_8
-          else
-             I1 = x(angularMomentIndexA(0),angularMomentIndexB(0)) * y(angularMomentIndexA(1)-1,angularMomentIndexB(1)-1) * z(angularMomentIndexA(2),angularMomentIndexB(2)) * commonPreFactor
-          end if
+        if (angularMomentIndexA(1) == 0 .or. angularMomentIndexB(1) == 0) then
+          I1 = 0.0_8
+        else
+          I1 = x(angularMomentIndexA(0), angularMomentIndexB(0))*y(angularMomentIndexA(1) - 1, angularMomentIndexB(1) - 1)*z(angularMomentIndexA(2), angularMomentIndexB(2))*commonPreFactor
+        end if
 
-          I2 = x(angularMomentIndexA(0),angularMomentIndexB(0)) * y(angularMomentIndexA(1)+1,angularMomentIndexB(1)+1) * z(angularMomentIndexA(2),angularMomentIndexB(2)) * commonPreFactor
+        I2 = x(angularMomentIndexA(0), angularMomentIndexB(0))*y(angularMomentIndexA(1) + 1, angularMomentIndexB(1) + 1)*z(angularMomentIndexA(2), angularMomentIndexB(2))*commonPreFactor
 
-          if (angularMomentIndexB(1) == 0) then
-             I3 = 0.0_8
-          else
-             I3 = x(angularMomentIndexA(0),angularMomentIndexB(0)) * y(angularMomentIndexA(1)+1,angularMomentIndexB(1)-1) * z(angularMomentIndexA(2),angularMomentIndexB(2)) * commonPreFactor
-          end if
+        if (angularMomentIndexB(1) == 0) then
+          I3 = 0.0_8
+        else
+          I3 = x(angularMomentIndexA(0), angularMomentIndexB(0))*y(angularMomentIndexA(1) + 1, angularMomentIndexB(1) - 1)*z(angularMomentIndexA(2), angularMomentIndexB(2))*commonPreFactor
+        end if
 
-          if (angularMomentIndexA(1) == 0) then
-             I4 = 0.0_8
-          else
-             I4 = x(angularMomentIndexA(0),angularMomentIndexB(0)) * y(angularMomentIndexA(1)-1,angularMomentIndexB(1)+1) * z(angularMomentIndexA(2),angularMomentIndexB(2)) * commonPreFactor
-          end if
+        if (angularMomentIndexA(1) == 0) then
+          I4 = 0.0_8
+        else
+          I4 = x(angularMomentIndexA(0), angularMomentIndexB(0))*y(angularMomentIndexA(1) - 1, angularMomentIndexB(1) + 1)*z(angularMomentIndexA(2), angularMomentIndexB(2))*commonPreFactor
+        end if
 
-          Iy = 0.5 * angularMomentIndexA(1) * angularMomentIndexB(1) * I1 + 2.0 * auxExponentA * auxExponentB * I2 - auxExponentA * angularMomentIndexB(1) * I3 - angularMomentIndexA(1) * auxExponentB * I4
+        Iy = 0.5*angularMomentIndexA(1)*angularMomentIndexB(1)*I1 + 2.0*auxExponentA*auxExponentB*I2 - auxExponentA*angularMomentIndexB(1)*I3 - angularMomentIndexA(1)*auxExponentB*I4
 
-          if (angularMomentIndexA(2) == 0 .or. angularMomentIndexB(2) == 0) then
-             I1 = 0.0_8
-          else
-             I1 = x(angularMomentIndexA(0),angularMomentIndexB(0)) * y(angularMomentIndexA(1),angularMomentIndexB(1)) * z(angularMomentIndexA(2)-1,angularMomentIndexB(2)-1) * commonPreFactor
-          end if
+        if (angularMomentIndexA(2) == 0 .or. angularMomentIndexB(2) == 0) then
+          I1 = 0.0_8
+        else
+          I1 = x(angularMomentIndexA(0), angularMomentIndexB(0))*y(angularMomentIndexA(1), angularMomentIndexB(1))*z(angularMomentIndexA(2) - 1, angularMomentIndexB(2) - 1)*commonPreFactor
+        end if
 
-          I2 = x(angularMomentIndexA(0),angularMomentIndexB(0)) * y(angularMomentIndexA(1),angularMomentIndexB(1)) * z(angularMomentIndexA(2)+1,angularMomentIndexB(2)+1) * commonPreFactor
+        I2 = x(angularMomentIndexA(0), angularMomentIndexB(0))*y(angularMomentIndexA(1), angularMomentIndexB(1))*z(angularMomentIndexA(2) + 1, angularMomentIndexB(2) + 1)*commonPreFactor
 
-          if (angularMomentIndexB(2) == 0) then
-             I3 = 0.0_8
-          else
-             I3 = x(angularMomentIndexA(0),angularMomentIndexB(0)) * y(angularMomentIndexA(1),angularMomentIndexB(1)) * z(angularMomentIndexA(2)+1,angularMomentIndexB(2)-1) * commonPreFactor
-          end if
+        if (angularMomentIndexB(2) == 0) then
+          I3 = 0.0_8
+        else
+          I3 = x(angularMomentIndexA(0), angularMomentIndexB(0))*y(angularMomentIndexA(1), angularMomentIndexB(1))*z(angularMomentIndexA(2) + 1, angularMomentIndexB(2) - 1)*commonPreFactor
+        end if
 
-          if (angularMomentIndexA(2) == 0) then
-             I4 = 0.0_8
-          else
-             I4 = x(angularMomentIndexA(0),angularMomentIndexB(0)) * y(angularMomentIndexA(1),angularMomentIndexB(1)) * z(angularMomentIndexA(2)-1,angularMomentIndexB(2)+1) * commonPreFactor
-          end if
+        if (angularMomentIndexA(2) == 0) then
+          I4 = 0.0_8
+        else
+          I4 = x(angularMomentIndexA(0), angularMomentIndexB(0))*y(angularMomentIndexA(1), angularMomentIndexB(1))*z(angularMomentIndexA(2) - 1, angularMomentIndexB(2) + 1)*commonPreFactor
+        end if
 
-          Iz = 0.5 * angularMomentIndexA(2) * angularMomentIndexB(2) * I1 + 2.0 * auxExponentA * auxExponentB * I2 - auxExponentA * angularMomentIndexB(2) * I3 - angularMomentIndexA(2) * auxExponentB * I4
+        Iz = 0.5*angularMomentIndexA(2)*angularMomentIndexB(2)*I1 + 2.0*auxExponentA*auxExponentB*I2 - auxExponentA*angularMomentIndexB(2)*I3 - angularMomentIndexA(2)*auxExponentB*I4
 
-          integralValue = integralValue + (Ix + Iy + Iz)
+        integralValue = integralValue + (Ix + Iy + Iz)
 
-       end do
+      end do
     end do
 
-    deallocate(x)
-    deallocate(y)
-    deallocate(z)
+    deallocate (x)
+    deallocate (y)
+    deallocate (z)
 
   end subroutine kineticIntegrals_computePrimitive
 
@@ -317,7 +314,7 @@ contains
   subroutine KineticIntegrals_obaraSaikaRecursion(x, y, z, PA, PB, zeta, angularMomentIndexA, angularMomentIndexB)
     implicit none
 
-    real(8), intent(inout), allocatable :: x(:,:), y(:,:), z(:,:)
+    real(8), intent(inout), allocatable :: x(:, :), y(:, :), z(:, :)
     real(8), intent(in) :: PA(0:3), PB(0:3)
     real(8), intent(in) :: zeta
     integer, intent(in) :: angularMomentIndexA, angularMomentIndexB
@@ -327,56 +324,56 @@ contains
 
     twoZetaInv = 1_8/(2_8*zeta)
 
-    x(0,0) = 1.0_8
-    y(0,0) = 1.0_8
-    z(0,0) = 1.0_8
+    x(0, 0) = 1.0_8
+    y(0, 0) = 1.0_8
+    z(0, 0) = 1.0_8
 
     !! Upward recursion in j for i=0
-    x(0,1) = PB(0)
-    y(0,1) = PB(1)
-    z(0,1) = PB(2)
+    x(0, 1) = PB(0)
+    y(0, 1) = PB(1)
+    z(0, 1) = PB(2)
 
-    do j=1, angularMomentIndexB -1
-       x(0,j+1) = PB(0)*x(0,j)
-       y(0,j+1) = PB(1)*y(0,j)
-       z(0,j+1) = PB(2)*z(0,j)
-       x(0,j+1) = x(0,j+1) + j*twoZetaInv*x(0,j-1)
-       y(0,j+1) = y(0,j+1) + j*twoZetaInv*y(0,j-1)
-       z(0,j+1) = z(0,j+1) + j*twoZetaInv*z(0,j-1)
+    do j = 1, angularMomentIndexB - 1
+      x(0, j + 1) = PB(0)*x(0, j)
+      y(0, j + 1) = PB(1)*y(0, j)
+      z(0, j + 1) = PB(2)*z(0, j)
+      x(0, j + 1) = x(0, j + 1) + j*twoZetaInv*x(0, j - 1)
+      y(0, j + 1) = y(0, j + 1) + j*twoZetaInv*y(0, j - 1)
+      z(0, j + 1) = z(0, j + 1) + j*twoZetaInv*z(0, j - 1)
     end do
 
     !! Upward recursion in i for all j's
-    x(1,0) = PA(0)
-    y(1,0) = PA(1)
-    z(1,0) = PA(2)
+    x(1, 0) = PA(0)
+    y(1, 0) = PA(1)
+    z(1, 0) = PA(2)
 
-    do j=1, angularMomentIndexB
-       x(1,j) = PA(0)*x(0,j)
-       y(1,j) = PA(1)*y(0,j)
-       z(1,j) = PA(2)*z(0,j)
-       x(1,j) = x(1,j) + j*twoZetaInv*x(0,j-1)
-       y(1,j) = y(1,j) + j*twoZetaInv*y(0,j-1)
-       z(1,j) = z(1,j) + j*twoZetaInv*z(0,j-1)
+    do j = 1, angularMomentIndexB
+      x(1, j) = PA(0)*x(0, j)
+      y(1, j) = PA(1)*y(0, j)
+      z(1, j) = PA(2)*z(0, j)
+      x(1, j) = x(1, j) + j*twoZetaInv*x(0, j - 1)
+      y(1, j) = y(1, j) + j*twoZetaInv*y(0, j - 1)
+      z(1, j) = z(1, j) + j*twoZetaInv*z(0, j - 1)
     end do
 
-    do i=1, angularMomentIndexA - 1
-       x(i+1,0) = PA(0)*x(i,0)
-       y(i+1,0) = PA(1)*y(i,0)
-       z(i+1,0) = PA(2)*z(i,0)
-       x(i+1,0) = x(i+1,0) + i*twoZetaInv*x(i-1,0)
-       y(i+1,0) = y(i+1,0) + i*twoZetaInv*y(i-1,0)
-       z(i+1,0) = z(i+1,0) + i*twoZetaInv*z(i-1,0)
-       do j=1, angularMomentIndexB
-          x(i+1,j) = PA(0)*x(i,j)
-          y(i+1,j) = PA(1)*y(i,j)
-          z(i+1,j) = PA(2)*z(i,j)
-          x(i+1,j) = x(i+1,j) + i*twoZetaInv*x(i-1,j)
-          y(i+1,j) = y(i+1,j) + i*twoZetaInv*y(i-1,j)
-          z(i+1,j) = z(i+1,j) + i*twoZetaInv*z(i-1,j)
-          x(i+1,j) = x(i+1,j) + j*twoZetaInv*x(i,j-1)
-          y(i+1,j) = y(i+1,j) + j*twoZetaInv*y(i,j-1)
-          z(i+1,j) = z(i+1,j) + j*twoZetaInv*z(i,j-1)
-       end do
+    do i = 1, angularMomentIndexA - 1
+      x(i + 1, 0) = PA(0)*x(i, 0)
+      y(i + 1, 0) = PA(1)*y(i, 0)
+      z(i + 1, 0) = PA(2)*z(i, 0)
+      x(i + 1, 0) = x(i + 1, 0) + i*twoZetaInv*x(i - 1, 0)
+      y(i + 1, 0) = y(i + 1, 0) + i*twoZetaInv*y(i - 1, 0)
+      z(i + 1, 0) = z(i + 1, 0) + i*twoZetaInv*z(i - 1, 0)
+      do j = 1, angularMomentIndexB
+        x(i + 1, j) = PA(0)*x(i, j)
+        y(i + 1, j) = PA(1)*y(i, j)
+        z(i + 1, j) = PA(2)*z(i, j)
+        x(i + 1, j) = x(i + 1, j) + i*twoZetaInv*x(i - 1, j)
+        y(i + 1, j) = y(i + 1, j) + i*twoZetaInv*y(i - 1, j)
+        z(i + 1, j) = z(i + 1, j) + i*twoZetaInv*z(i - 1, j)
+        x(i + 1, j) = x(i + 1, j) + j*twoZetaInv*x(i, j - 1)
+        y(i + 1, j) = y(i + 1, j) + j*twoZetaInv*y(i, j - 1)
+        z(i + 1, j) = z(i + 1, j) + j*twoZetaInv*z(i, j - 1)
+      end do
     end do
 
   end subroutine KineticIntegrals_obaraSaikaRecursion
@@ -384,7 +381,7 @@ contains
   !>
   !! @brief  Maneja excepciones de la clase
   !! @author Sergio Gonzalez
-  subroutine KineticIntegrals_exception( typeMessage, description, debugDescription)
+  subroutine KineticIntegrals_exception(typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -392,11 +389,11 @@ contains
 
     type(Exception) :: ex
 
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine KineticIntegrals_exception
 

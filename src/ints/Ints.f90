@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -45,9 +45,8 @@ Program Ints
   ! integer :: j
   !Cosmo test
 
-
-  job = ""  
-  call get_command_argument(1,value=job)  
+  job = ""
+  call get_command_argument(1, value=job)
   job = trim(String_getUppercase(job))
 
   !!Start time
@@ -55,229 +54,225 @@ Program Ints
   call Stopwatch_start(lowdin_stopwatch)
 
   !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
+  call MolecularSystem_loadFromFile("LOWDIN.DAT")
 
   !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  call MolecularSystem_loadFromFile("LOWDIN.SYS")
 
+  select case (trim(job))
 
-  select case(trim(job))
+  case ("ONE_PARTICLE")
 
-  case("ONE_PARTICLE")
+    if (CONTROL_instance%LAST_STEP) then
+      write (*, "(A)") "----------------------------------------------------------------------"
+      write (*, "(A)") "** PROGRAM INTS                          Author: E. F. Posada, 2013   "
+      write (*, "(A)") "----------------------------------------------------------------------"
+      write (*, "(A)") "INFO: RUNNING IN "//trim(job)//" MODE."
+      write (*, "(A)") " "
+    end if
 
-     if(CONTROL_instance%LAST_STEP) then
-        write(*,"(A)")"----------------------------------------------------------------------"
-        write(*,"(A)")"** PROGRAM INTS                          Author: E. F. Posada, 2013   "
-        write(*,"(A)")"----------------------------------------------------------------------"
-        write(*,"(A)") "INFO: RUNNING IN "//trim(job)//" MODE."
-        write(*,"(A)")" "
-     end if
+    !!Open file to store integrals
+    open (unit=30, file="lowdin.opints", status="unknown", form="unformatted")
 
-     !!Open file to store integrals
-     open(unit=30, file="lowdin.opints", status="unknown", form="unformatted")
+    !!write global info on output
+    write (30) size(MolecularSystem_instance%species)
 
-     !!write global info on output
-     write(30) size(MolecularSystem_instance%species)
+    !!Calculate overlap integrals
+    ! call Libint2Interface_compute1BodyInts(1)
+    call IntegralManager_writeOverlapIntegrals()
+    !call IntegralManager_writeThreeCenterIntegrals()
 
+    ! !!Calculate kinetic integrals
+    ! call Libint2Interface_compute1BodyInts(2)
+    call IntegralManager_writeKineticIntegrals()
 
-     ! !!Calculate overlap integrals
-     ! call Libint2Interface_compute1BodyInts(1)
-     call IntegralManager_writeOverlapIntegrals()
-     !call IntegralManager_writeThreeCenterIntegrals()
+    if (CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION) then
+      call IntegralManager_getFirstDerivativeIntegrals()
+    end if
 
-     ! !!Calculate kinetic integrals
-     ! call Libint2Interface_compute1BodyInts(2)
-     call IntegralManager_writeKineticIntegrals()
+    call IntegralManager_writeHarmonicIntegrals()
 
-     if ( CONTROL_instance%REMOVE_TRANSLATIONAL_CONTAMINATION ) then
-       call IntegralManager_getFirstDerivativeIntegrals()
-     end if
+    ! !!Calculate attraction integrals
+    ! call Libint2Interface_compute1BodyInts(3)
+    call IntegralManager_writeAttractionIntegrals()
 
-     call IntegralManager_writeHarmonicIntegrals()
+    !!Calculate moment integrals
+    call IntegralManager_writeMomentIntegrals()
 
-     ! !!Calculate attraction integrals
-     ! call Libint2Interface_compute1BodyInts(3)
-     call IntegralManager_writeAttractionIntegrals()
+    !! Calculate integrals with external potential
+    if (CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
+      call IntegralManager_writeThreeCenterIntegrals()
+      !call IntegralManager_writeThreeCenterIntegralsByProduct()
+    end if
+    !stop time
+    call Stopwatch_stop(lowdin_stopwatch)
 
-     ! !!Calculate moment integrals
-     call IntegralManager_writeMomentIntegrals()
+    if (CONTROL_instance%LAST_STEP) then
+      write (*, *) ""
+      write (*, "(A,F10.3,A4)") "** TOTAL CPU Time INTS : ", lowdin_stopwatch%enlapsetTime, " (s)"
+      write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time INTS : ", lowdin_stopwatch%elapsetWTime, " (s)"
+      write (*, *) ""
+    end if
+    close (30)
 
-     !! Calculate integrals with external potential
-     if(CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) then
-       call IntegralManager_writeThreeCenterIntegrals()
-       !call IntegralManager_writeThreeCenterIntegralsByProduct()
-     end if
-     !stop time
-     call Stopwatch_stop(lowdin_stopwatch)
+  case ("COSMO")
 
-     if(CONTROL_instance%LAST_STEP) then     
-        write(*, *) ""
-        write(*,"(A,F10.3,A4)") "** TOTAL CPU Time INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
-        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time INTS : ", lowdin_stopwatch%elapsetWTime ," (s)"
-        write(*, *) ""
-     end if
-     close(30)
+    call CosmoCore_lines(surface_aux)
+    call CosmoCore_filler(surface_aux)
 
-  case("COSMO")
+    !!Open file to store integrals
+    open (unit=40, file="cosmo.opints", status="unknown", form="unformatted")
 
-     call CosmoCore_lines(surface_aux)
-     call CosmoCore_filler(surface_aux)
+    !!write global info on output
+    write (40) size(MolecularSystem_instance%species)
 
-     !!Open file to store integrals
-     open(unit=40, file="cosmo.opints", status="unknown", form="unformatted")
+    !!Calculate cosmo integrals and charges
+    call IntegralManager_writeAttractionIntegrals(surface_aux)
 
-     !!write global info on output
-     write(40) size(MolecularSystem_instance%species)
+    !stop time
+    call Stopwatch_stop(lowdin_stopwatch)
 
-     !!Calculate cosmo integrals and charges
-     call IntegralManager_writeAttractionIntegrals(surface_aux)
+    if (CONTROL_instance%LAST_STEP) then
+      write (*, *) ""
+      write (*, "(A,F10.3,A4)") "** TOTAL CPU Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime, " (s)"
+      write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time Cosmo-INTS : ", lowdin_stopwatch%elapsetWTime, " (s)"
+      write (*, *) ""
+    end if
+    close (40)
 
-     !stop time
-     call Stopwatch_stop(lowdin_stopwatch)
+  case ("TWO_PARTICLE_R12")
 
-     if(CONTROL_instance%LAST_STEP) then
-        write(*, *) ""
-        write(*,"(A,F10.3,A4)") "** TOTAL CPU Time Cosmo-INTS : ", lowdin_stopwatch%enlapsetTime ," (s)"
-        write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time Cosmo-INTS : ", lowdin_stopwatch%elapsetWTime ," (s)"
-        write(*, *) ""
-     end if
-     close(40)
+    if (CONTROL_instance%LAST_STEP) then
+      write (*, "(A)") " "
+      write (*, "(A)") " TWO-BODY INTEGRAL SETUP: "
+      write (*, "(A)") "------------------------- "
+      write (*, "(A, A6)") " Storage: ", trim(String_getUppercase(CONTROL_instance%INTEGRAL_STORAGE))
+      write (*, '(A, A6)') " Scheme: ", trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME)))
+      write (*, '(A, I6)') " Stack size: ", CONTROL_instance%INTEGRAL_STACK_SIZE
+      write (*, "(A)") " "
 
-  case("TWO_PARTICLE_R12")
+      select case (trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME))))
 
-     if(CONTROL_instance%LAST_STEP) then
-        write(*, "(A)") " "
-        write(*, "(A)") " TWO-BODY INTEGRAL SETUP: "
-        write(*, "(A)") "------------------------- "
-        write(*, "(A, A6)") " Storage: ", trim(String_getUppercase( CONTROL_instance%INTEGRAL_STORAGE ))
-        write(*, '(A, A6)') " Scheme: ", trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME)))
-        write(*, '(A, I6)') " Stack size: ", CONTROL_instance%INTEGRAL_STACK_SIZE
-        write(*, "(A)") " "
+      case ("RYS")
+        write (*, "(A)") " RYS QUADRATURE SCHEME                 "
+        write (*, "(A)") " LOWDIN-RYS Implementation V. 1.0   Guerrero R. D. ; Posada E. F. 2013 "
+        write (*, "(A)") " ----------------------------------------------------------------------"
 
-        select case (trim(String_getUppercase(trim(CONTROL_instance%INTEGRAL_SCHEME))))
+      case ("LIBINT")
+        write (*, "(A)") " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   "
+        write (*, "(A)") " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2016   "
+        write (*, "(A)") " ----------------------------------------------------------------------"
 
-        case("RYS")
-           write(*, "(A)") " RYS QUADRATURE SCHEME                 " 
-           write(*, "(A)") " LOWDIN-RYS Implementation V. 1.0   Guerrero R. D. ; Posada E. F. 2013 "
-           write(*, "(A)") " ----------------------------------------------------------------------"
+      case ("CUDINT")
+        write (*, "(A)") " CUDA ERI Integrals Calculations has been implemented based on:         "
+        write (*, "(A)") " Ufimtsev, I. S.; Martinez, T. J.; JCTC 2008, 4, 222           "
+        write (*, "(A)") " LOWDIN-CUDINT Implementation V. 1.0:  "
+        write (*, "(A)") " Rodas, J. M.; Hernandez, R.; Zapata, A.; Galindo, J. F.; Reyes A. 2014   "
+        write (*, "(A)") " ----------------------------------------------------------------------"
 
-        case("LIBINT")
-           write(*, "(A)") " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
-           write(*, "(A)") " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2016   "
-           write(*, "(A)") " ----------------------------------------------------------------------"
+      case default
+        write (*, "(A)") " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   "
+        write (*, "(A)") " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2016   "
+        write (*, "(A)") " ----------------------------------------------------------------------"
 
-        case("CUDINT")
-           write(*, "(A)") " CUDA ERI Integrals Calculations has been implemented based on:         " 
-           write(*, "(A)") " Ufimtsev, I. S.; Martinez, T. J.; JCTC 2008, 4, 222           " 
-           write(*, "(A)") " LOWDIN-CUDINT Implementation V. 1.0:  "
-           write(*, "(A)") " Rodas, J. M.; Hernandez, R.; Zapata, A.; Galindo, J. F.; Reyes A. 2014   "
-           write(*, "(A)") " ----------------------------------------------------------------------"
+      end select
+    end if
 
-        case default
-           write(*, "(A)") " LIBINT library, Fermann, J. T.; Valeev, F. L. 2010                   " 
-           write(*, "(A)") " LOWDIN-LIBINT Implementation V. 2.1  Posada E. F. ; Reyes A. 2016   "
-           write(*, "(A)") " ----------------------------------------------------------------------"
+    !! intra-species two-boy integration
+    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+      !!Calculate attraction integrals (intra-species)
+      call IntegralManager_writeIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecies(speciesID)), &
+                                                        trim(CONTROL_instance%INTEGRAL_SCHEME))
+    end do
 
-        end select
-     end if
+    !stop time
+    if (CONTROL_instance%LAST_STEP) then
+      write (*, "(/A)", advance="no") "*** TOTAL CPU time intra-species integrals : "
+      call Stopwatch_splitTime()
+      write (*, "(A4)") " (s)"
 
+      write (*, "(A)", advance="no") "*** TOTAL elapsed time intra-species integrals : "
+      call Stopwatch_splitWTime()
+      write (*, "(A4/)") " (s)"
 
-     !! intra-species two-boy integration
-     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
-        !!Calculate attraction integrals (intra-species)
-        call IntegralManager_writeIntraRepulsionIntegrals(trim(MolecularSystem_getNameOfSpecies(speciesID)), &
-             trim(CONTROL_instance%INTEGRAL_SCHEME))
-     end do
+    end if
 
-     !stop time
-     if(CONTROL_instance%LAST_STEP) then
-        write(*,"(/A)", advance="no") "*** TOTAL CPU time intra-species integrals : "
-        call Stopwatch_splitTime()
-        write(*,"(A4)") " (s)"
+    !! inter-species two-boy integration
+    if (Molecularsystem_instance%numberOfQuantumSpecies > 1) then
 
-        write(*,"(A)", advance="no") "*** TOTAL elapsed time intra-species integrals : "
-        call Stopwatch_splitWTime()
-        write(*,"(A4/)") " (s)"
+      !!Calculate attraction integrals (inter-species)
+      call IntegralManager_writeInterRepulsionIntegrals(trim(CONTROL_instance%INTEGRAL_SCHEME))
 
-     end if
+      !stop time
+      call Stopwatch_stop(lowdin_stopwatch)
 
-     !! inter-species two-boy integration
-     if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
+      if (CONTROL_instance%LAST_STEP) then
+        write (*, "(/A,F10.3,A4)") "*** TOTAL CPU time inter-species integrals : ", lowdin_stopwatch%enlapsetTime, " (s)"
+        write (*, "(A,F10.3,A4/)") "*** TOTAL elapsed time inter-species integrals : ", lowdin_stopwatch%elapsetWTime, " (s)"
+      end if
+    end if
 
-        !!Calculate attraction integrals (inter-species)
-        call IntegralManager_writeInterRepulsionIntegrals(trim(CONTROL_instance%INTEGRAL_SCHEME))
+  case ("GET_GRADIENTS")
+    call EnergyGradients_constructor()
+    call EnergyGradients_getAnalyticDerivative()
 
-        !stop time
-        call Stopwatch_stop(lowdin_stopwatch)
+  case ("TWO_PARTICLE_G12")
 
-        if(CONTROL_instance%LAST_STEP) then
-           write(*,"(/A,F10.3,A4)") "*** TOTAL CPU time inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
-           write(*,"(A,F10.3,A4/)") "*** TOTAL elapsed time inter-species integrals : ", lowdin_stopwatch%elapsetWTime ," (s)"
-        end if
-     end if
-
-  case("GET_GRADIENTS")
-     call EnergyGradients_constructor()
-     call EnergyGradients_getAnalyticDerivative()
-
-  case("TWO_PARTICLE_G12")
-
-     !! intra-species G12 integration
-     do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
+    !! intra-species G12 integration
+    do speciesID = 1, MolecularSystem_instance%numberOfQuantumSpecies
         !!Calculate repulsion integrals (intra-species)
 
-        ! call G12Integrals_diskIntraSpecie(speciesID)
+      ! call G12Integrals_diskIntraSpecie(speciesID)
 
-        call Libint2Interface_computeG12Intraspecies_disk(speciesID)
+      call Libint2Interface_computeG12Intraspecies_disk(speciesID)
 
+    end do
 
-     end do
+    !stop time
+    if (CONTROL_instance%LAST_STEP) then
+      write (*, "(/A)", advance="no") "*** TOTAL CPU time  G12 intra-species integrals : "
+      call Stopwatch_splitTime()
+      write (*, "(A4/)") " (s)"
 
-     !stop time
-     if(CONTROL_instance%LAST_STEP) then
-        write(*,"(/A)", advance="no") "*** TOTAL CPU time  G12 intra-species integrals : "
-        call Stopwatch_splitTime()
-        write(*,"(A4/)") " (s)"
+      write (*, "(/A)", advance="no") "*** TOTAL elapsed time  G12 intra-species integrals : "
+      call Stopwatch_splitWTime()
+      write (*, "(A4/)") " (s)"
 
-        write(*,"(/A)", advance="no") "*** TOTAL elapsed time  G12 intra-species integrals : "
-        call Stopwatch_splitWTime()
-        write(*,"(A4/)") " (s)"
+    end if
 
-     end if
+    !! inter-species two-boy integration
+    if (Molecularsystem_instance%numberOfQuantumSpecies > 1) then
 
-     !! inter-species two-boy integration
-     if(Molecularsystem_instance%numberOfQuantumSpecies > 1) then
+      !!Calculate attraction integrals (inter-species)
+      do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
+        do j = i + 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-        !!Calculate attraction integrals (inter-species)
-        do i = 1, MolecularSystem_instance%numberOfQuantumSpecies
-          do j = i+1, MolecularSystem_instance%numberOfQuantumSpecies
+          call Libint2Interface_computeG12Interspecies_disk(i, j)
 
-             call Libint2Interface_computeG12Interspecies_disk(i, j)
-        
-             ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecies(i)), &
-             !  trim(MolecularSystem_getNameOfSpecies(j)), i, j)
+          ! call G12Integrals_G12diskInterSpecie(trim(MolecularSystem_getNameOfSpecies(i)), &
+          !  trim(MolecularSystem_getNameOfSpecies(j)), i, j)
 
-          end do
         end do
+      end do
 
-        !stop time
-        call Stopwatch_stop(lowdin_stopwatch)
+      !stop time
+      call Stopwatch_stop(lowdin_stopwatch)
 
-        if(CONTROL_instance%LAST_STEP) then
-           write(*,"(/A,F10.3,A4/)") "*** TOTAL CPU time G12 inter-species integrals : ", lowdin_stopwatch%enlapsetTime ," (s)"
-           write(*,"(/A,F10.3,A4/)") "*** TOTAL elapsed time G12 inter-species integrals : ", lowdin_stopwatch%elapsetWTime ," (s)"
-        end if
-     end if
+      if (CONTROL_instance%LAST_STEP) then
+        write (*, "(/A,F10.3,A4/)") "*** TOTAL CPU time G12 inter-species integrals : ", lowdin_stopwatch%enlapsetTime, " (s)"
+        write (*, "(/A,F10.3,A4/)") "*** TOTAL elapsed time G12 inter-species integrals : ", lowdin_stopwatch%elapsetWTime, " (s)"
+      end if
+    end if
 
   case default
 
-     write(*,*) "USAGE: lowdin-ints.x job "
-     write(*,*) "Where job can be: "
-     write(*,*) "  ONE_PARTICLE"
-     write(*,*) "  TWO_PARTICLE_R12"
-     write(*,*) "  GET_GRADIENTS"
-     write(*,*) "  TWO_PARTICLE_G12"
-     stop "ERROR"
+    write (*, *) "USAGE: lowdin-ints.x job "
+    write (*, *) "Where job can be: "
+    write (*, *) "  ONE_PARTICLE"
+    write (*, *) "  TWO_PARTICLE_R12"
+    write (*, *) "  GET_GRADIENTS"
+    write (*, *) "  TWO_PARTICLE_G12"
+    stop "ERROR"
 
   end select
 
