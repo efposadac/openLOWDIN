@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -24,7 +24,7 @@
 !!   - <tt> 2014-08-21 </tt>: Danilo Gonzalez F. ( dagonzalezfo@unal.edu.co )
 !!        -# Creacion de modulo y procedimientos  para calculos con solvente implicito
 !!
-!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 program Cosmo
@@ -34,7 +34,7 @@ program Cosmo
   use String_
   use CosmoCore_
 
-  implicit none 
+  implicit none
 
   integer(8) :: n
 
@@ -42,23 +42,22 @@ program Cosmo
   type(Matrix) :: qc
   type(Matrix) :: qq
 
-
   !!Start time
   call Stopwatch_constructor(lowdin_stopwatch)
   call Stopwatch_start(lowdin_stopwatch)
 
   !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
+  call MolecularSystem_loadFromFile("LOWDIN.DAT")
 
   !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
+  call MolecularSystem_loadFromFile("LOWDIN.SYS")
 
   !cmatin es el dummy de cmatinv
-  call CosmoCore_constructor(surfaceSegment_instance,cmatin)	
+  call CosmoCore_constructor(surfaceSegment_instance, cmatin)
 
-  n=MolecularSystem_instance%numberOfParticles
+  n = MolecularSystem_instance%numberOfParticles
 
-  call CosmoCore_clasical(surfaceSegment_instance,n,cmatin,qc)
+  call CosmoCore_clasical(surfaceSegment_instance, n, cmatin, qc)
 
   call system(" lowdin-ints.x COSMO ")
 
