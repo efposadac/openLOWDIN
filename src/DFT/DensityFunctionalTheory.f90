@@ -43,7 +43,7 @@ contains
   subroutine DensityFunctionalTheory_buildSCFGrid(scfGrids, scfGridsCommonPoints, exactExchangeFractions, system)
     implicit none
     type(Grid) :: scfGrids(:), scfGridsCommonPoints(:, :)
-    real(8), optional :: exactExchangeFractions(*)
+    real(8), optional :: exactExchangeFractions(:)
     type(MolecularSystem), optional, target :: system
 
     type(Functional), allocatable :: Functionals(:, :)
