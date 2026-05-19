@@ -127,7 +127,7 @@ Program Ints
     write (40) size(MolecularSystem_instance%species)
 
     !!Calculate cosmo integrals and charges
-    call IntegralManager_writeAttractionIntegrals(surface_aux)
+    call IntegralManager_writeCosmoIntegrals(surface_aux)
 
     !stop time
     call Stopwatch_stop(lowdin_stopwatch)

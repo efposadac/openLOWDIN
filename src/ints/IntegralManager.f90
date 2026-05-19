@@ -396,7 +396,47 @@ contains
   !! @par History
   !!      - 2013.03.05: reads point charge information from lowdin.bas file
   !!                        - 2014.16.09: modify subroutines to calcule cosmo monoelectronic integrals Danilo
-  subroutine IntegralManager_writeAttractionIntegrals(surface)
+  subroutine IntegralManager_writeAttractionIntegrals()
+    implicit none
+
+    integer :: f 
+    type(Matrix) :: integralsMatrix
+    character(100) :: job, arguments(2)
+
+    job = "ATTRACTION"
+    arguments(1) = job
+
+    !!Attraction Integrals for all species
+    do f = 1, size(MolecularSystem_instance%species)
+
+      arguments(2) = MolecularSystem_instance%species(f)%name
+
+      call DirectIntegralManager_getAttractionIntegrals(MolecularSystem_instance, f, integralsMatrix)
+
+      !!Write integrals to file (unit 30)
+      call Matrix_writeToFile(integralsMatrix, unit=30, binary=.true., arguments=arguments)
+
+      if (CONTROL_instance%LAST_STEP) then
+        write (*, "(A, A ,A,I6)") " Number of Nuclear integrals for species ", &
+          trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values, DIM=1)**2
+      end if
+
+      !!Depuration block
+      !print*, "Attraction  Matrix for specie: ", f
+      !Call Matrix_show(integralsMatrix)
+
+    end do !done!
+
+  end subroutine IntegralManager_writeAttractionIntegrals
+
+  !>
+  !! @brief Calculate point charge - quantum particle attraction integrals
+  !! @author E. F. Posada, 2013
+  !! @version 1.0
+  !! @par History
+  !!      - 2013.03.05: reads point charge information from lowdin.bas file
+  !!                        - 2014.16.09: modify subroutines to calcule cosmo monoelectronic integrals Danilo
+  subroutine IntegralManager_writeCosmoIntegrals(surface)
     implicit none
 
     integer :: f, g, h, i, c
@@ -435,233 +475,199 @@ contains
     integer, allocatable ::  totals(:)
 
     a = 0
+    job = "COSMO"
+    ! en lugar de pasar todo el arreglo de cargas puntuales, debo pasar cada
+    ! una de las cargas para así no alterar tanto el código
+    isCosmo = .true.
+    ! write(*,'(A)')"remplazando los valores de point charges por surface"
+    numberOfPointCharges = surface%sizeSurface
+    numberOfClasicalCharges = MolecularSystem_instance%numberOfPointCharges
+    ! write (*,*) "cargas puntuales cosmo", numberOfPointCharges
+    if (allocated(point)) deallocate (point)
+    allocate (point(1:numberOfPointCharges))
+    point%charge = 0.0_8
+    ! write(*,*) "remplazadas por estas"
 
-    job = "ATTRACTION"
+    if (allocated(totals)) deallocate (totals)
+    allocate (totals(size(MolecularSystem_instance%species)))
 
-    if (present(surface)) then
-      job = "COSMO"
-      ! en lugar de pasar todo el arreglo de cargas puntuales, debo pasar cada
-      ! una de las cargas para así no alterar tanto el código
-      isCosmo = .true.
-      ! write(*,'(A)')"remplazando los valores de point charges por surface"
-      numberOfPointCharges = surface%sizeSurface
-      numberOfClasicalCharges = MolecularSystem_instance%numberOfPointCharges
-      ! write (*,*) "cargas puntuales cosmo", numberOfPointCharges
-      if (allocated(point)) deallocate (point)
-      allocate (point(1:numberOfPointCharges))
-      point%charge = 0.0_8
-      ! write(*,*) "remplazadas por estas"
+    write (40) job
 
-      if (allocated(totals)) deallocate (totals)
-      allocate (totals(size(MolecularSystem_instance%species)))
+    call Matrix_constructor(cmatin, int(surface%sizeSurface, 8), int(surface%sizeSurface, 8))
 
-      write (40) job
+    call CosmoCore_cmat(surface, cmatin)
 
-      call Matrix_constructor(cmatin, int(surface%sizeSurface, 8), int(surface%sizeSurface, 8))
+    ! call Matrix_Show(cmatin)
+    ! do i=1,120
+    !  do j=i,120
+    !          cmatin%values(j,i)=cmatin%values(i,j)
+    !  end do
+    ! end do
 
-      call CosmoCore_cmat(surface, cmatin)
+    !!do sobre las especies
 
-      ! call Matrix_Show(cmatin)
-      ! do i=1,120
-      !  do j=i,120
-      !          cmatin%values(j,i)=cmatin%values(i,j)
-      !  end do
-      ! end do
+    do f = 1, size(MolecularSystem_instance%species)
+      write (40) MolecularSystem_instance%species(f)%name
+      symbolOfSpecies = MolecularSystem_instance%species(f)%symbol
 
-      !!do sobre las especies
+      total_aux = 0
 
-      do f = 1, size(MolecularSystem_instance%species)
-        write (40) MolecularSystem_instance%species(f)%name
-        symbolOfSpecies = MolecularSystem_instance%species(f)%symbol
+      cosmoIntegralFile = "cosmo"//trim(MolecularSystem_getNameOfSpecies(f))//".opints"
+      cosmoQuantumChargeFile = "cosmo"//trim(MolecularSystem_getNameOfSpecies(f))//".charges"
 
-        total_aux = 0
+      open (unit=70, file=trim(cosmoIntegralFile), status="unknown", form="unformatted")
+      open (unit=80, file=trim(cosmoQuantumChargeFile), status="unknown", form="unformatted")
 
-        cosmoIntegralFile = "cosmo"//trim(MolecularSystem_getNameOfSpecies(f))//".opints"
-        cosmoQuantumChargeFile = "cosmo"//trim(MolecularSystem_getNameOfSpecies(f))//".charges"
+      if (allocated(labels)) deallocate (labels)
+      allocate (labels(MolecularSystem_instance%species(f)%basisSetSize))
+      labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
 
-        open (unit=70, file=trim(cosmoIntegralFile), status="unknown", form="unformatted")
-        open (unit=80, file=trim(cosmoQuantumChargeFile), status="unknown", form="unformatted")
+      if (allocated(integralBuffer)) deallocate (integralBuffer)
+      allocate (integralBuffer((MolecularSystem_instance%species(f)%basisSetSize*(MolecularSystem_instance%species(f)%basisSetSize + 1))/2))
 
-        if (allocated(labels)) deallocate (labels)
-        allocate (labels(MolecularSystem_instance%species(f)%basisSetSize))
-        labels = DirectIntegralManager_getLabels(MolecularSystem_instance%species(f))
+      integralBuffer = 0.0_8
+      write (80) numberOfPointCharges
 
-        if (allocated(integralBuffer)) deallocate (integralBuffer)
-        allocate (integralBuffer((MolecularSystem_instance%species(f)%basisSetSize*(MolecularSystem_instance%species(f)%basisSetSize + 1))/2))
+      ii = 0
+      !! do sobre las particulas
+      do g = 1, size(MolecularSystem_instance%species(f)%particles)
+        !! do sobre las contracciones
+        do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
+          hh = h
+          ii = ii + 1
+          jj = ii - 1
+          !! do sobre las particulas diferentes a g de la misma especie
+          do i = g, size(MolecularSystem_instance%species(f)%particles)
+            !! do sobre las bases de las particulas diferentes a g de la misma especie
+            do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
+              jj = jj + 1
+              if (allocated(integralValue)) deallocate (integralValue)
+              allocate (integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital* &
+                                      MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
 
-        integralBuffer = 0.0_8
-        write (80) numberOfPointCharges
+              if (allocated(integralValueCosmo)) deallocate (integralValueCosmo)
+              allocate (integralValueCosmo((MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital* &
+                                            MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital), numberOfPointCharges))
 
-        ii = 0
-        !! do sobre las particulas
-        do g = 1, size(MolecularSystem_instance%species(f)%particles)
-          !! do sobre las contracciones
-          do h = 1, size(MolecularSystem_instance%species(f)%particles(g)%basis%contraction)
-            hh = h
-            ii = ii + 1
-            jj = ii - 1
-            !! do sobre las particulas diferentes a g de la misma especie
-            do i = g, size(MolecularSystem_instance%species(f)%particles)
-              !! do sobre las bases de las particulas diferentes a g de la misma especie
-              do j = hh, size(MolecularSystem_instance%species(f)%particles(i)%basis%contraction)
-                jj = jj + 1
-                if (allocated(integralValue)) deallocate (integralValue)
-                allocate (integralValue(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital* &
-                                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital))
+              integralValueCosmo = 0
+              b = MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital
+              d = MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital
+              totals(f) = b*d
 
-                if (allocated(integralValueCosmo)) deallocate (integralValueCosmo)
-                allocate (integralValueCosmo((MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital* &
-                                              MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital), numberOfPointCharges))
+              total_aux = total_aux + totals(f)
 
-                integralValueCosmo = 0
-                b = MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital
-                d = MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital
-                totals(f) = b*d
-
-                total_aux = total_aux + totals(f)
+              !Calculating integrals for shell
+              do c = 1, numberOfPointCharges
+                ! do sobre las cargas puntuales
+                point(1)%charge = 1.0
+                point(1)%x = surface%xs(c)
+                point(1)%y = surface%ys(c)
+                point(1)%z = surface%zs(c)
+                point(1)%qdoCenterOf = "NONE"
 
                 !Calculating integrals for shell
-                do c = 1, numberOfPointCharges
-                  ! do sobre las cargas puntuales
-                  point(1)%charge = 1.0
-                  point(1)%x = surface%xs(c)
-                  point(1)%y = surface%ys(c)
-                  point(1)%z = surface%zs(c)
-                  point(1)%qdoCenterOf = "NONE"
-
-                  !Calculating integrals for shell
-                  call AttractionIntegrals_computeShell(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
-                                                        MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue, f, symbolOfSpecies)
-                  m = 0
-
-                  do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
-                    do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
-                      m = m + 1
-
-                      integralValueCosmo(m, c) = integralValue(m)*(-MolecularSystem_getCharge(f))
-
-                    end do
-                  end do
-
-                  ! todas las integrales para un c específico
-                end do
-                ! aqui es donde se hace el calculo para cada carga
-
-                if (allocated(qCharges)) deallocate (qCharges)
-                allocate (qCharges(numberOfPointCharges))
-
+                call AttractionIntegrals_computeShell(MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h), &
+                                                      MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j), point, 1, integralValue, f, symbolOfSpecies)
                 m = 0
+
                 do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
                   do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
                     m = m + 1
-                    if (allocated(cosmoV)) deallocate (cosmoV)
-                    allocate (cosmoV(numberOfPointCharges))
-                    cosmoV = 0
-                    cosmoV(:) = integralValueCosmo(m, :)
 
-                    call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges, f)
+                    integralValueCosmo(m, c) = integralValue(m)*(-MolecularSystem_getCharge(f))
 
-                    write (70) integralValueCosmo(m, :)
-                    write (80) qCharges
                   end do
                 end do
 
+                ! todas las integrales para un c específico
               end do
-              !! end do de bases
-              hh = 1
+              ! aqui es donde se hace el calculo para cada carga
+
+              if (allocated(qCharges)) deallocate (qCharges)
+              allocate (qCharges(numberOfPointCharges))
+
+              m = 0
+              do k = labels(ii), labels(ii) + (MolecularSystem_instance%species(f)%particles(g)%basis%contraction(h)%numCartesianOrbital - 1)
+                do l = labels(jj), labels(jj) + (MolecularSystem_instance%species(f)%particles(i)%basis%contraction(j)%numCartesianOrbital - 1)
+                  m = m + 1
+                  if (allocated(cosmoV)) deallocate (cosmoV)
+                  allocate (cosmoV(numberOfPointCharges))
+                  cosmoV = 0
+                  cosmoV(:) = integralValueCosmo(m, :)
+
+                  call CosmoCore_q_builder(cmatin, cosmoV, numberOfPointCharges, qCharges, f)
+
+                  write (70) integralValueCosmo(m, :)
+                  write (80) qCharges
+                end do
+              end do
+
             end do
-            !!end do particulas
+            !! end do de bases
+            hh = 1
           end do
-          ! end do bases
+          !!end do particulas
         end do
-        !! end do particulas
-
-        close (80)
-        close (70)
-
-        !!quantum
-        totals(f) = total_aux
-        ! ####################################
-        ! Nuevo, ojo
-        ! write(80)numberOfPointCharges
-        ! write(80)totals(f)
-
-        ! ####################################
-        call CosmoCore_q_int_builder(cosmoIntegralFile, cosmoQuantumChargeFile, numberOfPointCharges, totals(f), totals(f), f, f)
-
-        !!clasical vs clasical
-
-        cosmoClasicalChargeFile = "cosmo.clasical"
-
-        job = "COSMO1"
-
-        write (40) job
-        write (40) MolecularSystem_instance%species(f)%name
-
-        call CosmoCore_q_int_builder(cosmoIntegralFile, cosmoClasicalChargeFile, numberOfPointCharges, 1, totals(f), f, f, labels)
-
-        !clasical vs quantum
-
-        job = "COSMO4"
-        write (40) job
-        write (40) MolecularSystem_instance%species(f)%name
-
-        call CosmoCore_nucleiPotentialQuantumCharges(surface, cosmoQuantumChargeFile, totals(f), labels, f)
-
+        ! end do bases
       end do
-      !! end do especies
+      !! end do particulas
 
-      if (MolecularSystem_getNumberOfQuantumSpecies() > 1) then
+      close (80)
+      close (70)
 
-        do f = 1, size(MolecularSystem_instance%species)
-          do g = 1, size(MolecularSystem_instance%species)
+      !!quantum
+      totals(f) = total_aux
+      ! ####################################
+      ! Nuevo, ojo
+      ! write(80)numberOfPointCharges
+      ! write(80)totals(f)
 
-            !! do all possible combinations of potentials and charges.
+      ! ####################################
+      call CosmoCore_q_int_builder(cosmoIntegralFile, cosmoQuantumChargeFile, numberOfPointCharges, totals(f), totals(f), f, f)
 
-            if (f /= g) then
+      !!clasical vs clasical
 
-              cosmoQuantumChargeFile = "cosmo"//trim(MolecularSystem_getNameOfSpecies(f))//".charges"
-              cosmoIntegralFile = "cosmo"//trim(MolecularSystem_getNameOfSpecies(g))//".opints"
+      cosmoClasicalChargeFile = "cosmo.clasical"
 
-              call CosmoCore_q_int_builder(cosmoIntegralFile, cosmoQuantumChargeFile, numberOfPointCharges, totals(f), totals(g), f, g)
+      job = "COSMO1"
 
-            end if
-          end do
-        end do
+      write (40) job
+      write (40) MolecularSystem_instance%species(f)%name
 
-      end if
+      call CosmoCore_q_int_builder(cosmoIntegralFile, cosmoClasicalChargeFile, numberOfPointCharges, 1, totals(f), f, f, labels)
 
-    !! regular attraction
-    else
+      !clasical vs quantum
 
-      numberOfPointCharges = MolecularSystem_instance%numberOfPointCharges
+      job = "COSMO4"
+      write (40) job
+      write (40) MolecularSystem_instance%species(f)%name
 
-      !! Allocating memory for point charges objects
-      arguments(1) = job
+      call CosmoCore_nucleiPotentialQuantumCharges(surface, cosmoQuantumChargeFile, totals(f), labels, f)
 
-      !!Attraction Integrals for all species
+    end do
+    !! end do especies
+
+    if (MolecularSystem_getNumberOfQuantumSpecies() > 1) then
+
       do f = 1, size(MolecularSystem_instance%species)
+        do g = 1, size(MolecularSystem_instance%species)
 
-        arguments(2) = MolecularSystem_instance%species(f)%name
+          !! do all possible combinations of potentials and charges.
 
-        call DirectIntegralManager_getAttractionIntegrals(MolecularSystem_instance, f, integralsMatrix)
+          if (f /= g) then
 
-        !!Write integrals to file (unit 30)
-        call Matrix_writeToFile(integralsMatrix, unit=30, binary=.true., arguments=arguments)
+            cosmoQuantumChargeFile = "cosmo"//trim(MolecularSystem_getNameOfSpecies(f))//".charges"
+            cosmoIntegralFile = "cosmo"//trim(MolecularSystem_getNameOfSpecies(g))//".opints"
 
-        if (CONTROL_instance%LAST_STEP) then
-          write (*, "(A, A ,A,I6)") " Number of Nuclear integrals for species ", &
-            trim(MolecularSystem_instance%species(f)%symbol), ": ", size(integralsMatrix%values, DIM=1)**2
-        end if
+            call CosmoCore_q_int_builder(cosmoIntegralFile, cosmoQuantumChargeFile, numberOfPointCharges, totals(f), totals(g), f, g)
 
-       !!Depuration block
-        !        print*, "Attraction  Matrix for specie: ", f
-        !Call Matrix_show(integralsMatrix)
+          end if
+        end do
+      end do
 
-      end do !done!
     end if
 
-  end subroutine IntegralManager_writeAttractionIntegrals
+  end subroutine IntegralManager_writeCosmoIntegrals
 
   !>
   !! @brief Calculate moment integrals
