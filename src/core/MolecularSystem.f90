@@ -213,6 +213,8 @@ contains
     !! Debug
     !! call ParticleManager_show()
 
+    call MecanicProperties_constructor(MolecularSystem_instance%mechanicalProp)
+
   end subroutine MolecularSystem_build
 
   !>

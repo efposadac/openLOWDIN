@@ -38,7 +38,6 @@ program NOCI
   use MolecularSystem_
   use String_
   use Stopwatch_
-  use MecanicProperties_
   implicit none
 
   character(50) :: job
@@ -166,8 +165,6 @@ program NOCI
     call MolecularSystem_showCartesianMatrix(molecularSystem_instance)
 
     !! Transform to center of mass
-    call MecanicProperties_constructor(MolecularSystem_instance%mechanicalProp)
-
     if (CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS .and. (.not. CONTROL_instance%ARE_THERE_DUMMY_ATOMS)) then
 
       call MolecularSystem_moveToCenterOfMass()

@@ -27,7 +27,6 @@ program lowdin_
   use Stopwatch_
   use InputManager_
   use MolecularSystem_
-  use MecanicProperties_
   use GeometryOptimizer_
   use Solver_
   implicit none
@@ -69,7 +68,7 @@ program lowdin_
   !! Load TASKS block
   call InputManager_loadTask()
 
-  !! Load GEOMETRY block
+  !! Load GEOMETRY block and initialize Molecular system
   call InputManager_loadGeometry()
 
   !! Load potentials if any
@@ -103,9 +102,8 @@ program lowdin_
 
   end if
 
- !! Transform to center of mass
-  call MecanicProperties_constructor(MolecularSystem_instance%mechanicalProp)
 
+  !! Transform to center of mass
   if (CONTROL_instance%TRANSFORM_TO_CENTER_OF_MASS .and. (.not. CONTROL_instance%ARE_THERE_DUMMY_ATOMS)) then
 
     call MolecularSystem_moveToCenterOfMass()
