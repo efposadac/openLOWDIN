@@ -25,6 +25,7 @@ RESULTS_LOG="testResults_$EXENAME/maketest_$date.log"
 # copy fchk files. All tests/*fchk will be deleted with make clean
 cp fchk/*fchk .
 
+#for testfile in `ls H2O*.py`; do
 for testfile in `ls *.py`; do
 
     if [ "$testfile" = "lowdinTestFunctions.py" ]; then
@@ -35,12 +36,17 @@ for testfile in `ls *.py`; do
     testName=`echo $testfile | gawk '{print substr($1,1,length($1)-3)}'`
 
     /usr/bin/time -f "%e" -o time.log python3 "$testName.py" "$EXENAME" > output.log 2> error.log 
-    output=$( cat output.log )
+
+    status=$( tail -1 output.log )
     error=$( cat error.log ) 
     sed -i '/[a-zA-Z]/d' time.log #remove additional printing...
     duration=$( cat time.log ) 
 
-    printf "| %-35.35s | %-7.7s | %-50.50s |\n" "$testName" "$duration" "$output" | tee -a "$RESULTS_LOG" 
+    printf "| %-35.35s | %-7.7s | %-50.50s |\n" "$testName" "$duration" "$status" | tee -a "$RESULTS_LOG" 
+
+    if [ $(wc -l < output.log) -gt 1 ]; then
+    	head -n -1 output.log | tee -a "$RESULTS_LOG" 
+    fi
 
     rm -f output.log 
     rm -f error.log 
