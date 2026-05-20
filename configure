@@ -123,6 +123,7 @@ else
         LIBINT_LIBS=`awk '{if($1 == "LIBINT_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         LIBXC_LIBS=`awk '{if($1 == "LIBXC_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CUDA_LIBS=`awk '{if($1 == "CUDA_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        JADAMILU_PLATFORM=`awk '{if($1 == "JADAMILU_PLATFORM" ) {for(i=3;i<=NF;i++) printf "%s", $i}}' CONFIG`
         # ALL_LIBS=`awk '{if($1 == "ALL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
 
     fi
@@ -365,6 +366,16 @@ done
 ###############################################################################
 #                       ADDITIONAL UTILITIES
 ###############################################################################
+
+# Determing jadamilu platform
+if [[ "$FC" == *gfortran* ]]; then
+    JADAMILU_PLATFORM="INT64YGNU"
+elif [[ "$FC" == *ifort* ]]; then
+    JADAMILU_PLATFORM="INT64YIFORT"
+elif [[ "$FC" == *ifx* ]]; then
+    JADAMILU_PLATFORM="INT64YIFORT"
+fi
+
 	 
 ###############################################################################
 #                       SAVING OPTIONS
@@ -389,6 +400,7 @@ echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG
 echo "LIBINT_LIBS = $LIBINT_LIBS"  >> CONFIG
 echo "LIBXC_LIBS = $LIBXC_LIBS"  >> CONFIG
 echo "CUDA_LIBS = $CUDA_LIBS" >> CONFIG
+echo "JADAMILU_PLATFORM = $JADAMILU_PLATFORM" >> CONFIG
 echo "ALL_LIBS = $ALL_LIBS"  >> CONFIG
 echo "SED = $SED"  >> CONFIG
 
