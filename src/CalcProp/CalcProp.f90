@@ -40,41 +40,42 @@
 !!        -# Reescribe y adapta el modulo de Calculate properties en Lowdin2
 !<
 
-program CalcProp_
-  use MolecularSystem_
-  use Matrix_
-  use Vector_
-  use Units_
-  use ContractedGaussian_
-  use CalculateProperties_ ! module name
+module CalcProp_
+  use MolecularSystem_ , only : MolecularSystem_loadFromFile
+  use CalculateProperties_ 
   implicit none
 
-  type(CalculateProperties) :: CalculateProperties_instance
-  character(50) :: fileName
+  public :: CalcProp_main
 
-  fileName = ""
-  call get_command_argument(1, value=fileName)
+contains
 
-  if (fileName .eq. "") fileName = "lowdin"
+  subroutine CalcProp_main (fileName)
+    implicit none
+    type(CalculateProperties) :: CalculateProperties_instance
+    character(50) :: fileName
+  
+    if (fileName .eq. "") fileName = "lowdin"
+  
+    !!Load CONTROL Parameters
+    call MolecularSystem_loadFromFile("LOWDIN.DAT", fileName)
+  
+    !!Load the system in lowdin.sys format
+    call MolecularSystem_loadFromFile("LOWDIN.SYS", fileName)
+  
+    call CalculateProperties_constructor(CalculateProperties_instance, fileName) !modificar
+  
+    !! Calculate properties subroutines
+    call CalculateProperties_showPopulationAnalyses(CalculateProperties_instance)
+  
+    call CalculateProperties_showExpectedPositions(CalculateProperties_instance)
+  
+    call CalculateProperties_showRMSradius(CalculateProperties_instance)
+  
+    call CalculateProperties_showContributionsToElectrostaticMoment(CalculateProperties_instance)
+  
+    call CalculateProperties_destructor(CalculateProperties_instance)
 
-  !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile("LOWDIN.DAT", fileName)
+  end subroutine CalcProp_main 
 
-  !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile("LOWDIN.SYS", fileName)
-
-  call CalculateProperties_constructor(CalculateProperties_instance, fileName) !modificar
-
-  !! Calculate properties subroutines
-  call CalculateProperties_showPopulationAnalyses(CalculateProperties_instance)
-
-  call CalculateProperties_showExpectedPositions(CalculateProperties_instance)
-
-  call CalculateProperties_showRMSradius(CalculateProperties_instance)
-
-  call CalculateProperties_showContributionsToElectrostaticMoment(CalculateProperties_instance)
-
-  call CalculateProperties_destructor(CalculateProperties_instance)
-
-end program CalcProp_
+end module CalcProp_
 
