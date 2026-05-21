@@ -23,7 +23,7 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-program DFT
+module DFT
   use CONTROL_
   use MolecularSystem_
   use DensityFunctionalTheory_
@@ -35,143 +35,146 @@ program DFT
   use omp_lib
   implicit none
 
-  character(50) :: job
-  character(100) :: densFile
-  type(Grid), allocatable :: grids(:), gridsCommonPoints(:, :)
-  type(Matrix), allocatable :: densityMatrix(:)
-  type(Matrix), allocatable :: exchangeCorrelationMatrix(:)
-  type(Matrix) :: exchangeCorrelationEnergy
-  real(8), allocatable :: numberOfParticles(:)
-  character(100) :: excFile
-  character(50) ::  labels(2)
-  integer :: densUnit, excUnit
-  integer :: numberOfContractions
-  integer :: numberOfSpecies
-  integer :: speciesID, otherSpeciesID
+  public DFT_main
 
-  job = ""
-  call get_command_argument(1, value=job)
-  job = trim(String_getUppercase(job))
+contains
 
-  densFile = ""
-  call get_command_argument(2, value=densFile)
+  subroutine DFT_main (job, densFile)
 
-  ! write(*,"(A,A)") trim(job), trim(densFile)
-  !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile("LOWDIN.DAT")
-
-  !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile("LOWDIN.SYS")
-
-  numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-
-  !! Allocate memory.
-  if (allocated(grids)) deallocate (grids)
-  allocate (grids(numberOfSpecies))
-
-  if (allocated(gridsCommonPoints)) deallocate (gridsCommonPoints)
-  allocate (gridsCommonPoints(numberOfSpecies, numberOfSpecies))
-
-  do speciesID = 1, numberOfSpecies
-    grids(speciesID)%molSys => MolecularSystem_instance
-  end do
-
-  !!!Building grids jobs
-  select case (job)
-  case ("BUILD_SCF_GRID")
-    call DensityFunctionalTheory_buildSCFGrid(grids, gridsCommonPoints)
-    STOP
-  case ("BUILD_FINAL_GRID")
-    call DensityFunctionalTheory_buildFinalGrid(grids, gridsCommonPoints)
-    STOP
-  end select
-
-  !!!Computing energy and potential jobs
-  allocate (densityMatrix(numberOfSpecies), numberOfParticles(numberOfSpecies), &
-            exchangeCorrelationMatrix(numberOfSpecies))
-
-  call Matrix_constructor(exchangeCorrelationEnergy, int(numberOfSpecies, 8), int(numberOfSpecies, 8), 0.0_8)
-
-  do speciesID = 1, numberOfSpecies
-    ! Read density matrices
-    numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
-
-    densUnit = 78
-    open (unit=densUnit, file=trim(densFile), status="old", form="unformatted")
-
-    labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
-    labels(1) = "DENSITY-MATRIX"
-    densityMatrix(speciesID) = Matrix_getFromFile(unit=densUnit, rows=int(numberOfContractions, 8), &
-                                                  columns=int(numberOfContractions, 8), binary=.true., arguments=labels)
-
-    close (unit=densUnit)
-  end do
-
-  select case (job)
-  case ("SCF_DFT")
-    call DensityFunctionalTheory_SCFDFT(grids, gridsCommonPoints, densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
-  case ("FINAL_DFT")
-    !read scf information for comparison
+    character(50) :: job
+    character(100) :: densFile
+    type(Grid), allocatable :: grids(:), gridsCommonPoints(:, :)
+    type(Matrix), allocatable :: densityMatrix(:)
+    type(Matrix), allocatable :: exchangeCorrelationMatrix(:)
+    type(Matrix) :: exchangeCorrelationEnergy
+    real(8), allocatable :: numberOfParticles(:)
+    character(100) :: excFile
+    character(50) ::  labels(2)
+    integer :: densUnit, excUnit
+    integer :: numberOfContractions
+    integer :: numberOfSpecies
+    integer :: speciesID, otherSpeciesID
+  
+    job = trim(String_getUppercase(job))
+  
+    ! write(*,"(A,A)") trim(job), trim(densFile)
+    !!Load CONTROL Parameters
+    call MolecularSystem_loadFromFile("LOWDIN.DAT")
+  
+    !!Load the system in lowdin.sys format
+    call MolecularSystem_loadFromFile("LOWDIN.SYS")
+  
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+  
+    !! Allocate memory.
+    if (allocated(grids)) deallocate (grids)
+    allocate (grids(numberOfSpecies))
+  
+    if (allocated(gridsCommonPoints)) deallocate (gridsCommonPoints)
+    allocate (gridsCommonPoints(numberOfSpecies, numberOfSpecies))
+  
     do speciesID = 1, numberOfSpecies
+      grids(speciesID)%molSys => MolecularSystem_instance
+    end do
+  
+    !!!Building grids jobs
+    select case (job)
+    case ("BUILD_SCF_GRID")
+      call DensityFunctionalTheory_buildSCFGrid(grids, gridsCommonPoints)
+      STOP
+    case ("BUILD_FINAL_GRID")
+      call DensityFunctionalTheory_buildFinalGrid(grids, gridsCommonPoints)
+      STOP
+    end select
+  
+    !!!Computing energy and potential jobs
+    allocate (densityMatrix(numberOfSpecies), numberOfParticles(numberOfSpecies), &
+              exchangeCorrelationMatrix(numberOfSpecies))
+  
+    call Matrix_constructor(exchangeCorrelationEnergy, int(numberOfSpecies, 8), int(numberOfSpecies, 8), 0.0_8)
+  
+    do speciesID = 1, numberOfSpecies
+      ! Read density matrices
       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
-      excUnit = 79
-      excFile = trim(densfile)//".exc"
-      open (unit=excUnit, file=trim(excFile), status="old", form="unformatted")
-
+  
+      densUnit = 78
+      open (unit=densUnit, file=trim(densFile), status="old", form="unformatted")
+  
       labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
+      labels(1) = "DENSITY-MATRIX"
+      densityMatrix(speciesID) = Matrix_getFromFile(unit=densUnit, rows=int(numberOfContractions, 8), &
+                                                    columns=int(numberOfContractions, 8), binary=.true., arguments=labels)
+  
+      close (unit=densUnit)
+    end do
+  
+    select case (job)
+    case ("SCF_DFT")
+      call DensityFunctionalTheory_SCFDFT(grids, gridsCommonPoints, densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
+    case ("FINAL_DFT")
+      !read scf information for comparison
+      do speciesID = 1, numberOfSpecies
+        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(speciesID)
+        excUnit = 79
+        excFile = trim(densfile)//".exc"
+        open (unit=excUnit, file=trim(excFile), status="old", form="unformatted")
+  
+        labels(2) = MolecularSystem_getNameOfSpecies(speciesID)
+        labels(1) = "NUMBER-OF-PARTICLES"
+        call Vector_getFromFile(unit=excUnit, binary=.true., value=numberOfParticles(speciesID), arguments=labels)
+        labels(1) = "EXCHANGE-CORRELATION-MATRIX"
+        exchangeCorrelationMatrix(speciesID) = Matrix_getFromFile(unit=excUnit, rows=int(numberOfContractions, 8), columns=int(numberOfContractions, 8), &
+                                                                  binary=.true., arguments=labels(1:2))
+  
+        do otherSpeciesID = speciesID, numberOfSpecies
+          labels(2) = trim(MolecularSystem_getNameOfSpecies(speciesID))//trim(MolecularSystem_getNameOfSpecies(otherSpeciesID))
+          labels(1) = "EXCHANGE-CORRELATION-ENERGY"
+          call Vector_getFromFile(unit=excUnit, binary=.true., value=exchangeCorrelationEnergy%values(speciesID, otherSpeciesID), arguments=labels)
+        end do
+  
+        close (unit=excUnit)
+      end do
+  
+      call DensityFunctionalTheory_finalDFT(grids, gridsCommonPoints, densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
+      ! case default
+      !    write(*,*) "USAGE: lowdin-DFT.x job "
+      !    write(*,*) "Where job can be: "
+      !    write(*,*) "  initialize"
+      !    write(*,*) "  build_matrices"
+      !    STOP "ERROR At DFT program, requested an unknown job type"
+    end select
+  
+    excUnit = 79
+    excFile = trim(densfile)//".exc"
+    open (unit=excUnit, file=trim(excFile), status="replace", form="unformatted")
+    ! Write results to file
+    do speciesID = 1, numberOfSpecies
+  
+      ! print *, trim(MolecularSystem_getNameOfSpecies(speciesID)), numberOfParticles(speciesID)
+      ! call Matrix_show(exchangeCorrelationMatrix(speciesID))
+  
+      labels(2) = trim(MolecularSystem_getNameOfSpecies(speciesID))
       labels(1) = "NUMBER-OF-PARTICLES"
-      call Vector_getFromFile(unit=excUnit, binary=.true., value=numberOfParticles(speciesID), arguments=labels)
+      call Vector_writeToFile(unit=excUnit, binary=.true., value=numberOfParticles(speciesID), arguments=labels(1:2))
+  
       labels(1) = "EXCHANGE-CORRELATION-MATRIX"
-      exchangeCorrelationMatrix(speciesID) = Matrix_getFromFile(unit=excUnit, rows=int(numberOfContractions, 8), columns=int(numberOfContractions, 8), &
-                                                                binary=.true., arguments=labels(1:2))
-
+      call Matrix_writeToFile(exchangeCorrelationMatrix(speciesID), unit=excUnit, binary=.true., arguments=labels(1:2))
+  
       do otherSpeciesID = speciesID, numberOfSpecies
         labels(2) = trim(MolecularSystem_getNameOfSpecies(speciesID))//trim(MolecularSystem_getNameOfSpecies(otherSpeciesID))
         labels(1) = "EXCHANGE-CORRELATION-ENERGY"
-        call Vector_getFromFile(unit=excUnit, binary=.true., value=exchangeCorrelationEnergy%values(speciesID, otherSpeciesID), arguments=labels)
+        call Vector_writeToFile(unit=excUnit, binary=.true., value=exchangeCorrelationEnergy%values(speciesID, otherSpeciesID), arguments=labels(1:2))
       end do
-
-      close (unit=excUnit)
+  
     end do
+    close (unit=excUnit)
+  
+    deallocate (densityMatrix, numberOfParticles, &
+                exchangeCorrelationMatrix)
+    deallocate (grids)
+    deallocate (gridsCommonPoints)
 
-    call DensityFunctionalTheory_finalDFT(grids, gridsCommonPoints, densityMatrix, exchangeCorrelationMatrix, exchangeCorrelationEnergy, numberOfParticles)
-    ! case default
-    !    write(*,*) "USAGE: lowdin-DFT.x job "
-    !    write(*,*) "Where job can be: "
-    !    write(*,*) "  initialize"
-    !    write(*,*) "  build_matrices"
-    !    STOP "ERROR At DFT program, requested an unknown job type"
-  end select
-
-  excUnit = 79
-  excFile = trim(densfile)//".exc"
-  open (unit=excUnit, file=trim(excFile), status="replace", form="unformatted")
-  ! Write results to file
-  do speciesID = 1, numberOfSpecies
-
-    ! print *, trim(MolecularSystem_getNameOfSpecies(speciesID)), numberOfParticles(speciesID)
-    ! call Matrix_show(exchangeCorrelationMatrix(speciesID))
-
-    labels(2) = trim(MolecularSystem_getNameOfSpecies(speciesID))
-    labels(1) = "NUMBER-OF-PARTICLES"
-    call Vector_writeToFile(unit=excUnit, binary=.true., value=numberOfParticles(speciesID), arguments=labels(1:2))
-
-    labels(1) = "EXCHANGE-CORRELATION-MATRIX"
-    call Matrix_writeToFile(exchangeCorrelationMatrix(speciesID), unit=excUnit, binary=.true., arguments=labels(1:2))
-
-    do otherSpeciesID = speciesID, numberOfSpecies
-      labels(2) = trim(MolecularSystem_getNameOfSpecies(speciesID))//trim(MolecularSystem_getNameOfSpecies(otherSpeciesID))
-      labels(1) = "EXCHANGE-CORRELATION-ENERGY"
-      call Vector_writeToFile(unit=excUnit, binary=.true., value=exchangeCorrelationEnergy%values(speciesID, otherSpeciesID), arguments=labels(1:2))
-    end do
-
-  end do
-  close (unit=excUnit)
-
-  deallocate (densityMatrix, numberOfParticles, &
-              exchangeCorrelationMatrix)
-  deallocate (grids)
-  deallocate (gridsCommonPoints)
-
-end program DFT
+  end subroutine DFT_main
+  
+end module DFT
 
