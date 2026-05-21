@@ -27,39 +27,45 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-program Cosmo
-  use CONTROL_
-  use MolecularSystem_
-  use Matrix_
-  use String_
+module Cosmo
+  use MolecularSystem_ , only : MolecularSystem_loadFromFile
+  use Stopwatch_
   use CosmoCore_
 
   implicit none
+  public Cosmo_main
 
-  integer(8) :: n
+contains
 
-  type(Matrix) :: cmatin
-  type(Matrix) :: qc
-  type(Matrix) :: qq
+  subroutine Cosmo_main()
+    implicit none
+  
+    integer(8) :: n
+  
+    type(Matrix) :: cmatin
+    type(Matrix) :: qc
+    type(Matrix) :: qq
+  
+    !!Start time
+    call Stopwatch_constructor(lowdin_stopwatch)
+    call Stopwatch_start(lowdin_stopwatch)
+  
+    !!Load CONTROL Parameters
+    call MolecularSystem_loadFromFile("LOWDIN.DAT")
+  
+    !!Load the system in lowdin.sys format
+    call MolecularSystem_loadFromFile("LOWDIN.SYS")
+  
+    !cmatin es el dummy de cmatinv
+    call CosmoCore_constructor(surfaceSegment_instance, cmatin)
+  
+    n = MolecularSystem_instance%numberOfParticles
+  
+    call CosmoCore_clasical(surfaceSegment_instance, n, cmatin, qc)
+  
+    call system(" lowdin-ints.x COSMO ")
 
-  !!Start time
-  call Stopwatch_constructor(lowdin_stopwatch)
-  call Stopwatch_start(lowdin_stopwatch)
+  end subroutine Cosmo_main
 
-  !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile("LOWDIN.DAT")
-
-  !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile("LOWDIN.SYS")
-
-  !cmatin es el dummy de cmatinv
-  call CosmoCore_constructor(surfaceSegment_instance, cmatin)
-
-  n = MolecularSystem_instance%numberOfParticles
-
-  call CosmoCore_clasical(surfaceSegment_instance, n, cmatin, qc)
-
-  call system(" lowdin-ints.x COSMO ")
-
-end program Cosmo
+end module Cosmo
 
