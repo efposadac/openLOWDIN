@@ -33,7 +33,7 @@
 !!
 !<
 
-program Output_
+module Output_
   use MolecularSystem_
   use Matrix_
   use InputOutput_
@@ -41,52 +41,58 @@ program Output_
   use Stopwatch_
   implicit none
 
-  character(50) :: job
-  integer :: numberOfOutputs, i
+  public Output_main
 
-  job = ""
-  call get_command_argument(1, value=job)
-  job = trim(String_getUppercase(job))
+contains
 
-  !!Start time
-  call Stopwatch_constructor(lowdin_stopwatch)
-  call Stopwatch_start(lowdin_stopwatch)
+  subroutine Output_main(job)
+    implicit none
+  
+    character(50) :: job
+    integer :: numberOfOutputs, i
+  
+    job = trim(String_getUppercase(job))
+  
+    !!Start time
+    call Stopwatch_constructor(lowdin_stopwatch)
+    call Stopwatch_start(lowdin_stopwatch)
+  
+    !!Load CONTROL Parameters
+    call MolecularSystem_loadFromFile("LOWDIN.DAT")
+  
+    !!Load the system in lowdin.sys format
+    call MolecularSystem_loadFromFile("LOWDIN.SYS")
+  
+    if (job .eq. "FCHK") then
+  
+      allocate (outputs_instance(1))
+  
+      call OutputBuilder_constructor(outputs_instance(1), 1, &
+                                     "FCHKFILE", "ALL")
+  
+      call OutputBuilder_buildOutput(outputs_instance(1))
+      call OutputBuilder_show(outputs_instance(1))
+  
+    else
+      read (job, "(I10)") numberOfOutputs
+  
+      allocate (outputs_instance(numberOfOutputs))
+  
+      call InputOutput_load(outputs_instance(:))
+  
+      do i = 1, numberOfOutputs
+        call OutputBuilder_buildOutput(outputs_instance(i))
+        call OutputBuilder_show(outputs_instance(i))
+      end do
+    end if
+  
+    call Stopwatch_stop(lowdin_stopwatch)
+  
+    write (*, *) ""
+    write (*, "(A,F10.3,A4)") "** TOTAL CPU Time Outputs : ", lowdin_stopwatch%enlapsetTime, " (s)"
+    write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time Outputs : ", lowdin_stopwatch%elapsetWTime, " (s)"
+    write (*, *) ""
+  end subroutine Output_main
 
-  !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile("LOWDIN.DAT")
-
-  !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile("LOWDIN.SYS")
-
-  if (job .eq. "FCHK") then
-
-    allocate (outputs_instance(1))
-
-    call OutputBuilder_constructor(outputs_instance(1), 1, &
-                                   "FCHKFILE", "ALL")
-
-    call OutputBuilder_buildOutput(outputs_instance(1))
-    call OutputBuilder_show(outputs_instance(1))
-
-  else
-    read (job, "(I10)") numberOfOutputs
-
-    allocate (outputs_instance(numberOfOutputs))
-
-    call InputOutput_load(outputs_instance(:))
-
-    do i = 1, numberOfOutputs
-      call OutputBuilder_buildOutput(outputs_instance(i))
-      call OutputBuilder_show(outputs_instance(i))
-    end do
-  end if
-
-  call Stopwatch_stop(lowdin_stopwatch)
-
-  write (*, *) ""
-  write (*, "(A,F10.3,A4)") "** TOTAL CPU Time Outputs : ", lowdin_stopwatch%enlapsetTime, " (s)"
-  write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time Outputs : ", lowdin_stopwatch%elapsetWTime, " (s)"
-  write (*, *) ""
-
-end program Output_
+end module Output_
 

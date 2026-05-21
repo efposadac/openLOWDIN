@@ -32,7 +32,7 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-program PT
+module PT
   use CONTROL_
   use MolecularSystem_
   use InputCI_
@@ -42,42 +42,47 @@ program PT
   use String_
   implicit none
 
-  character(50) :: job
+  public PT_main
 
-  job = ""
-  call get_command_argument(1, value=job)
-  job = trim(String_getUppercase(job))
+contains
 
-  !!Start time
-  call Stopwatch_constructor(lowdin_stopwatch)
-  call Stopwatch_start(lowdin_stopwatch)
+  subroutine PT_main(job)
+    implicit none
+    character(50) :: job
 
-  !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile("LOWDIN.DAT")
+    job = trim(String_getUppercase(job))
 
-  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
-     !!Load the system in lowdin.sys format
-  call MolecularSystem_loadFromFile("LOWDIN.SYS")
-  ! else
-  !    !!Load the system in lowdin.sys format
-  !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
-  ! end if
+    !!Start time
+    call Stopwatch_constructor(lowdin_stopwatch)
+    call Stopwatch_start(lowdin_stopwatch)
 
-  call InputCI_constructor()
-  call InputCI_load(MolecularSystem_getNumberOfQuantumSpecies())
+    !!Load CONTROL Parameters
+    call MolecularSystem_loadFromFile("LOWDIN.DAT")
 
-  call PropagatorTheory_constructor(CONTROL_instance%PT_ORDER)
-  call PropagatorTheory_run()
-  call PropagatorTheory_show()
-  call PropagatorTheory_destructor()
+    ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+       !!Load the system in lowdin.sys format
+    call MolecularSystem_loadFromFile("LOWDIN.SYS")
+    ! else
+    !    !!Load the system in lowdin.sys format
+    !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
+    ! end if
 
-  !!stop time
-  call Stopwatch_stop(lowdin_stopwatch)
+    call InputCI_constructor()
+    call InputCI_load(MolecularSystem_getNumberOfQuantumSpecies())
 
-  write (*, *) ""
-  write (*, "(A,F10.3,A4)") "** TOTAL CPU Time PT : ", lowdin_stopwatch%enlapsetTime, " (s)"
-  write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time PT : ", lowdin_stopwatch%elapsetWTime, " (s)"
-  write (*, *) ""
-  close (30)
+    call PropagatorTheory_constructor(CONTROL_instance%PT_ORDER)
+    call PropagatorTheory_run()
+    call PropagatorTheory_show()
+    call PropagatorTheory_destructor()
 
-end program PT
+    !!stop time
+    call Stopwatch_stop(lowdin_stopwatch)
+
+    write (*, *) ""
+    write (*, "(A,F10.3,A4)") "** TOTAL CPU Time PT : ", lowdin_stopwatch%enlapsetTime, " (s)"
+    write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time PT : ", lowdin_stopwatch%elapsetWTime, " (s)"
+    write (*, *) ""
+    close (30)
+  end subroutine PT_main
+
+end module PT
