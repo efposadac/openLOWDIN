@@ -408,21 +408,19 @@ echo "SED = $SED"  >> CONFIG
 #                       Generate makefiles
 ###############################################################################
 
-SRCDIR="src utilities"
-SUBDIRS="core ints DFT scf integralsTransformation MBPT PT CalcProp aduw gepol cosmo output CI NOCI MM molden2aim jadamilu erkale"
+echo "Generating makefile for:"
 
-for DIR in $SRCDIR ; do
-    cd $DIR
-    for SUBDIR in $SUBDIRS ; do
-	if [[ -e $SUBDIR ]] ; then	    
-	    cd $SUBDIR  
-	    echo $SUBDIR
-	    ./configure
-	    cd ..
-	fi
+SRCDIR="src utilities"
+for DIR in $SRCDIR; do
+    for SUBDIR in "$DIR"/*/; do
+        if [[ -d "$SUBDIR" && -x "${SUBDIR}configure" ]]; then
+            echo "$SUBDIR"
+            ( cd "$SUBDIR" && ./configure )
+        fi
     done
-    cd ..
 done
+
+rm -fr build/
 
 echo "DONE. Now you can proceed with \"make\" command"
 

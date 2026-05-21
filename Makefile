@@ -2,6 +2,7 @@ TOPDIR=.
 ifndef SRCDIR
   SRCDIR=$(shell pwd)
 endif
+BUILD_DIR=$(TOPDIR)/build
 
 include $(TOPDIR)/CONFIG
 
@@ -25,10 +26,12 @@ doc::
 	cd $(TOPDIR)/doc && doxygen Doxyfile
 
 install:: bin/lowdin bin/lowdin.x
+	# cleaning before	
 	if [ -e $(PREFIX)/.$(EXENAME) ]; then \
 		rm -rf $(PREFIX)/.$(EXENAME)/bin \
 		rm -rf $(PREFIX)/.$(EXENAME)/lib ; fi
 	mkdir -p $(PREFIX)/.$(EXENAME)
+	# environment variables
 	cp -rf $(TOPDIR)/bin/lowdinvars.sh $(TOPDIR)
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdinvars.sh
 	$(SED) -i  's|EXENAME|$(EXENAME)|g' $(TOPDIR)/lowdinvars.sh
@@ -36,18 +39,24 @@ install:: bin/lowdin bin/lowdin.x
 	$(SED) -i "s|COMMIT_ID|$(shell git --no-pager log -1 --pretty=format:"%H")|g" $(TOPDIR)/lowdinvars.sh
 	$(SED) -i 's|COMPILATION_DATE|$(shell date)|g' $(TOPDIR)/lowdinvars.sh
 	cp -rf $(TOPDIR)/lowdinvars.sh $(PREFIX)/.$(EXENAME)/
+	# copy external libs
 	cp -rf lib/ $(PREFIX)/.$(EXENAME)/lib/	
 	if [ -e utilities/erkale/build/erkale/basis ]; then \
 		cp -rf utilities/erkale/build/erkale/basis $(PREFIX)/.$(EXENAME)/lib/erkaleBasis ; fi
+	# copy openlowdin libs
+	cp $(wildcard $(BUILD_DIR)/*/*.a) $(PREFIX)/.$(EXENAME)/lib/
+	# copy openlowdin binary
 	mkdir -p $(PREFIX)/.$(EXENAME)/bin
-	cp -rf $(TOPDIR)/bin/*.x $(PREFIX)/.$(EXENAME)/bin
+	cp -rf $(BUILD_DIR)/*.x $(PREFIX)/.$(EXENAME)/bin
 	if [ -e utilities/erkale/erkale/bin/erkale_loc ]; then \
 		cp -rf utilities/erkale/erkale/bin/erkale_fchkpt utilities/erkale/erkale/bin/erkale_loc $(PREFIX)/.$(EXENAME)/bin ; fi
+	# copy openlowdin bash script
 	cp -rf $(TOPDIR)/bin/lowdin $(TOPDIR)
 	$(SED) -i  's|PREFIX|$(PREFIX)|g' $(TOPDIR)/lowdin
 	$(SED) -i  's|EXENAME|$(EXENAME)|g' $(TOPDIR)/lowdin
 	cp -rf $(TOPDIR)/lowdin $(PREFIX)/$(EXENAME)
-	cp -rf $(TOPDIR)/lowdin $(PREFIX)/.$(EXENAME)/$(EXENAME)
+	#cp -rf $(TOPDIR)/lowdin $(PREFIX)/.$(EXENAME)/$(EXENAME) #why?
+	# cleaning some tmp copies
 	rm -rf $(TOPDIR)/lowdin
 	rm -rf $(TOPDIR)/lowdinvars.sh
 

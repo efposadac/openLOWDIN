@@ -1,0 +1,12 @@
+output: core
+CI: core
+MM: core
+MBPT: core
+PT: core
+cosmo: core
+ints: core
+integralsTransformation: core ints
+CalcProp: core ints
+DFT: core
+scf: core ints DFT
+NOCI: core ints scf DFT
