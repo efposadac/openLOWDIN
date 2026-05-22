@@ -32,7 +32,7 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-module MBPT
+module MBPT_
   use CONTROL_
   use MolecularSystem_
   use InputCI_
@@ -46,11 +46,8 @@ module MBPT
 
 contains
 
-  subroutine MBPT_main (job)
+  subroutine MBPT_main()
     implicit none
-    character(50) :: job
-  
-    job = trim(String_getUppercase(job))
   
     !!Start time
     call Stopwatch_constructor(lowdin_stopwatch)
@@ -93,4 +90,4 @@ contains
     write (*, *) ""
     close (30)
   end subroutine MBPT_main
-end module MBPT
+end module MBPT_

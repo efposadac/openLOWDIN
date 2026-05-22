@@ -49,11 +49,13 @@ module CalcProp_
 
 contains
 
-  subroutine CalcProp_main (fileName)
+  subroutine CalcProp_main(auxfileName)
     implicit none
     type(CalculateProperties) :: CalculateProperties_instance
+    character(len=*) :: auxfileName
     character(50) :: fileName
   
+    fileName = trim(auxfileName)
     if (fileName .eq. "") fileName = "lowdin"
   
     !!Load CONTROL Parameters

@@ -66,6 +66,7 @@ contains
     character(*) :: type
 
     this%ssize = numberOfPotentials
+    if (allocated(this%potentials)) deallocate (this%potentials)
     allocate (this%potentials(numberOfPotentials))
     this%isInstanced = .true.
     this%type = type

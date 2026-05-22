@@ -45,6 +45,8 @@ module MultiSCF_
   use OrbitalLocalizer_
   use Convergence_
   use Libint2Interface_
+  use DFT_,    only : DFT_main
+  use Output_, only : Output_main
 
   implicit none
 
@@ -202,7 +204,7 @@ contains
     !!Initialize DFT: Calculate Grids and build functionals
     if (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") then
       if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
-        call system("lowdin-DFT.x BUILD_SCF_GRID")
+        call DFT_main("BUILD_SCF_GRID","")
         do speciesID = 1, nspecies
           dftUnit = 77
           dftFile = "lowdin."//trim(MolecularSystem_getNameOfSpecies(speciesID, this%molSys))//".grid"
@@ -297,7 +299,7 @@ contains
     if (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") then
       if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
         call WaveFunction_writeDensityMatricesToFile(wfObjects, densFile)
-        call system("lowdin-DFT.x SCF_DFT "//trim(densFile))
+        call DFT_main("SCF_DFT", trim(densFile))
       else
         call WaveFunction_getDFTContributions(wfObjects, this%DFTGrids, this%DFTGridsCommonPoints, "SCF")
       end if
@@ -901,7 +903,7 @@ contains
       close (wfnUnit)
 
       !! Build fchk files with Lowdin results
-      call system("lowdin-output.x FCHK")
+      call Output_main("FCHK")
 
       !! Erkale Orbital Localization calls
       !! Orbital localization should not change density matrices
@@ -951,8 +953,8 @@ contains
     if (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") then
       call WaveFunction_writeDensityMatricesToFile(wfObjects, densFile)
       if (CONTROL_instance%GRID_STORAGE .eq. "DISK") then
-        call system("lowdin-DFT.x BUILD_FINAL_GRID "//trim(densFile))
-        call system("lowdin-DFT.x FINAL_DFT "//trim(densFile))
+        call DFT_main("BUILD_FINAL_GRID", trim(densFile))
+        call DFT_main("FINAL_DFT", trim(densFile))
       else
         call WaveFunction_getDFTContributions(wfObjects, this%DFTGrids, this%DFTGridsCommonPoints, "FINAL")
       end if

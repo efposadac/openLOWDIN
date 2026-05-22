@@ -3,10 +3,11 @@ CI: core
 MM: core
 MBPT: core
 PT: core
-cosmo: core
 ints: core
+cosmo: core ints
 integralsTransformation: core ints
 CalcProp: core ints
 DFT: core
-scf: core ints DFT
-NOCI: core ints scf DFT
+scf: core ints DFT output
+NOCI: core ints scf DFT output
+Solver: core cosmo scf MM integralsTransformation MBPT PT CI NOCI CalcProp

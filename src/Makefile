@@ -8,8 +8,10 @@ BUILD_DIR = $(abspath $(TOPDIR)/build)
 # Let Fortran knows the building dir 
 FCFLAGS += -J $(BUILD_DIR)
 
+
 # openlowdin library for each folder here with a configure inside
-SUBDIRS := $(patsubst %/,%,$(dir $(wildcard */configure)))
+SUBDIRS = core output CI MM MBPT PT cosmo ints integralsTransformation CalcProp DFT scf NOCI Solver
+#SUBDIRS := $(patsubst %/,%,$(dir $(wildcard */configure)))
 
 # Reverse function
 reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1))) $(firstword $(1)))
@@ -22,6 +24,9 @@ STATIC_LIBS = $(foreach dir,$(LINK_ORDER),$(BUILD_DIR)/$(dir)/$(dir).a)
 
 # External libraries
 LIBS=$(ALL_LIBS)
+LIBS += $(TOPDIR)/lib/libtransform.a 
+LIBS += $(TOPDIR)/lib/libjadamilu.a
+LIBS += $(TOPDIR)/lib/libmolden2aim.a
 
 TARGET=$(BUILD_DIR)/lowdin.x
 
@@ -45,7 +50,8 @@ $(SUBDIRS):
 
 # Linking Step
 $(TARGET): $(BUILD_DIR)/lowdin.x.o
-	$(FC) $(FCFLAGS) -o $@ $< $(STATIC_LIBS) $(ALL_LIBS)
+	$(FC) $(FCFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS) 
+	mv $(TARGET) $(TOPDIR)/bin/
 
 # Compiling main 
 $(BUILD_DIR)/lowdin.x.o: lowdin.x.f90 subdirs 

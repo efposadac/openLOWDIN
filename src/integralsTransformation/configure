@@ -109,7 +109,7 @@ LIBS=\$(ALL_LIBS)
 
 # Rule for compiling C++ files
 \$(LOCAL_BUILD_DIR)/%.o: %.cpp
-	\$(CPP) \$(CPPFLAGS) -I. -c \$< -o \$@
+	\$(CXX) \$(CPPFLAGS) -I. -c \$< -o \$@
 
 clean:
 	@true

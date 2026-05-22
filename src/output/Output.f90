@@ -45,13 +45,14 @@ module Output_
 
 contains
 
-  subroutine Output_main(job)
+  subroutine Output_main(auxjob)
     implicit none
   
+    character(len=*) :: auxjob
     character(50) :: job
     integer :: numberOfOutputs, i
   
-    job = trim(String_getUppercase(job))
+    job = trim(String_getUppercase(auxjob))
   
     !!Start time
     call Stopwatch_constructor(lowdin_stopwatch)

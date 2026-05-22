@@ -27,12 +27,11 @@ program lowdin_
   use Stopwatch_
   use InputManager_
   use MolecularSystem_
-  use GeometryOptimizer_
-  use Solver_
+  use Solver_,          only : Solver_main
+  use Output_,          only : Output_main
   implicit none
 
   character(50) :: strAuxNumber
-  integer :: statusSystem
 
   !! Time Control
   call Stopwatch_constructor(lowdin_stopwatch)
@@ -133,19 +132,13 @@ program lowdin_
   !!***************************************************************************
   !!        Running the properly solver for a selected method
   !!
-  if (CONTROL_instance%OPTIMIZE) then
-    call GeometryOptimizer_constructor(GeometryOptimizer_instance)
-    call GeometryOptimizer_run(GeometryOptimizer_instance)
-    call GeometryOptimizer_destructor(GeometryOptimizer_instance)
-  else
-    call Solver_run()
-  end if
+  call Solver_main()
   !!
   !!******************************************************************************
 
   if (CONTROL_instance%IS_THERE_OUTPUT) then
     write (strAuxNumber, "(I10)") Input_instance%numberOfOutputs
-    statusSystem = system("lowdin-output.x"//trim(strAuxNumber))
+    call Output_main(trim(strAuxNumber))
   end if
 
   !!Cleaning

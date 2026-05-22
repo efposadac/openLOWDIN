@@ -26,7 +26,7 @@
 !!
 !! @warning This programs only works linked to lowdincore library, provided by LOWDIN quantum chemistry package
 !!
-module NOCI
+module NOCI_
   use NOCIBuild_
   use NOCIRunSCF_
   use NOCIMatrices_
@@ -38,19 +38,24 @@ module NOCI
   use MolecularSystem_
   use String_
   use Stopwatch_
+  use SCF_ ,                    only : SCF_main
+  use CalcProp_ ,               only : CalcProp_main
+  use Output_ ,                 only : Output_main
+
   implicit none
 
   public NOCI_main
 
 contains
 
-  subroutine NOCI_main(job)
+  subroutine NOCI_main(auxjob)
 
     implicit none
+    character(len=*) :: auxjob
     character(50) :: job
     character(50) :: strAuxNumber
   
-    job = trim(String_getUppercase(job))
+    job = trim(String_getUppercase(auxjob))
   
     if (trim(job) .eq. "POSTSCF") then !POST SCF after a main lowdin2 calculation
   
@@ -194,13 +199,13 @@ contains
       select case (trim(CONTROL_instance%METHOD))
   
       case ('RHF')
-        call system("lowdin-SCF.x RHF")
+        call SCF_main("RHF")
       case ('UHF')
-        call system("lowdin-SCF.x UHF")
+        call SCF_main("UHF")
       case ('RKS')
-        call system("lowdin-SCF.x RKS")
+        call SCF_main("RKS")
       case ('UKS')
-        call system("lowdin-SCF.x UKS")
+        call SCF_main("UKS")
       case default
         STOP "The method: "//trim(CONTROL_instance%METHOD)//" is not implemented"
       end select
@@ -237,11 +242,11 @@ contains
       call MolecularSystem_saveToFile()
   
       !!calculate CI density properties
-      if (.not. (CONTROL_instance%COMPUTE_ROCI_FORMULA .or. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS)) call system("lowdin-CalcProp.x")
+      if (.not. (CONTROL_instance%COMPUTE_ROCI_FORMULA .or. CONTROL_instance%ONLY_FIRST_NOCI_ELEMENTS)) call CalcProp_main( "lowdin" )
   
       if (CONTROL_instance%IS_THERE_OUTPUT) then
         write (strAuxNumber, "(I10)") Input_instance%numberOfOutputs
-        call system("lowdin-output.x"//trim(strAuxNumber))
+        call Output_main(trim(strAuxNumber))
         ! statusSystem = system ("lowdin-output.x" //trim(strAuxNumber))
       end if
   
@@ -266,4 +271,4 @@ contains
 
   end subroutine NOCI_main
 
-end module NOCI
+end module NOCI_

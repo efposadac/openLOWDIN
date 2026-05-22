@@ -23,7 +23,7 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-module DFT
+module DFT_
   use CONTROL_
   use MolecularSystem_
   use DensityFunctionalTheory_
@@ -39,8 +39,10 @@ module DFT
 
 contains
 
-  subroutine DFT_main (job, densFile)
+  subroutine DFT_main(auxjob, auxdensFile)
 
+    character(len=*) :: auxjob
+    character(len=*) :: auxdensFile
     character(50) :: job
     character(100) :: densFile
     type(Grid), allocatable :: grids(:), gridsCommonPoints(:, :)
@@ -55,7 +57,8 @@ contains
     integer :: numberOfSpecies
     integer :: speciesID, otherSpeciesID
   
-    job = trim(String_getUppercase(job))
+    job = trim(String_getUppercase(auxjob))
+    densFile = trim(auxdensFile)
   
     ! write(*,"(A,A)") trim(job), trim(densFile)
     !!Load CONTROL Parameters
@@ -81,10 +84,10 @@ contains
     select case (job)
     case ("BUILD_SCF_GRID")
       call DensityFunctionalTheory_buildSCFGrid(grids, gridsCommonPoints)
-      STOP
+      return
     case ("BUILD_FINAL_GRID")
       call DensityFunctionalTheory_buildFinalGrid(grids, gridsCommonPoints)
-      STOP
+      return
     end select
   
     !!!Computing energy and potential jobs
@@ -176,5 +179,5 @@ contains
 
   end subroutine DFT_main
   
-end module DFT
+end module DFT_
 

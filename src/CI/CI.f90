@@ -26,7 +26,7 @@
 !!
 !! @warning This programs only works linked to lowdincore library, provided by LOWDIN quantum chemistry package
 !!
-module CI
+module CI_
   use CONTROL_ , only : CONTROL_instance 
   use MolecularSystem_ , only : MolecularSystem_loadFromFile, MolecularSystem_getNumberOfQuantumSpecies
   use Stopwatch_ 
@@ -40,12 +40,13 @@ module CI
 
 contains
 
-  subroutine CI_main (job)
+  subroutine CI_main(auxjob)
     implicit none
+    character(len=*) :: auxjob
     character(50) :: job
     integer :: numberOfSpeciesInCI
   
-    job = trim(String_getUppercase(job))
+    job = trim(String_getUppercase(auxjob))
   
     !!Start time
     call Stopwatch_constructor(lowdin_stopwatch)
@@ -89,4 +90,4 @@ contains
 
   end subroutine CI_main
 
-end module CI
+end module CI_

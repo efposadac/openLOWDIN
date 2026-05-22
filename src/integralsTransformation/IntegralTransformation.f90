@@ -34,7 +34,7 @@
 !! @warning This programs only works linked to lowdincore library,
 !!          provided by LOWDIN quantum chemistry package
 !!
-module IntegralsTransformation
+module IntegralsTransformation_
   use CONTROL_
   use MolecularSystem_
   use InputCI_
@@ -50,13 +50,12 @@ module IntegralsTransformation
   use String_
   implicit none
 
-  public IntegralTransformation_main
+  public IntegralsTransformation_main
 
 contains
 
-  subroutine IntegralTransformation_main(job)
+  subroutine IntegralsTransformation_main()
     implicit none
-    character(50) :: job
     integer :: i, j, z
     integer :: speciesID, otherSpeciesID
     integer(8) :: numberOfContractions
@@ -100,8 +99,6 @@ contains
   
     call InputCI_constructor()
     call InputCI_load(MolecularSystem_getNumberOfQuantumSpecies())
-  
-    job = trim(String_getUppercase(job))
   
     !!Start time
     timeA = omp_get_wtime()
@@ -365,7 +362,7 @@ contains
   
     close (wfnUnit)
 
-  end subroutine IntegralTransformation_main
+  end subroutine IntegralsTransformation_main
 
-end module IntegralsTransformation
+end module IntegralsTransformation_
 

@@ -21,7 +21,7 @@
 !! <b> Historial de modificaciones: </b>
 !!   - <tt> 2013-02-28 </tt>: E. F. Posada ( efposadac@unal.edu.co )
 !!        -# Creacion del programa, depuracion y pruebas exahustivas
-module Ints
+module Ints_
   use CONTROL_
   use MolecularSystem_
   use EnergyGradients_
@@ -39,8 +39,9 @@ module Ints
 
 contains
 
-  subroutine Ints_main (job)
+  subroutine Ints_main(auxjob)
     implicit none
+    character(len=*) :: auxjob
     character(50) :: job
     integer :: speciesID, i, j
   
@@ -51,7 +52,7 @@ contains
     ! integer :: j
     !Cosmo test
   
-    job = trim(String_getUppercase(job))
+    job = trim(String_getUppercase(auxjob))
   
     !!Start time
     call Stopwatch_constructor(lowdin_stopwatch)
@@ -282,4 +283,4 @@ contains
 
   end subroutine Ints_main
 
-end module Ints
+end module Ints_

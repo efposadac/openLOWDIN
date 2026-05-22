@@ -47,7 +47,7 @@ install:: bin/lowdin bin/lowdin.x
 	cp $(wildcard $(BUILD_DIR)/*/*.a) $(PREFIX)/.$(EXENAME)/lib/
 	# copy openlowdin binary
 	mkdir -p $(PREFIX)/.$(EXENAME)/bin
-	cp -rf $(BUILD_DIR)/*.x $(PREFIX)/.$(EXENAME)/bin
+	cp -rf $(TOPDIR)/bin/*.x $(PREFIX)/.$(EXENAME)/bin
 	if [ -e utilities/erkale/erkale/bin/erkale_loc ]; then \
 		cp -rf utilities/erkale/erkale/bin/erkale_fchkpt utilities/erkale/erkale/bin/erkale_loc $(PREFIX)/.$(EXENAME)/bin ; fi
 	# copy openlowdin bash script

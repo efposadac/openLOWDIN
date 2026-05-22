@@ -28,6 +28,10 @@ module OrbitalLocalizer_
   use WaveFunction_
   use Convergence_
   use omp_lib
+  use CalcProp_ ,               only : CalcProp_main
+  use DFT_,                     only : DFT_main
+  use Ints_ ,                   only : Ints_main
+
 
   implicit none
 
@@ -244,6 +248,8 @@ contains
     real(8) :: totalEmbeddingPotentialEnergyA, totalProjectionCorrectionA = 0.0
     real(8) :: totalPotentialEnergy, totalKineticEnergy
     real(8) :: kAB, pAB
+
+    character(50) :: filename
 
     densUnitA = 77
     densUnitB = 78
@@ -682,7 +688,7 @@ contains
     !!Save density matrix B and run DFT for the subsystem B
     if (CONTROL_instance%METHOD .eq. "RKS" .or. CONTROL_instance%METHOD .eq. "UKS") then
       call WaveFunction_writeDensityMatricesToFile(WaveFunction_instance, trim(densFileB), densityMatrixB(:))
-      call system("lowdin-DFT.x SCF_DFT "//trim(densFileB))
+      call DFT_main("SCF_DFT ",trim(densFileB))
     end if
 
     !!!Build subsystem B matrices - these do not change in the second SCF cycle
@@ -794,9 +800,9 @@ contains
         call WaveFunction_writeDensityMatricesToFile(WaveFunction_instance, trim(densFileAB), densityMatrixAB(:))
 
         !!Run DFT for subsystem A
-        call system("lowdin-DFT.x SCF_DFT "//trim(densFileA))
+        call DFT_main("SCF_DFT ", trim(densFileA))
         !!Run DFT for complete system A+B
-        call system("lowdin-DFT.x SCF_DFT "//trim(densFileAB))
+        call DFT_main("SCF_DFT ", trim(densFileAB))
 
       end if
 
@@ -1197,15 +1203,15 @@ contains
 
       write (*, *) " FINAL GRID DFT EVALUATION FOR SUBSYSTEM A: "
       write (*, *) "-----------------------------"
-      call system("lowdin-DFT.x FINAL_DFT "//trim(densFileA))
+      call DFT_main("FINAL_DFT ", trim(densFileA))
 
       write (*, *) " FINAL GRID DFT EVALUATION FOR SUBSYSTEM B: "
       write (*, *) "-----------------------------"
-      call system("lowdin-DFT.x FINAL_DFT "//trim(densFileB))
+      call DFT_main("FINAL_DFT ", trim(densFileB))
 
       write (*, *) " FINAL GRID DFT EVALUATION FOR SYSTEM AB: "
       write (*, *) "-----------------------------"
-      call system("lowdin-DFT.x FINAL_DFT "//trim(densFileAB))
+      call DFT_main("FINAL_DFT ", trim(densFileAB))
     end if
 
     !Calculates the final matrices with the final subsystem density
@@ -1829,7 +1835,7 @@ contains
 
     !! Recalculate one particle integrals
     ! call system("rm lowdin.opints")
-    call system("lowdin-ints.x ONE_PARTICLE")
+    call Ints_main("ONE_PARTICLE")
 
     !! Start the wavefunction object
     deallocate (WaveFunction_instance)
@@ -1942,10 +1948,15 @@ contains
       end do
     else
       call system("rm  *.ints")
+      do speciesID = 1, numberOfSpecies
+        if (Libint2Instance(speciesID)%isInstanced) call Libint2Interface_destructor(Libint2Instance(speciesID))
+      end do
+
+
       if (CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
-        call system(" lowdin-ints.x TWO_PARTICLE_G12")
+        call Ints_main("TWO_PARTICLE_G12")
       else
-        call system(" lowdin-ints.x TWO_PARTICLE_R12")
+        call Ints_main("TWO_PARTICLE_R12")
       end if
     end if
 
@@ -2223,7 +2234,10 @@ contains
     close (wfnUnit)
 
     !!calculate HF/KS properties
-    call system("lowdin-CalcProp.x")
+    filename = "lowdin"
+    call CalcProp_main( filename )
+  
+
 
   end subroutine OrbitalLocalizer_levelShiftSubsystemOrbitals
 

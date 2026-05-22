@@ -53,7 +53,7 @@ module GeometryOptimizer_
   ! use MollerPlesset_
   ! use Input_Parsing_
   ! use ExternalSoftware_
-  use Solver_
+  use SinglePoint_
   use Exception_
   implicit none
 
@@ -225,7 +225,7 @@ contains
       print *, "END GEOMETRY OPTIMIZATION "
       print *, ""
 
-      call Solver_run()
+      call SinglePoint_run()
 
     end if
 
@@ -292,7 +292,7 @@ contains
 
     CONTROL_instance%SCF_CONVERGENCE_CRITERIUM = "energy"
 
-    call Solver_run()
+    call SinglePoint_run()
     open (unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
     !! Load results...
     call Vector_getFromFile(unit=wfnUnit, binary=.true., value=totalEnergy, arguments=["TOTALENERGY"])

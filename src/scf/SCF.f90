@@ -19,7 +19,7 @@
 !! @info All iterations schemes have been tested. But if you want to add new matrix, have to fix all shchemes
 !!       to support this matrix.
 !! This program needs lowdincore library to compile, all functions of molecular system are extensively used.
-module SCF
+module SCF_
   use Stopwatch_
   use CONTROL_
   use WaveFunction_
@@ -29,21 +29,24 @@ module SCF
   use Exception_
   use omp_lib
   use OrbitalLocalizer_
+  use CalcProp_ ,               only : CalcProp_main
+  use Ints_ ,                   only : Ints_main
   implicit none
 
   public SCF_main
 
 contains
 
-  subroutine SCF_main(job)
+  subroutine SCF_main(auxjob)
     implicit none
     integer :: speciesID, otherSpeciesID
     integer :: wfnUnit
+    character(len=*) :: auxjob
     character(50) :: job
     character(50) :: wfnFile
     character(30) :: labels(2)
   
-    job = trim(String_getUppercase(job))
+    job = trim(String_getUppercase(auxjob))
   
     !!Load CONTROL Parameters
     call MolecularSystem_loadFromFile("LOWDIN.DAT")
@@ -74,7 +77,7 @@ contains
   
     !! Calculate one-particle integrals
     if (CONTROL_instance%INTEGRAL_STORAGE == "DISK") &
-      call system("lowdin-ints.x ONE_PARTICLE")
+      call Ints_main("ONE_PARTICLE")
   
     !! Build hcore operators and use them to get guess (or read previous coefficients)
     call MultiSCF_buildHcore(MultiSCF_instance, WaveFunction_instance)
@@ -98,9 +101,9 @@ contains
       close (wfnUnit)
   
       if (CONTROL_instance%IS_THERE_INTERPARTICLE_POTENTIAL) then
-        call system(" lowdin-ints.x TWO_PARTICLE_G12")
+        call Ints_main("TWO_PARTICLE_G12")
       else
-        call system(" lowdin-ints.x TWO_PARTICLE_R12")
+        call Ints_main("TWO_PARTICLE_R12")
       end if
     else if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY") then
       call DirectIntegralManager_constructor(Libint2Instance, MolecularSystem_instance)
@@ -147,12 +150,12 @@ contains
     end if
   
     if (.not. CONTROL_instance%OPTIMIZE .and. CONTROL_instance%GET_GRADIENTS) then
-      call system("lowdin-ints.x GET_GRADIENTS")
+        call Ints_main("GET_GRADIENTS")
     end if
   
     if (CONTROL_instance%SUBSYSTEM_EMBEDDING) then
       !!calculate HF/KS properties for the full system
-      call system("lowdin-CalcProp.x")
+      call CalcProp_main( "lowdin" )
   
       print *, ""
       print *, "-------------------------------------------"
@@ -166,5 +169,5 @@ contains
     end if
   end subroutine SCF_main
 
-end module SCF
+end module SCF_
 

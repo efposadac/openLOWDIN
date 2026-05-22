@@ -27,7 +27,7 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-module MolecularMechanics
+module MolecularMechanics_
   use CONTROL_
   use MolecularSystem_
   use String_
@@ -39,14 +39,15 @@ module MolecularMechanics
 
 contains
 
-  subroutine MolecularMechanics_main(job)
+  subroutine MolecularMechanics_main(auxjob)
     implicit none
+    character(len=*) :: auxjob
     character(50) :: job
     character(50) :: ffmethod
     logical :: electrostaticEnergy
     logical :: printAllMM
   
-    job = trim(String_getUppercase(job))
+    job = trim(String_getUppercase(auxjob))
   
     !!Start time
     call Stopwatch_constructor(lowdin_stopwatch)
@@ -77,4 +78,4 @@ contains
     close (30)
   end subroutine MolecularMechanics_main
 
-end module MolecularMechanics
+end module MolecularMechanics_
