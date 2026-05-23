@@ -66,6 +66,7 @@ contains
   
     if (job .eq. "FCHK") then
   
+      if ( allocated (outputs_instance) ) deallocate (outputs_instance)
       allocate (outputs_instance(1))
   
       call OutputBuilder_constructor(outputs_instance(1), 1, &
@@ -77,6 +78,7 @@ contains
     else
       read (job, "(I10)") numberOfOutputs
   
+      if ( allocated (outputs_instance) ) deallocate (outputs_instance)
       allocate (outputs_instance(numberOfOutputs))
   
       call InputOutput_load(outputs_instance(:))
