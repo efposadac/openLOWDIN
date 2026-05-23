@@ -663,6 +663,9 @@ contains
         *MolecularSystem_getEta(speciesID)
     end do
 
+    !! Save the species changes in the lowdin sys files, otherwise DFT_main will reload those from the original input
+    call MolecularSystem_saveToFile()
+
     print *, ""
     print *, "Orbital Subsystem Distribution"
     print *, ""
