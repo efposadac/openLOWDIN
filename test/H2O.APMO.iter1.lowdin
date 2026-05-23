@@ -18,4 +18,5 @@ CONTROL
 	scfElectronicMaxIterations=25
 	scfGlobalMaxIterations=10000
 	integralStorage="MEMORY"
+	integralThreshold = 1e-13
 END CONTROL
