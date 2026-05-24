@@ -31,6 +31,7 @@ module SCF_
   use OrbitalLocalizer_
   use CalcProp_ ,               only : CalcProp_main
   use Ints_ ,                   only : Ints_main
+  use Deriv_ ,                  only : Deriv_main
   implicit none
 
   public SCF_main
@@ -150,7 +151,7 @@ contains
     end if
   
     if (.not. CONTROL_instance%OPTIMIZE .and. CONTROL_instance%GET_GRADIENTS) then
-        call Ints_main("GET_GRADIENTS")
+        call Deriv_main("GET_GRADIENTS")
     end if
   
     if (CONTROL_instance%SUBSYSTEM_EMBEDDING) then

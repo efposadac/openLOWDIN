@@ -10,7 +10,7 @@ FCFLAGS += -J $(BUILD_DIR)
 
 
 # openlowdin library for each folder here with a configure inside
-SUBDIRS = core output CI MM MBPT PT cosmo ints integralsTransformation CalcProp DFT scf NOCI Solver
+SUBDIRS = core output CI MM MBPT PT cosmo ints Deriv integralsTransformation CalcProp DFT scf NOCI Solver
 #SUBDIRS := $(patsubst %/,%,$(dir $(wildcard */configure)))
 
 # Reverse function

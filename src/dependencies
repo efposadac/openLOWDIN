@@ -4,10 +4,11 @@ MM: core
 MBPT: core
 PT: core
 ints: core
+Deriv: core
 cosmo: core ints
 integralsTransformation: core ints
 CalcProp: core ints
 DFT: core
-scf: core ints DFT output
+scf: core ints DFT output Deriv
 NOCI: core ints scf DFT output
-Solver: core cosmo scf MM integralsTransformation MBPT PT CI NOCI CalcProp
+Solver: core cosmo scf MM integralsTransformation MBPT PT CI NOCI CalcProp Deriv

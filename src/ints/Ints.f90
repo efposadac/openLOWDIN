@@ -24,7 +24,6 @@
 module Ints_
   use CONTROL_
   use MolecularSystem_
-  use EnergyGradients_
   use IntegralManager_
   use String_
   use Stopwatch_
@@ -217,10 +216,6 @@ contains
         end if
       end if
   
-    case ("GET_GRADIENTS")
-      call EnergyGradients_constructor()
-      call EnergyGradients_getAnalyticDerivative()
-  
     case ("TWO_PARTICLE_G12")
   
       !! intra-species G12 integration
@@ -273,9 +268,9 @@ contains
   
       write (*, *) "USAGE: lowdin-ints.x job "
       write (*, *) "Where job can be: "
+      write (*, *) "  COSMO"
       write (*, *) "  ONE_PARTICLE"
       write (*, *) "  TWO_PARTICLE_R12"
-      write (*, *) "  GET_GRADIENTS"
       write (*, *) "  TWO_PARTICLE_G12"
       stop "ERROR"
   
