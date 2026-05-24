@@ -27,18 +27,18 @@
 !! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-module Cosmo_
+module COSMO_
   use MolecularSystem_ , only : MolecularSystem_loadFromFile
   use Stopwatch_
   use CosmoCore_
   use Ints_ ,            only : Ints_main
 
   implicit none
-  public Cosmo_main
+  public COSMO_main
 
 contains
 
-  subroutine Cosmo_main()
+  subroutine COSMO_main()
     implicit none
   
     integer(8) :: n
@@ -66,7 +66,7 @@ contains
   
     call Ints_main( "COSMO" )
 
-  end subroutine Cosmo_main
+  end subroutine COSMO_main
 
-end module Cosmo_
+end module COSMO_
 

@@ -1,14 +1,14 @@
-output: core
-CI: core
-MM: core
-MBPT: core
-PT: core
-ints: core
-Deriv: core
-cosmo: core ints
-integralsTransformation: core ints
-CalcProp: core ints
-DFT: core
-scf: core ints DFT output Deriv
-NOCI: core ints scf DFT output
-Solver: core cosmo scf MM integralsTransformation MBPT PT CI NOCI CalcProp Deriv
+Output: Core
+CI: Core
+MM: Core
+MBPT: Core
+PT: Core
+Ints: Core
+Deriv: Core
+COSMO: Core Ints
+IntegralsTransformation: Core Ints
+CalcProp: Core Ints
+DFT: Core
+SCF: Core Ints DFT Output Deriv
+NOCI: Core Ints SCF DFT Output
+Solver: Core COSMO SCF MM IntegralsTransformation MBPT PT CI NOCI CalcProp Deriv

@@ -4,7 +4,7 @@ module SinglePoint_
   use String_
   use Exception_
   use InputManager_
-  use Cosmo_ ,                  only : Cosmo_main
+  use COSMO_ ,                  only : COSMO_main
   use SCF_ ,                    only : SCF_main
   use IntegralsTransformation_, only : IntegralsTransformation_main
   use MolecularMechanics_ ,     only : MolecularMechanics_main
@@ -27,7 +27,7 @@ contains
     character(100) :: auxString
 
     !Check cosmo
-    if (CONTROL_instance%COSMO) call Cosmo_main()
+    if (CONTROL_instance%COSMO) call COSMO_main()
 
     !Do SCF
     select case (trim(CONTROL_instance%METHOD))
