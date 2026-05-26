@@ -298,15 +298,17 @@ contains
 
     type(ContractedGaussian), intent(in) :: this
 
-    integer :: i
-    character(9) :: shellCode(this%numCartesianOrbital)
+    integer :: i, m
+    character(len=10) :: shellCode(this%numCartesianOrbital)
 
     shellCode = ContractedGaussian_getShellCode(this)
 
-    do i = 1, this%length
+    do m = 1, this%numCartesianOrbital
+      do i = 1, this%length
 
-      write (6, "(T10,I5,A9,A1,A6,F20.8,F20.8)") i, "        ", trim(shellCode(1)), "      ", &
+        write (6, "(T10,I5,A9,A10,A6,F20.8,F20.8)") i, "        ", adjustr(shellCode(m)), "      ", &
         this%orbitalExponents(i), this%contractionCoefficients(i)
+      end do
     end do
 
     !! TEST
@@ -646,7 +648,7 @@ contains
 
     type(Exception) :: ex
 
-    character(1) :: indexCode(0:this%angularMoment + 1) !< Codigo para solo un indice de momento angular
+    character(len=10) :: label 
     character(1) :: shellCode(0:8) !< Codigo para una capa dada
     character(1) :: coordCode(3) !< Codigo de las coordenadas cartesianas
     integer :: nx, ny, nz !< Indices de momento angular
@@ -656,8 +658,6 @@ contains
 
       shellCode(0:8) = ["S", "P", "D", "F", "G", "H", "I", "J", "L"]
       coordCode(1:3) = ["x", "y", "z"]
-
-      indexCode(0) = trim(shellCode(this%angularMoment))
 
       m = 0
 
@@ -671,28 +671,21 @@ contains
             ny = i - j
             nz = j
             m = m + 1
-                !! nx
-            u = 0
+
+            label = shellCode( this%angularMoment  )
+            !! nx
             do v = 1, nx
-              u = u + 1
-              indexCode(u) = trim(coordCode(1))
+              label = trim(label) // coordCode(1)
             end do
-                !! ny
+            !! ny
             do v = 1, ny
-              u = u + 1
-              indexCode(u) = trim(coordCode(2))
+              label = trim(label) // coordCode(2)
             end do
-                !! nz
+            !! nz
             do v = 1, nz
-              u = u + 1
-              indexCode(u) = trim(coordCode(3))
+              label = trim(label) // coordCode(3)
             end do
-
-                !!do uu = 0, size(indexCode)-1
-                !!  output(m)(uu+1:uu+1) = indexCode(uu)
-                !!end do
-            output(m) = trim(indexCode(1) (0:this%angularMoment))
-
+            output(m) = trim(label)
           end do
         end do
 
@@ -703,23 +696,21 @@ contains
           ny = i
           nz = 0
           m = m + 1
+
+          label = shellCode( this%angularMoment  )
           !! nx
-          u = 0
           do v = 1, nx
-            u = u + 1
-            indexCode(u) = trim(coordCode(1))
+            label = trim(label) // coordCode(1)
           end do
           !! ny
           do v = 1, ny
-            u = u + 1
-            indexCode(u) = trim(coordCode(2))
+            label = trim(label) // coordCode(2)
           end do
           !! nz
           do v = 1, nz
-            u = u + 1
-            indexCode(u) = trim(coordCode(3))
+            label = trim(label) // coordCode(3)
           end do
-          output(m) = trim(indexCode(1) (0:this%angularMoment))
+          output(m) = trim(label)
         end do
 
       case (1)
@@ -729,29 +720,26 @@ contains
         nz = 0
 
         m = m + 1
+
+        label = shellCode( this%angularMoment  )
         !! nx
-        u = 0
         do v = 1, nx
-          u = u + 1
-          indexCode(u) = trim(coordCode(1))
+          label = trim(label) // coordCode(1)
         end do
         !! ny
         do v = 1, ny
-          u = u + 1
-          indexCode(u) = trim(coordCode(2))
+          label = trim(label) // coordCode(2)
         end do
         !! nz
         do v = 1, nz
-          u = u + 1
-          indexCode(u) = trim(coordCode(3))
+          label = trim(label) // coordCode(3)
         end do
-        output(m) = trim(indexCode(1) (0:this%angularMoment))
+        output(m) = trim(label)
 
       case default
 
         call ContractedGaussian_exception(ERROR, "Class object ContratedGaussian in the getShellCode function", &
                                           "This Dimensionality is not avaliable")
-
       end select
 
     else
