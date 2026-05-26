@@ -6,8 +6,11 @@ include $(TOPDIR)/CONFIG
 BUILD_DIR = $(abspath $(TOPDIR)/build)
 
 # Let Fortran knows the building dir 
-FCFLAGS += -J $(BUILD_DIR)
-
+ifeq ($(FC),ifx)
+    FCFLAGS += -module $(BUILD_DIR)
+else
+    FCFLAGS += -J $(BUILD_DIR)
+endif
 
 # openlowdin library for each folder here with a configure inside
 SUBDIRS = Core Output CI MM MBPT PT COSMO Ints Deriv IntegralsTransformation CalcProp DFT SCF NOCI Solver

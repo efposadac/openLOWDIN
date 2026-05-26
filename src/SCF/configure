@@ -28,7 +28,11 @@ OBJECTS     = \$(F90_OBJECTS) \$(C_OBJECTS) \$(CPP_OBJECTS)
 # Define this folder's library target name
 LIB_TARGET = \$(LOCAL_BUILD_DIR)/\$(DIR_NAME).a
 # Tell Fortran compiler where to put/look for module (.mod) files
-FCFLAGS += -J \$(BUILD_DIR)
+ifeq (\$(FC),ifx)
+    FCFLAGS += -module \$(BUILD_DIR)
+else
+    FCFLAGS += -J \$(BUILD_DIR)
+endif
 
 .PHONY: all clean
 

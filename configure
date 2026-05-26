@@ -197,14 +197,25 @@ elif [ "$FC" = "ifx" ] ; then
     CC="icx"
     CU="nvcc -arch=sm_20"
     CFLAGS="-g -O2 -D intel "
-    CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 "
+
+    if [ -z "${GCC_HOME}" ]; then
+        # working local flags 
+        GCC_TOOLCHAIN="/usr/lib/gcc/x86_64-linux-gnu/13"
+        SYSTEM_INCLUDES="-isystem /usr/include/c++/13 -isystem /usr/include/x86_64-linux-gnu/c++/13"
+    else
+        # Cluster flags for environment modules
+        GCC_TOOLCHAIN="${GCC_HOME}"
+        SYSTEM_INCLUDES=""
+    fi
+    CPPFLAGS="-g -O2 -D intel -qopenmp -std=c++11 -fgnu-runtime --gcc-toolchain=${GCC_TOOLCHAIN} ${SYSTEM_INCLUDES}"
 else
     CXX=g++
     CC=gcc
     CU="nvcc -arch=sm_20"
     CFLAGS="-g -O2 -fopenmp -D gfortran"
-    CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11"
+    CPPFLAGS="-g -O2 -fopenmp -D gfortran -std=c++11 "
 fi
+
 
 #----------------------------------------------------------------------------
 # checking compiler
@@ -251,7 +262,7 @@ fi
 # [1] regular
 if [ "$FLAGS" = "1" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-O2 -xHost -fpic -qopenmp -fpp -Dintel -free -warn all  $addflagsCuda"
+    	FCFLAGS="-O2 -xHost -heap-arrays 0 -fpic -qopenmp -cpp -Dintel -extend-source $addflagsCuda"
     else
     	FCFLAGS="-O2 -march=native -ftree-vectorize -fstack-arrays -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fallow-invalid-boz -fno-range-check $addflagsCuda"
     fi
@@ -260,7 +271,7 @@ fi
 # [2] fast
 if [ "$FLAGS" = "2" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-O3 -xHost -ipo -prec-div -prec-sqrt -fpic -qopenmp -fpp -Dintel -free  $addflagsCuda " 
+    	FCFLAGS="-Ofast -xHost -heap-arrays 0 -fpic -qopenmp -cpp -Dintel -extend-source $addflagsCuda " 
     else
     	FCFLAGS="-Ofast -march=native -fstack-arrays -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fallow-invalid-boz -fno-range-check $addflagsCuda"
     fi
@@ -269,7 +280,7 @@ fi
 # [3] debug
 if [ "$FLAGS" = "3" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-O0 -g -traceback -check bounds -fpic -qopenmp -fpp -Dintel -free -debug extended $addflagsCuda " 
+    	FCFLAGS="-O2 -g -traceback -check bounds -heap-arrays 0 -fpic -qopenmp -cpp -Dintel -extend-source -warn unused  $addflagsCuda " 
     else
         FCFLAGS="-O2 -g -fbacktrace -fcheck=bounds -fstack-arrays -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fno-range-check -Wunused $addflagsCuda"
     fi
@@ -278,7 +289,7 @@ fi
 # [4] full debug
 if [ "$FLAGS" = "4" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-O0 -g -traceback -check all -fpe0 -init=snan,arrays -fpic -qopenmp -fpp -Dintel -free -debug extended -warn all  $addflagsCuda " 
+    	FCFLAGS="-O0 -g -traceback -check bounds -heap-arrays 0 -fsanitize=address -fno-omit-frame-pointer -fpe3 -fpic -qopenmp -cpp -Dintel -extend-source -vms $addflagsCuda " 
     else
     	FCFLAGS="-O0 -g -fbacktrace -fcheck=all -fsanitize=address -fno-omit-frame-pointer -finit-real=nan -ffpe-trap=zero,overflow -fpic -fopenmp -cpp -Dgfortran -ffree-line-length-none -fallow-invalid-boz -fno-range-check -Wall -Wextra -Warray-temporaries -Wconversion $addflagsCuda"
     fi
@@ -287,7 +298,7 @@ fi
 # [5] profiling
 if [ "$FLAGS" = "5" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-O2 -g -p -fno-omit-frame-pointer -xHost -fpic -qopenmp -fpp -Dintel -free  $addflagsCuda " 
+    	FCFLAGS="-O2 -g -p -fno-omit-frame-pointer -xHost -heap-arrays 0 -qopenmp -cpp -Dintel -extend-source $addflagsCuda " 
     else
     	FCFLAGS="-O2 -g -pg -fno-omit-frame-pointer -march=native -fstack-arrays -fopenmp -cpp -Dgfortran -ffree-line-length-none $addflagsCuda"
     fi
@@ -296,7 +307,7 @@ fi
 # [6] static
 if [ "$FLAGS" = "6" ] ; then
     if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    	FCFLAGS="-static -static-intel -static-libgcc -O2 -D intel -fpic -fpp -qopenmp -traceback -g -debug extended  $addflagsCuda"
+    	FCFLAGS="O2 -xHost -heap-arrays 0 -fpic -qopenmp -cpp -Dintel -extend-source -static -static-intel -static-libgcc $addflagsCuda"
     else
     	echo "WARNING no static option for gfortran compiler, using debug and backtrace option"
     	FCFLAGS="-O2 -ftree-vectorize -ffast-math -fstack-arrays -fpic -fopenmp -cpp -ffree-line-length-none -fallow-invalid-boz -fno-range-check -fbacktrace -g -D gfortran $addflagsCuda"
@@ -309,7 +320,7 @@ fi
 ###############################################################################
 
 if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    LAPACK_LIBS="-qmkl"
+    LAPACK_LIBS="-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core"
 else
     LAPACK_LIBS="-lblas -llapack"
 fi
