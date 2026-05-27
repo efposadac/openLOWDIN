@@ -3,8 +3,8 @@ GEOMETRY
         ea-  aug-cc-pVTZ     0.00    0.00    1.0 m = 0.3020 q = -1.3314 addParticles=-1
         eb-  aug-cc-pVTZ     0.00    0.00    0.0  m = 0.3020 q = -1.3314 omega = 0.7272
         eb-  aug-cc-pVTZ     0.00    0.00    1.0  m = 0.3020 q = -1.3314 addParticles=-1
-        H       dirac           0.00    0.00    0.0 q = 1.3314 qdoCenterOf=EA-
-        H       dirac       	0.00	0.00	1.0 q = 1.3314 qdoCenterOf=EB-
+        Ar       dirac           0.00    0.00    0.0 q = 1.3314 qdoCenterOf=EA-
+        Ar       dirac       	0.00	0.00	1.0 q = 1.3314 qdoCenterOf=EB-
 END GEOMETRY
 
 TASKS

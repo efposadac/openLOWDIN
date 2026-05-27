@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -29,10 +29,10 @@
 !!   - <tt> 2013-10-03 </tt>: Jose Mauricio Rodas (jmrodasr@unal.edu.co)
 !!        -# Rewrite the module as a program and adapts to Lowdin 2
 !!
-!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
-program PT
+module PT_
   use CONTROL_
   use MolecularSystem_
   use InputCI_
@@ -42,43 +42,44 @@ program PT
   use String_
   implicit none
 
-  character(50) :: job
+  public PT_main
 
-  job = ""  
-  call get_command_argument(1,value=job)  
-  job = trim(String_getUppercase(job))
+contains
 
-  !!Start time
-  call Stopwatch_constructor(lowdin_stopwatch)
-  call Stopwatch_start(lowdin_stopwatch)
+  subroutine PT_main()
+    implicit none
 
-  !!Load CONTROL Parameters
-  call MolecularSystem_loadFromFile( "LOWDIN.DAT" )
+    !!Start time
+    call Stopwatch_constructor(lowdin_stopwatch)
+    call Stopwatch_start(lowdin_stopwatch)
 
-  ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
-     !!Load the system in lowdin.sys format
-     call MolecularSystem_loadFromFile( "LOWDIN.SYS" )
-  ! else
-  !    !!Load the system in lowdin.sys format
-  !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
-  ! end if
+    !!Load CONTROL Parameters
+    call MolecularSystem_loadFromFile("LOWDIN.DAT")
 
-  call InputCI_constructor( )
-  call InputCI_load( MolecularSystem_getNumberOfQuantumSpecies() )
-  
-  call PropagatorTheory_constructor( CONTROL_instance%PT_ORDER )
-  call PropagatorTheory_run()
-  call PropagatorTheory_show()
-  call PropagatorTheory_destructor()
+    ! if ( .not. CONTROL_instance%LOCALIZE_ORBITALS) then
+       !!Load the system in lowdin.sys format
+    call MolecularSystem_loadFromFile("LOWDIN.SYS")
+    ! else
+    !    !!Load the system in lowdin.sys format
+    !    call MolecularSystem_loadFromFile( "LOWDIN.SYS", "lowdin-subsystemA" )
+    ! end if
 
-  !!stop time
-  call Stopwatch_stop(lowdin_stopwatch)
-  
-  write(*, *) ""
-  write(*,"(A,F10.3,A4)") "** TOTAL CPU Time PT : ", lowdin_stopwatch%enlapsetTime ," (s)"
-  write(*,"(A,F10.3,A4)") "** TOTAL Elapsed Time PT : ", lowdin_stopwatch%elapsetWTime ," (s)"
-  write(*, *) ""
-  close(30)
+    call InputCI_constructor()
+    call InputCI_load(MolecularSystem_getNumberOfQuantumSpecies())
 
+    call PropagatorTheory_constructor(CONTROL_instance%PT_ORDER)
+    call PropagatorTheory_run()
+    call PropagatorTheory_show()
+    call PropagatorTheory_destructor()
 
-end program PT
+    !!stop time
+    call Stopwatch_stop(lowdin_stopwatch)
+
+    write (*, *) ""
+    write (*, "(A,F10.3,A4)") "** TOTAL CPU Time PT : ", lowdin_stopwatch%enlapsetTime, " (s)"
+    write (*, "(A,F10.3,A4)") "** TOTAL Elapsed Time PT : ", lowdin_stopwatch%elapsetWTime, " (s)"
+    write (*, *) ""
+    close (30)
+  end subroutine PT_main
+
+end module PT_

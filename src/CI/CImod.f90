@@ -1,32 +1,32 @@
 !******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	  UNIVERSIDAD NACIONAL DE COLOMBIA"
-!!	  PROF. ANDRES REYES GROUP"
-!!	  http://www.qcc.unal.edu.co"
-!!	
-!!	  UNIVERSIDAD DE GUADALAJARA"
-!!	  PROF. ROBERTO FLORES GROUP"
-!!	  http://www.cucei.udg.mx/~robertof"
-!!	
-!!	AUTHORS
-!!		E.F. POSADA. UNIVERSIDAD NACIONAL DE COLOMBIA
-!!   		S.A. GONZALEZ. UNIVERSIDAD NACIONAL DE COLOMBIA
-!!   		F.S. MONCADA. UNIVERSIDAD NACIONAL DE COLOMBIA
-!!   		J. ROMERO. UNIVERSIDAD NACIONAL DE COLOMBIA
+!!        this program has been developed under direction of:
 !!
-!!	CONTRIBUTORS
-!!		N.F.AGUIRRE. UNIVERSIDAD NACIONAL DE COLOMBIA
-!!   		GABRIEL MERINO. UNIVERSIDAD DE GUANAJUATO
-!!   		J.A. CHARRY UNIVERSIDAD NACIONAL DE COLOMBIA
+!!          UNIVERSIDAD NACIONAL DE COLOMBIA"
+!!          PROF. ANDRES REYES GROUP"
+!!          http://www.qcc.unal.edu.co"
+!!
+!!          UNIVERSIDAD DE GUADALAJARA"
+!!          PROF. ROBERTO FLORES GROUP"
+!!          http://www.cucei.udg.mx/~robertof"
+!!
+!!        AUTHORS
+!!                E.F. POSADA. UNIVERSIDAD NACIONAL DE COLOMBIA
+!!                   S.A. GONZALEZ. UNIVERSIDAD NACIONAL DE COLOMBIA
+!!                   F.S. MONCADA. UNIVERSIDAD NACIONAL DE COLOMBIA
+!!                   J. ROMERO. UNIVERSIDAD NACIONAL DE COLOMBIA
+!!
+!!        CONTRIBUTORS
+!!                N.F.AGUIRRE. UNIVERSIDAD NACIONAL DE COLOMBIA
+!!                   GABRIEL MERINO. UNIVERSIDAD DE GUANAJUATO
+!!                   J.A. CHARRY UNIVERSIDAD NACIONAL DE COLOMBIA
 !!
 !!
-!!		Todos los derechos reservados, 2011
+!!                Todos los derechos reservados, 2011
 !!
 !!******************************************************************************
-                
+
 module CImod_
   use Exception_
   use Matrix_
@@ -51,7 +51,7 @@ module CImod_
 
   ! use ArpackInterface_
   implicit none
-      
+
   !>
   !! @brief Configuration Interaction Module, works in spin orbitals
   !!
@@ -70,334 +70,345 @@ module CImod_
   !!
   !<
 
-
   public :: &
-!       CIcore_constructor, &
-       CImod_destructor, &
-       CImod_getTotalEnergy, &
-       CImod_run, &
-       CImod_showEigenVectors, &
-       CImod_densityMatrices, &
-       CImod_show
+    !CIcore_constructor, &
+    CImod_destructor, &
+    CImod_getTotalEnergy, &
+    CImod_run, &
+    CImod_showEigenVectors, &
+    CImod_densityMatrices, &
+    CImod_show
 
   private
 
 contains
 
-
   !>
   !! @brief Muestra informacion del objeto
   !!
-  !! @param this 
+  !! @param this
   !<
   subroutine CImod_run()
-    implicit none 
-    integer :: i,j,m, numberOfSpecies
+    implicit none
+    integer :: i, j, m, numberOfSpecies
     integer :: a, ms
     real(8) :: timeA, timeB
-    real(8), allocatable :: eigenValues(:) 
     real(8) :: ecorr
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     ms = CONTROL_instance%CI_MADSPACE
 
     !! printing header
-    write (*,*) ""
-    write (*,*) "         BEGIN ", trim(CIcore_instance%level)," CALCULATION"
-    write (*,*) "         J. Charry, F. Moncada                "
-    write (*,*) "-----------------------------------------------"
-    write (*,*) ""
+    write (*, *) ""
+    write (*, *) "         BEGIN ", trim(CIcore_instance%level), " CALCULATION"
+    write (*, *) "         J. Charry, F. Moncada                "
+    write (*, *) "-----------------------------------------------"
+    write (*, *) ""
 
     !! printing active space
-    write (*,"(A32)",advance="no") "Number of orbitals for species: "
-    do i = 1, numberOfSpecies-1
-      write (*,"(A)",advance="no") trim(MolecularSystem_getSymbolOfSpecies(i))//", "
+    write (*, "(A32)", advance="no") "Number of orbitals for species: "
+    do i = 1, numberOfSpecies - 1
+      write (*, "(A)", advance="no") trim(MolecularSystem_getSymbolOfSpecies(i))//", "
     end do
-    write (*,"(A)",advance="no") trim(MolecularSystem_getSymbolOfSpecies(numberOfSpecies))
-    write (*,*) ""
+    write (*, "(A)", advance="no") trim(MolecularSystem_getSymbolOfSpecies(numberOfSpecies))
+    write (*, *) ""
 
-    write (*,"(A28)",advance="no") "  occupied orbitals: "
+    write (*, "(A28)", advance="no") "  occupied orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)", advance="no") CIcore_instance%numberOfOccupiedOrbitals%values(i) 
+      write (*, "(I5)", advance="no") CIcore_instance%numberOfOccupiedOrbitals%values(i)
     end do
-    write (*,*) ""
+    write (*, *) ""
 
-    write (*,"(A28)",advance="no") "  virtual orbitals: "
+    write (*, "(A28)", advance="no") "  virtual orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)",advance="no") int(MolecularSystem_getTotalNumberOfContractions( i )* &
-                                                CIcore_instance%lambda%values(i)  - &
-                                                CIcore_instance%numberOfOccupiedOrbitals%values(i) )
+      write (*, "(I5)", advance="no") int(MolecularSystem_getTotalNumberOfContractions(i)* &
+                                          CIcore_instance%lambda%values(i) - &
+                                          CIcore_instance%numberOfOccupiedOrbitals%values(i))
     end do
-    write (*,*) ""
+    write (*, *) ""
 
-    write (*,"(A28)",advance="no") "  total number of orbitals: "
+    write (*, "(A28)", advance="no") "  total number of orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)",advance="no") int(MolecularSystem_getTotalNumberOfContractions( i )* &
-                       CIcore_instance%lambda%values(i)   )
+      write (*, "(I5)", advance="no") int(MolecularSystem_getTotalNumberOfContractions(i)* &
+                                          CIcore_instance%lambda%values(i))
     end do
-    write (*,*) ""
+    write (*, *) ""
 
-
-    write (*,"(A28)",advance="no") "  frozen core orbitals: "
+    write (*, "(A28)", advance="no") "  frozen core orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)",advance="no") CIcore_instance%numberOfCoreOrbitals%values(i) 
+      write (*, "(I5)", advance="no") CIcore_instance%numberOfCoreOrbitals%values(i)
     end do
-    write (*,*) ""
+    write (*, *) ""
 
-    write (*,"(A28)",advance="no") "  active occupied orbitals: "
+    write (*, "(A28)", advance="no") "  active occupied orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)",advance="no") CIcore_instance%numberOfOccupiedOrbitals%values(i) - &
-                         CIcore_instance%numberOfCoreOrbitals%values(i) 
+      write (*, "(I5)", advance="no") CIcore_instance%numberOfOccupiedOrbitals%values(i) - &
+        CIcore_instance%numberOfCoreOrbitals%values(i)
     end do
-    write (*,*) ""
+    write (*, *) ""
 
-    write (*,"(A28)",advance="no") "  active virtual orbitals: "
+    write (*, "(A28)", advance="no") "  active virtual orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)",advance="no") CIcore_instance%numberOfOrbitals%values(i) - &
-                         CIcore_instance%numberOfOccupiedOrbitals%values(i) 
+      write (*, "(I5)", advance="no") CIcore_instance%numberOfOrbitals%values(i) - &
+        CIcore_instance%numberOfOccupiedOrbitals%values(i)
     end do
-    write (*,*) ""
+    write (*, *) ""
 
-    write (*,"(A28)",advance="no") " total active orbitals: "
+    write (*, "(A28)", advance="no") " total active orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)",advance="no")  CIcore_instance%numberOfOrbitals%values(i) - &
-                          CIcore_instance%numberOfCoreOrbitals%values(i) 
+      write (*, "(I5)", advance="no") CIcore_instance%numberOfOrbitals%values(i) - &
+        CIcore_instance%numberOfCoreOrbitals%values(i)
     end do
-    write (*,*) ""
-    write (*,*) " "
-
-    !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
-    write (*,*) "Getting transformed integrals..."
-    call CImod_getTransformedIntegrals()
-    write (*,*) " "
-
-    !! setting the requested CI level
-    write (*,*) "Setting CI level..."
-    call CIOrder_settingCILevel()
-
-    !! just a rough estimate of the number of configurations in FCI. Just for ino
-    call CIOrder_estimate_FCI_numberOfConf()
+    write (*, *) ""
+    write (*, *) " "
 
     !! printing header of the diagonalizers
     select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
-      case ("JADAMILU")
-        write(*,*) ""
-        write(*,*) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-        write(*,*) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
-        write(*,*) " a software code for computing selected eigenvalues of "
-        write(*,*) " large sparse symmetric matrices, "
-        write(*,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
+    case ("JADAMILU")
+      write (*, *) ""
+      write (*, *) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+      write (*, *) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
+      write (*, *) " a software code for computing selected eigenvalues of "
+      write (*, *) " large sparse symmetric matrices, "
+      write (*, *) "Computer Physics Communications, vol. 177, pp. 951-964, 2007."
 
-      case ("DSYEVX")
+    case ("DSYEVX")
+      write (*, *) ""
+      write (*, *) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+      write (*, *) "LAPACK (Linear Algebra Package), standard software library for numerical linear algebra  "
+      write (*, *) "https://netlib.org/lapack/"
+      write (*, *) "DSYEVX computes the eigenvalues and, optionally, the left and/or right eigenvectors for SY matrices"
+      write (6, *) ""
 
-        write(*,*) ""
-        write(*,*) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-        write(*,*) "LAPACK (Linear Algebra Package), standard software library for numerical linear algebra  "
-        write(*,*) "https://netlib.org/lapack/"
-        write(*,*) "DSYEVX computes the eigenvalues and, optionally, the left and/or right eigenvectors for SY matrices"
-        write (6,*) ""
-      case ("DSYEVR")
+    case ("DSYEVR")
+      write (*, *) ""
+      write (*, *) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+      write (*, *) "LAPACK (Linear Algebra Package), standard software library for numerical linear algebra  "
+      write (*, *) "https://netlib.org/lapack/"
+      write (*, *) "DSYEVR computes the eigenvalues and, optionally, the left and/or right eigenvectors for SY matrices"
+      write (6, *) ""
 
-        write(*,*) ""
-        write(*,*) "  Diagonalizer : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-        write(*,*) "LAPACK (Linear Algebra Package), standard software library for numerical linear algebra  "
-        write(*,*) "https://netlib.org/lapack/"
-        write(*,*) "DSYEVR computes the eigenvalues and, optionally, the left and/or right eigenvectors for SY matrices"
-        write (6,*) ""
+    case default
 
+      call CImod_exception(ERROR, "CImod run", "Diagonalization method not implemented")
 
-      case default
+    end select
 
-        call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented")
+    !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
+    write (*, *) "Getting transformed integrals..."
+    call CImod_getTransformedIntegrals()
+    write (*, *) " "
 
-      end select
+    !! setting the requested CI level
+    write (*, *) "Setting CI level..."
+    call CIOrder_settingCILevel()
 
-    !! allocating eigenvalues array
-    write (*,*) ""
-    call Vector_constructor ( CIcore_instance%eigenvalues, &
-                              int(CONTROL_instance%NUMBER_OF_CI_STATES,4), 0.0_8 )
-
-    !! start the calculation
+    !! just a rough estimate of the number of configurations in FCI. Just for info
+    call CIOrder_estimate_FCI_numberOfConf()
 
     !! -------------------------------- Standard CI -------------------------------------
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+    if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI") then
 
-      write (*,*) "Building Strings..."
+      write (*, *) "Building Strings..."
       call CIStrings_buildStrings()
 
-      write (*,*) "Building CI level table..."
+      write (*, *) "Building CI level table..."
       call CIOrder_buildCIOrderList()
 
-      if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU"  ) then
+      if (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU") then
         !! additional arrays for matrix-vector diagonalizer
         call CIJadamilu_buildCouplingMatrix()
         call CIJadamilu_buildCouplingOrderList()
-      endif
+      end if
 
-      write (*,*) "Building diagonal..."
+      write (*, *) "Building diagonal..." !! and get number of configurations
       call CIDiag_buildDiagonal()
 
-      if ( trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU"  ) then
+      if (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)) == "JADAMILU") then
         !! initial guess of CI solutions for matrix-vector diagonalizer
-        write (*,*) "Building initial hamiltonian..."
+        write (*, *) "Building initial hamiltonian..."
         call CIInitial_buildInitialCIMatrix2()
-      endif
+      end if
 
-      call Matrix_constructor (CIcore_instance%eigenVectors, &
-           int(CIcore_instance%numberOfConfigurations,8), &
-           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+      !! allocating eigenValues array
+      select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
-      if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
-        call CImod_loadEigenVector (CIcore_instance%eigenvalues, &
-               CIcore_instance%eigenVectors) 
-      end if 
+      case ("JADAMILU")
+        call Vector_constructor(CIcore_instance%eigenValues, &
+                                int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), 0.0_8)
+      case ("DSYEVX")
+        call Vector_constructor(CIcore_instance%eigenValues, &
+                                int(CIcore_instance%numberOfConfigurations, 8), 0.0_8)
+
+      case ("DSYEVR")
+        call Vector_constructor(CIcore_instance%eigenValues, &
+                                int(CIcore_instance%numberOfConfigurations, 8), 0.0_8)
+
+      case default
+        call CImod_exception(ERROR, "CImod run", "Diagonalization method not implemented")
+
+      end select
+
+      !! allocating eigenVector array
+      call Matrix_constructor(CIcore_instance%eigenVectors, &
+                              int(CIcore_instance%numberOfConfigurations, 8), &
+                              int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), 0.0_8)
+
+      if (CONTROL_instance%CI_LOAD_EIGENVECTOR) then
+        call CImod_loadEigenVector(CIcore_instance%eigenvalues, &
+                                   CIcore_instance%eigenVectors)
+      end if
 
       !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
-      if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
+      if (CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
 
-        call Vector_constructor  (  CIcore_instance%groundStateEnergies, 30, 0.0_8)
-        call Vector_constructor  (  CIcore_instance%DDCISDTiming, 30, 0.0_8)
-  
-        write (6,*) ""
-        write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
-        write (6,"(T2,A62)")     "               ( Size-extensive correction)                   "
-        write (6,"(T2,A62)")     " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
-        write (6,*) ""
-  
+        call Vector_constructor(CIcore_instance%groundStateEnergies, 30_8, 0.0_8)
+        call Vector_constructor(CIcore_instance%DDCISDTiming, 30_8, 0.0_8)
+
+        write (6, *) ""
+        write (6, "(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   ", CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
+        write (6, "(T2,A62)") "               ( Size-extensive correction)                   "
+        write (6, "(T2,A62)") " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
+        write (6, *) ""
+
         ecorr = 0.0_8
-  
+
         do i = 2, 31
-  
+
           !! add the diagonal shift
-          do a = 2, CIcore_instance%numberOfConfigurations 
+          do a = 2, CIcore_instance%numberOfConfigurations
             CIcore_instance%diagonalHamiltonianMatrix%values(a) = CIcore_instance%diagonalHamiltonianMatrix%values(a) + ecorr
           end do
-  
+
           select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-  
+
           case ("JADAMILU")
 
-            write (6,*) ""
-            write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-            float(CIcore_instance%numberOfConfigurations*( 2 + (3*ms + CONTROL_instance%NUMBER_OF_CI_STATES + 1) + 4*ms*ms)*8)/(1024**3) , " GB"
-            write (6,*) ""
-  
+            write (6, *) ""
+            write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+              float(CIcore_instance%numberOfConfigurations*(2 + (3*ms + CONTROL_instance%NUMBER_OF_CI_STATES + 1) + 4*ms*ms)*8)/(1024**3), " GB"
+            write (6, *) ""
+
             call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
-               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
-               CIcore_instance%eigenvalues, &
-               CIcore_instance%eigenVectors, timeA, timeB)
-  
+                                              int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), &
+                                              CIcore_instance%eigenValues, &
+                                              CIcore_instance%eigenVectors, timeA, timeB)
+
             !! restore the original diagonal
-            do a = 2, CIcore_instance%numberOfConfigurations 
+            do a = 2, CIcore_instance%numberOfConfigurations
               CIcore_instance%diagonalHamiltonianMatrix%values(a) = CIcore_instance%diagonalHamiltonianMatrix%values(a) - ecorr
             end do
-  
-          case ("DSYEVX")
-  
-            write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-            float((CIcore_instance%numberOfConfigurations**2 + 2 )*8)/(1024**3) , " GB"
-            write (6,*) ""
 
-            call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
-    
+          case ("DSYEVX")
+
+            write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+              float((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
+            write (6, *) ""
+
+            call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
+
             !! adding the shift
-            do a = 2, CIcore_instance%numberOfConfigurations 
-              CIcore_instance%hamiltonianMatrix%values(a,a) = CIcore_instance%hamiltonianMatrix%values(a,a) + ecorr
+            do a = 2, CIcore_instance%numberOfConfigurations
+              CIcore_instance%hamiltonianMatrix%values(a, a) = CIcore_instance%hamiltonianMatrix%values(a, a) + ecorr
             end do
-  
-            call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-               int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
-               eigenVectors = CIcore_instance%eigenVectors, &
-               flags = int(SYMMETRIC,4))
-  
+
+            call Matrix_eigen_select(CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
+                                     int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &
+                                     eigenVectors=CIcore_instance%eigenVectors, &
+                                     flags=int(SYMMETRIC, 4))
+
           case ("DSYEVR")
 
-            write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-            float((CIcore_instance%numberOfConfigurations**2 + 2 )*8)/(1024**3) , " GB"
-            write (6,*) ""
+            write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+              float((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
+            write (6, *) ""
 
-            call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
-    
-            do a = 2, CIcore_instance%numberOfConfigurations 
-              CIcore_instance%hamiltonianMatrix%values(a,a) = CIcore_instance%hamiltonianMatrix%values(a,a) + ecorr
+            call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
+
+            do a = 2, CIcore_instance%numberOfConfigurations
+              CIcore_instance%hamiltonianMatrix%values(a, a) = CIcore_instance%hamiltonianMatrix%values(a, a) + ecorr
             end do
-  
-            call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-                   1_8, int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &  
-                   eigenVectors = CIcore_instance%eigenVectors, &
-                   flags = SYMMETRIC)
-  
+
+            call Matrix_eigen_dsyevr(CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
+                                     1_4, int(CONTROL_instance%NUMBER_OF_CI_STATES, 4), &
+                                     eigenVectors=CIcore_instance%eigenVectors, &
+                                     flags=SYMMETRIC)
+
           end select
-  
-          ecorr = CIcore_instance%eigenvalues%values(1)   - HartreeFock_instance%totalEnergy
-          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenvalues%values(1) 
+
+          ecorr = CIcore_instance%eigenValues%values(1) - HartreeFock_instance%totalEnergy
+          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenValues%values(1)
           CIcore_instance%DDCISDTiming%values(i) = timeB - timeA
-  
-          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , timeB - timeA
-  
+
+          write (6, "(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i - 1, CIcore_instance%groundStateEnergies%values(i), ecorr, &
+                                                               (CIcore_instance%groundStateEnergies%values(i - 1) - CIcore_instance%groundStateEnergies%values(i)), timeB - timeA
+
           !! Restart ci matrix diagonalization from previous eigenvectors
           CONTROL_instance%CI_LOAD_EIGENVECTOR = .True.
-  
-          if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
-  
+
+          if (abs(CIcore_instance%groundStateEnergies%values(i - 1) - CIcore_instance%groundStateEnergies%values(i)) <= 1e-6) exit
+
         end do !! loop iterative CI
-  
+
         !! printing the results of iterative CI
-        write (6,*) ""
-        write (6,"(T2,A42 )")    "  ITERATIVE DIAGONAL DRESSED CONVERGENCE  "
-        write (6,"(T2,A95 )")    "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
+        write (6, *) ""
+        write (6, "(T2,A42 )") "  ITERATIVE DIAGONAL DRESSED CONVERGENCE  "
+        write (6, "(T2,A95 )") "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
         do i = 2, 31
-          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)) , CIcore_instance%DDCISDTiming%values(i)
-          if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
+          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, &
+                                                              (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)), &
+                                                              CIcore_instance%DDCISDTiming%values(i)
+
+          if (abs(CIcore_instance%groundStateEnergies%values(i - 1) - CIcore_instance%groundStateEnergies%values(i)) <= 1e-6) exit
         end do
-  
-        if ( CONTROL_instance%CI_SAVE_EIGENVECTOR ) then 
-          call CImod_saveEigenVector () 
+
+        if (CONTROL_instance%CI_SAVE_EIGENVECTOR) then
+          call CImod_saveEigenVector()
         end if
-  
+
       !!-----------------------------------------------
       else !! no diagonal correction
-  
-         select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-  
+
+        select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+
         case ("JADAMILU")
-  
+
           call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
-               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
-               CIcore_instance%eigenvalues, &
-               CIcore_instance%eigenVectors, timeA, timeB )
-  
-          if ( CONTROL_instance%CI_SAVE_EIGENVECTOR ) then 
-            call CImod_saveEigenVector () 
+                                            int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), &
+                                            CIcore_instance%eigenValues, &
+                                            CIcore_instance%eigenVectors, timeA, timeB)
+
+          if (CONTROL_instance%CI_SAVE_EIGENVECTOR) then
+            call CImod_saveEigenVector()
           end if
-  
+
         case ("DSYEVX")
-  
+
           call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
-          !$ write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
-    
-          call Matrix_eigen_select (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-                 int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
-                 eigenVectors = CIcore_instance%eigenVectors, &
-                 flags = int(SYMMETRIC,4))
-  
+!$        write (*, "(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA, " (s)"
+
+          call Matrix_eigen_select(CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
+                                   int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &
+                                   eigenVectors=CIcore_instance%eigenVectors, &
+                                   flags=int(SYMMETRIC, 4))
+
         case ("DSYEVR")
-  
+
           call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
-            !$ write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
-    
-          call Matrix_eigen_dsyevr (CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenvalues, &
-               1_8, int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &  
-               eigenVectors = CIcore_instance%eigenVectors, &
-               flags = SYMMETRIC)
-  
-         end select
-  
-       endif !! standard CI methods 
-  
+!$        write (*, "(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA, " (s)"
+
+          call Matrix_eigen_dsyevr(CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
+                                   1_4, int(CONTROL_instance%NUMBER_OF_CI_STATES, 4), &
+                                   eigenVectors=CIcore_instance%eigenVectors, &
+                                   flags=SYMMETRIC)
+
+        end select
+
+      end if !! standard CI methods
+
     !! -------------------------------- SCI -------------------------------------
-    elseif ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+    elseif (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI") then
 
       select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
 
@@ -405,31 +416,33 @@ contains
 
         call CISCI_show()
 
-        write (*,*) "Allocating arrays for SCI ..."
-        call CISCI_constructor( CIcore_instance%numberOfConfigurations )
+        write (*, *) "Allocating arrays for SCI ..."
+        call CISCI_constructor(CIcore_instance%numberOfConfigurations)
 
-        call Matrix_constructor (CIcore_instance%eigenVectors, &
-             int(CIcore_instance%numberOfConfigurations,8), &
-             int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+        call Vector_constructor(CIcore_instance%eigenValues, &
+                                int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), 0.0_8)
 
-        !!call CISCI_run() old version. still used for developing purposes
-        call CISCI_run( CIcore_instance%eigenVectors )
+        call Matrix_constructor(CIcore_instance%eigenVectors, &
+                                int(CIcore_instance%numberOfConfigurations, 8), &
+                                int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), 0.0_8)
 
-        call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )
+        call CISCI_run(CIcore_instance%eigenVectors)
+
+        call CISCI_saveEigenVector(CIcore_instance%eigenVectors)
       case default
 
-        call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented for SCI")
+        call CImod_exception(ERROR, "CImod run", "Diagonalization method not implemented for SCI")
 
       end select
 
     end if
 
-    write(*,*) ""
-    write(6,*) "-----------------------------------------------------------------------"
-    write(*,*) "          END ", trim(CIcore_instance%level)," CALCULATION"
-    write(6,*) "-----------------------------------------------------------------------"
-    write(*,*) ""
-         
+    write (*, *) ""
+    write (6, *) "-----------------------------------------------------------------------"
+    write (*, *) "          END ", trim(CIcore_instance%level), " CALCULATION"
+    write (6, *) "-----------------------------------------------------------------------"
+    write (*, *) ""
+
 !    case ( "FCI-oneSpecie" )
 !
 !       print *, ""
@@ -448,14 +461,14 @@ contains
   !>
   !! @brief Muestra informacion del objeto
   !!
-  !! @param this 
+  !! @param this
   !<
   subroutine CImod_getTransformedIntegrals()
     implicit none
 
     integer :: numberOfSpecies
-    integer :: i,j,m,n,mu,nu,a,b
-    integer(8) :: c
+    integer :: i, j, m, n, mu, nu
+    integer(8) :: a, b, c
     integer :: speciesID
     integer :: otherSpeciesID
     character(10) :: nameOfSpecies
@@ -470,134 +483,130 @@ contains
     real(8) :: otherSpeciesCharge
 
     integer :: ssize1, ssize2
-    type(Matrix) :: externalPotential
 
     character(50) :: wfnFile
     character(50) :: arguments(20)
     integer :: wfnUnit
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-    allocate(CIcore_instance%twoCenterIntegrals(numberOfSpecies))
-    allocate(CIcore_instance%fourCenterIntegrals(numberOfSpecies,numberOfSpecies))
+    allocate (CIcore_instance%twoCenterIntegrals(numberOfSpecies))
+    allocate (CIcore_instance%fourCenterIntegrals(numberOfSpecies, numberOfSpecies))
 
-    allocate(CIcore_instance%twoIndexArray(numberOfSpecies))
-    allocate(CIcore_instance%fourIndexArray(numberOfSpecies))
+    allocate (CIcore_instance%twoIndexArray(numberOfSpecies))
+    allocate (CIcore_instance%fourIndexArray(numberOfSpecies))
 
-    do i=1, numberOfSpecies
-      nameOfSpecies= trim(  MolecularSystem_getNameOfSpecies( i ) )
-      speciesID = MolecularSystem_getSpeciesID( nameOfSpecies=nameOfSpecies )
-      ocupationNumber = MolecularSystem_getOcupationNumber( i )
-      numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
-      charge=MolecularSystem_getCharge(i)
+    do i = 1, numberOfSpecies
+      nameOfSpecies = trim(MolecularSystem_getNameOfSpecies(i))
+      speciesID = MolecularSystem_getSpeciesID(nameOfSpecies=nameOfSpecies)
+      ocupationNumber = MolecularSystem_getOcupationNumber(i)
+      numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
+      charge = MolecularSystem_getCharge(i)
 
-!        write (6,"(T10,A)")"ONE PARTICLE INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecies)
-      call Matrix_constructor (CIcore_instance%twoCenterIntegrals(i), &
-        int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8 )
+      !write (6,"(T10,A)")"ONE PARTICLE INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecies)
+      call Matrix_constructor(CIcore_instance%twoCenterIntegrals(i), &
+                              int(numberOfContractions, 8), int(numberOfContractions, 8), 0.0_8)
 
-      call Matrix_constructor (hcoreMatrix,int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8)
+      call Matrix_constructor(hcoreMatrix, int(numberOfContractions, 8), int(numberOfContractions, 8), 0.0_8)
 
       !! Open file for wavefunction
 
       wfnFile = "lowdin.wfn"
       wfnUnit = 20
 
-      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+      open (unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
       arguments(2) = MolecularSystem_getNameOfSpecies(i)
       arguments(1) = "COEFFICIENTS"
 
       coefficients = &
-          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+        Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                           columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
 
       arguments(1) = "HCORE"
 
       hcoreMatrix = &
-          Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-          columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+        Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                           columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
 
       !! transform two center integrals (one body operators)
-        do m=1,numberOfContractions
-          do n=m, numberOfContractions
-             do mu=1, numberOfContractions
-                do nu=1, numberOfContractions
-                    CIcore_instance%twoCenterIntegrals(i)%values(m,n) = &
-                        CIcore_instance%twoCenterIntegrals(i)%values(m,n) + &
-                        coefficients%values(mu,m)* &
-                        coefficients%values(nu,n)* &
-                        hcoreMatrix%values(mu,nu)
+      do m = 1, numberOfContractions
+        do n = m, numberOfContractions
+          do mu = 1, numberOfContractions
+            do nu = 1, numberOfContractions
+              CIcore_instance%twoCenterIntegrals(i)%values(m, n) = &
+                CIcore_instance%twoCenterIntegrals(i)%values(m, n) + &
+                coefficients%values(mu, m)* &
+                coefficients%values(nu, n)* &
+                hcoreMatrix%values(mu, nu)
             end do
           end do
         end do
       end do
 
       !! symmetrization
-      do m = 1,numberOfContractions
+      do m = 1, numberOfContractions
         do n = m, numberOfContractions
-          CIcore_instance%twoCenterIntegrals(i)%values(n,m)=&
-                  CIcore_instance%twoCenterIntegrals(i)%values(m,n)
+          CIcore_instance%twoCenterIntegrals(i)%values(n, m) = &
+            CIcore_instance%twoCenterIntegrals(i)%values(m, n)
         end do
       end do
 
       !! auxilary 2-index array
       call Matrix_constructorInteger8(CIcore_instance%twoIndexArray(i), &
-                          int( numberOfContractions,8), int( numberOfContractions,8) , 0_8 )
+                                      int(numberOfContractions, 8), int(numberOfContractions, 8), 0_8)
 
       c = 0
-      do a=1,numberOfContractions
+      do a = 1, numberOfContractions
         do b = a, numberOfContractions
           c = c + 1
-          CIcore_instance%twoIndexArray(i)%values(a,b) = c !IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
-          CIcore_instance%twoIndexArray(i)%values(b,a) = CIcore_instance%twoIndexArray(i)%values(a,b)
-        end do 
+          CIcore_instance%twoIndexArray(i)%values(a, b) = c !IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
+          CIcore_instance%twoIndexArray(i)%values(b, a) = CIcore_instance%twoIndexArray(i)%values(a, b)
+        end do
       end do
 
-
       !! auxilary 4-index array
-      ssize1 = MolecularSystem_getTotalNumberOfContractions( i )
-      ssize1 = ( ssize1 * ( ssize1 + 1 ) ) / 2
+      ssize1 = MolecularSystem_getTotalNumberOfContractions(i)
+      ssize1 = (ssize1*(ssize1 + 1))/2
 
       call Matrix_constructorInteger8(CIcore_instance%fourIndexArray(i), &
-                          int( ssize1,8), int( ssize1,8) , 0_8 )
+                                      int(ssize1, 8), int(ssize1, 8), 0_8)
       c = 0
       do a = 1, ssize1
         do b = a, ssize1
           c = c + 1
-          CIcore_instance%fourIndexArray(i)%values(a,b) = c! IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
-          CIcore_instance%fourIndexArray(i)%values(b,a) = &
-               CIcore_instance%fourIndexArray(i)%values(a,b)
-         end do 
-       end do
+          CIcore_instance%fourIndexArray(i)%values(a, b) = c ! IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
+          CIcore_instance%fourIndexArray(i)%values(b, a) = &
+            CIcore_instance%fourIndexArray(i)%values(a, b)
+        end do
+      end do
 
+      call ReadTransformedIntegrals_readOneSpecies(speciesID, CIcore_instance%fourCenterIntegrals(i, i))
+      CIcore_instance%fourCenterIntegrals(i, i)%values = &
+        CIcore_instance%fourCenterIntegrals(i, i)%values*charge*charge
 
-       call ReadTransformedIntegrals_readOneSpecies( speciesID, CIcore_instance%fourCenterIntegrals(i,i)   )
-       CIcore_instance%fourCenterIntegrals(i,i)%values = &
-           CIcore_instance%fourCenterIntegrals(i,i)%values * charge * charge
+      if (numberOfSpecies > 1) then
+        do j = 1, numberOfSpecies
+          if (i .ne. j) then
+            nameOfOtherSpecies = trim(MolecularSystem_getNameOfSpecies(j))
+            otherSpeciesID = MolecularSystem_getSpeciesID(nameOfSpecies=nameOfOtherSpecies)
+            ocupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber(j)
+            numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions(j)
+            otherSpeciesCharge = MolecularSystem_getCharge(j)
 
-       if ( numberOfSpecies > 1 ) then
-         do j = 1 , numberOfSpecies
-           if ( i .ne. j) then
-             nameOfOtherSpecies = trim(  MolecularSystem_getNameOfSpecies( j ) )
-             otherSpeciesID = MolecularSystem_getSpeciesID( nameOfSpecies=nameOfOtherSpecies )
-             ocupationNumberOfOtherSpecies = MolecularSystem_getOcupationNumber( j )
-             numberOfContractionsOfOtherSpecies = MolecularSystem_getTotalNumberOfContractions( j )
-             otherSpeciesCharge = MolecularSystem_getCharge(j)
+            call ReadTransformedIntegrals_readTwoSpecies(speciesID, otherSpeciesID, &
+                                                         CIcore_instance%fourCenterIntegrals(i, j))
+            CIcore_instance%fourCenterIntegrals(i, j)%values = &
+              CIcore_instance%fourCenterIntegrals(i, j)%values*charge*otherSpeciescharge
 
-             call ReadTransformedIntegrals_readTwoSpecies( speciesID, otherSpeciesID, &
-                         CIcore_instance%fourCenterIntegrals(i,j) )
-             CIcore_instance%fourCenterIntegrals(i,j)%values = &
-               CIcore_instance%fourCenterIntegrals(i,j)%values * charge * otherSpeciescharge
-
-
-           end if
-         end do
-       end if
-     end do
-     close (wfnUnit)
-     call Matrix_destructor (hcoreMatrix)
+          end if
+        end do
+      end if
+    end do
+    close (wfnUnit)
+    call Matrix_destructor(hcoreMatrix)
+    call Matrix_destructor(coefficients)
 
   end subroutine CImod_getTransformedIntegrals
-
 
   !**
   ! @ Retorna la energia final com correccion Moller-Plesset de orrden dado
@@ -610,8 +619,7 @@ contains
 
   end function CImod_getTotalEnergy
 
-
-  subroutine CImod_saveEigenVector () 
+  subroutine CImod_saveEigenVector()
     implicit none
     character(50) :: nameFile
     integer :: unitFile
@@ -621,55 +629,55 @@ contains
     real(8), allocatable :: auxArray(:)
     integer :: maxStackSize
 
-    maxStackSize = CONTROL_instance%CI_STACK_SIZE 
+    maxStackSize = CONTROL_instance%CI_STACK_SIZE
     nameFile = "lowdin.civec"
     unitFile = 20
 
     nonzero = 0
     do i = 1, CIcore_instance%numberOfConfigurations
-      if ( abs(CIcore_instance%eigenVectors%values(i,1) ) >= 1E-12 ) nonzero = nonzero + 1
-    end do 
+      if (abs(CIcore_instance%eigenVectors%values(i, 1)) >= 1E-12) nonzero = nonzero + 1
+    end do
 
-    write (*,*) "nonzero", nonzero
+    write (*, *) "nonzero", nonzero
 
-    allocate(auxArray(nonzero))
-    allocate(auxIndexArray(nonzero))
+    allocate (auxArray(nonzero))
+    allocate (auxIndexArray(nonzero))
 
     ia = 0
     do i = 1, CIcore_instance%numberOfConfigurations
-      if ( abs(CIcore_instance%eigenVectors%values(i,1) ) >= 1E-12 ) then 
+      if (abs(CIcore_instance%eigenVectors%values(i, 1)) >= 1E-12) then
         ia = ia + 1
-        auxIndexArray(ia) = i 
-        auxArray(ia) = CIcore_instance%eigenVectors%values(i,1) 
+        auxIndexArray(ia) = i
+        auxArray(ia) = CIcore_instance%eigenVectors%values(i, 1)
       end if
-    end do 
-
-    open(unit=unitFile, file=trim(nameFile), status="replace", form="unformatted")
-
-    write(unitFile) CIcore_instance%eigenValues%values(1)
-    write(unitFile) nonzero
-
-    do i = 1, ceiling(real(nonzero) / real(maxStackSize) )
-      ib = maxStackSize * i  
-      ia = ib - maxStackSize + 1
-      if ( ib > nonzero ) ib = nonzero
-      write(unitFile) auxIndexArray(ia:ib)
     end do
-    deallocate(auxIndexArray)
 
-    do i = 1, ceiling(real(nonzero) / real(maxStackSize) )
-      ib = maxStackSize * i  
+    open (unit=unitFile, file=trim(nameFile), status="replace", form="unformatted")
+
+    write (unitFile) CIcore_instance%eigenValues%values(1)
+    write (unitFile) nonzero
+
+    do i = 1, ceiling(real(nonzero)/real(maxStackSize))
+      ib = maxStackSize*i
       ia = ib - maxStackSize + 1
-      if ( ib > nonzero ) ib = nonzero
-      write(unitFile) auxArray(ia:ib)
+      if (ib > nonzero) ib = nonzero
+      write (unitFile) auxIndexArray(ia:ib)
     end do
-    deallocate(auxArray)
+    deallocate (auxIndexArray)
 
-    close(unitFile)
+    do i = 1, ceiling(real(nonzero)/real(maxStackSize))
+      ib = maxStackSize*i
+      ia = ib - maxStackSize + 1
+      if (ib > nonzero) ib = nonzero
+      write (unitFile) auxArray(ia:ib)
+    end do
+    deallocate (auxArray)
+
+    close (unitFile)
 
   end subroutine CImod_saveEigenVector
 
-  subroutine CImod_loadEigenVector (eigenValues,eigenVectors) 
+  subroutine CImod_loadEigenVector(eigenValues, eigenVectors)
     implicit none
     type(Vector) :: eigenValues
     type(Matrix) :: eigenVectors
@@ -681,60 +689,57 @@ contains
     real(8), allocatable :: auxArray(:)
     integer :: maxStackSize
 
-    maxStackSize = CONTROL_instance%CI_STACK_SIZE 
- 
+    maxStackSize = CONTROL_instance%CI_STACK_SIZE
 
     nameFile = "lowdin.civec"
     unitFile = 20
 
+    open (unit=unitFile, file=trim(nameFile), status="old", action="read", form="unformatted")
 
-    open(unit=unitFile, file=trim(nameFile), status="old", action="read", form="unformatted")
-
-    readvectors : do
+    readvectors: do
       read (unitFile) eigenValue
       read (unitFile) nonzero
-      write (*,*) "eigenValue", eigenValue
-      write (*,*) "nonzero", nonzero
+      write (*, *) "eigenValue", eigenValue
+      write (*, *) "nonzero", nonzero
 
       allocate (auxIndexArray(nonzero))
       auxIndexArray = 0
 
-      do i = 1, ceiling(real(nonZero) / real(maxStackSize) )
-        ib = maxStackSize * i  
+      do i = 1, ceiling(real(nonZero)/real(maxStackSize))
+        ib = maxStackSize*i
         ia = ib - maxStackSize + 1
-        if ( ib >  nonZero ) ib = nonZero
-       read (unitFile) auxIndexArray(ia:ib)
+        if (ib > nonZero) ib = nonZero
+        read (unitFile) auxIndexArray(ia:ib)
       end do
 
       allocate (auxArray(nonzero))
       auxArray = 0
 
-      do i = 1, ceiling(real(nonZero) / real(maxStackSize) )
-        ib = maxStackSize * i  
+      do i = 1, ceiling(real(nonZero)/real(maxStackSize))
+        ib = maxStackSize*i
         ia = ib - maxStackSize + 1
-        if ( ib >  nonZero ) ib = nonZero
-       read (unitFile) auxArray(ia:ib)
+        if (ib > nonZero) ib = nonZero
+        read (unitFile) auxArray(ia:ib)
       end do
       exit readvectors
     end do readvectors
 
     eigenValues%values(1) = eigenValue
     do i = 1, nonzero
-      eigenVectors%values(auxIndexArray(i),1) = auxArray(i)
+      eigenVectors%values(auxIndexArray(i), 1) = auxArray(i)
     end do
 
-    deallocate (auxIndexArray )
-    deallocate (auxArray )
+    deallocate (auxIndexArray)
+    deallocate (auxArray)
 
-
-    close(unitFile)
+    close (unitFile)
 
   end subroutine CImod_loadEigenVector
 
   !>
   !! @brief Muestra informacion del objeto
   !!
-  !! @param this 
+  !! @param this
   !<
   subroutine CImod_show()
     implicit none
@@ -746,64 +751,62 @@ contains
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    if ( CIcore_instance%isInstanced ) then
+    if (CIcore_instance%isInstanced) then
 
-      CIcorrection = CIcore_instance%eigenvalues%values(1) - &
-               HartreeFock_instance%totalEnergy
+      CIcorrection = CIcore_instance%eigenValues%values(1) - HartreeFock_instance%totalEnergy
 
-      write(*,"(A)") " SUMMARY OF                       "
-      write(*,"(A)") " POST HARTREE-FOCK CALCULATION    "
-      write(*,"(A)") " CONFIGURATION INTERACTION THEORY:"
-      write(6,*) "-----------------------------------------------------------------------"
-      write(*,"(A)") ""
-      write (6,"(T8,A30, A5)") "LEVEL = ", CIcore_instance%level
-      write (6,"(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", CIcore_instance%numberOfConfigurations
-      write (6,"(T4,A34, F25.12)") "HF ENERGY = ", HartreeFock_instance%totalEnergy
-      write (6,"(T4,A34, F25.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
+      write (*, "(A)") " SUMMARY OF                       "
+      write (*, "(A)") " POST HARTREE-FOCK CALCULATION    "
+      write (*, "(A)") " CONFIGURATION INTERACTION THEORY:"
+      write (6, *) "-----------------------------------------------------------------------"
+      write (*, "(A)") ""
+      write (6, "(T8,A30, A5)") "LEVEL = ", CIcore_instance%level
+      write (6, "(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", CIcore_instance%numberOfConfigurations
+      write (6, "(T4,A34, F25.12)") "HF ENERGY = ", HartreeFock_instance%totalEnergy
+      write (6, "(T4,A34, F25.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
       do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-       write (6,"(T18,A7,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenvalues%values(i)
+        write (6, "(T18,A7,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenValues%values(i)
       end do
-      write(*,"(A)") ""
+      write (*, "(A)") ""
 
-      if (  CIcore_instance%level == "CISD" ) then
-        write(*,"(A)") ""
-        write (6,"(T2,A34)") "RENORMALIZED DAVIDSON CORRECTION:"
-        write(*,"(A)") ""
-        write (6,"(T8,A54)") "E(CISDTQ) \approx E(CISD) + \delta E(Q)               "
-        write (6,"(T8,A54)") "\delta E(Q) = (1 - c_0^2) * \delta E(CISD) / c_0^2    "
-        write (*,*) ""
-        HFcoefficient = CIcore_instance%eigenVectors%values(1,1) 
-        davidsonCorrection = ( 1 - HFcoefficient*HFcoefficient) * CIcorrection / (HFcoefficient*HFcoefficient)
-  
-  
-        write (6,"(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
-        write (6,"(T8,A19, F25.12)") "\delta E(Q) = ", davidsonCorrection
-        write (6,"(T8,A19, F25.12)") "E(CISDTQ) ESTIMATE ",  HartreeFock_instance%totalEnergy +&
-           CIcorrection + davidsonCorrection
+      if (CIcore_instance%level == "CISD") then
+        write (*, "(A)") ""
+        write (6, "(T2,A34)") "RENORMALIZED DAVIDSON CORRECTION:"
+        write (*, "(A)") ""
+        write (6, "(T8,A54)") "E(CISDTQ) \approx E(CISD) + \delta E(Q)               "
+        write (6, "(T8,A54)") "\delta E(Q) = (1 - c_0^2) * \delta E(CISD) / c_0^2    "
+        write (*, *) ""
+        HFcoefficient = CIcore_instance%eigenVectors%values(1, 1)
+        davidsonCorrection = (1 - HFcoefficient*HFcoefficient)*CIcorrection/(HFcoefficient*HFcoefficient)
 
-      else if ( CIcore_instance%level == "SCI" ) then
+        write (6, "(T8,A19, F25.12)") "HF COEFFICIENT = ", HFcoefficient
+        write (6, "(T8,A19, F25.12)") "\delta E(Q) = ", davidsonCorrection
+        write (6, "(T8,A19, F25.12)") "E(CISDTQ) ESTIMATE ", HartreeFock_instance%totalEnergy + &
+          CIcorrection + davidsonCorrection
 
-        write(*,"(A)") ""
-        write (6,"(T2,A34)") "EPSTEIN-NESBET PT2 CORRECTION:"
-        write(*,"(A)") ""
-        write (6,"(T8,A19, F25.12)") "E_PT2 :", CISCI_instance%PT2energy 
-        write (6,"(T8,A19, F25.12)") "E_SCI + E_PT2 :",  CIcore_instance%eigenvalues%values(1) + CISCI_instance%PT2energy 
-      endif
+      else if (CIcore_instance%level == "SCI") then
+
+        write (*, "(A)") ""
+        write (6, "(T2,A34)") "EPSTEIN-NESBET PT2 CORRECTION:"
+        write (*, "(A)") ""
+        write (6, "(T8,A19, F25.12)") "E_PT2 :", CISCI_instance%PT2energy
+        write (6, "(T8,A19, F25.12)") "E_SCI + E_PT2 :", CIcore_instance%eigenValues%values(1) + CISCI_instance%PT2energy
+      end if
 
       MR = 0.0_8
       do a = 1, CIcore_instance%numberOfConfigurations
-        MR = MR +  abs( CIcore_instance%eigenVectors%values(a,1) )**2  - abs( CIcore_instance%eigenVectors%values(a,1) )**4 
-      enddo
+        MR = MR + abs(CIcore_instance%eigenVectors%values(a, 1))**2 - abs(CIcore_instance%eigenVectors%values(a, 1))**4
+      end do
 
-      write(*,"(A)") ""
-      write(*,"(A)") "MULTI-REFERENCE CHARACTER ANALYSIS:"
-      HFcoefficient = CIcore_instance%eigenVectors%values(1,1) 
-      write(*,"(A)") ""
-      write (6,"(T8,A19, F25.12)") "   HF COEFFICIENT = ", HFcoefficient
-      write (6,"(T8,A19, F25.12)") "HF COEFFICIENT**2 = ", HFcoefficient**2
-      write (6,"(T8,A19, F25.12)") "               MR = ", MR
+      write (*, "(A)") ""
+      write (*, "(A)") "MULTI-REFERENCE CHARACTER ANALYSIS:"
+      HFcoefficient = CIcore_instance%eigenVectors%values(1, 1)
+      write (*, "(A)") ""
+      write (6, "(T8,A19, F25.12)") "   HF COEFFICIENT = ", HFcoefficient
+      write (6, "(T8,A19, F25.12)") "HF COEFFICIENT**2 = ", HFcoefficient**2
+      write (6, "(T8,A19, F25.12)") "               MR = ", MR
 
-      write(6,*) "-----------------------------------------------------------------------"
+      write (6, *) "-----------------------------------------------------------------------"
 
     end if
 
@@ -812,8 +815,8 @@ contains
   subroutine CImod_showEigenVectors()
     implicit none
 
-    integer(8) :: a,b,c
-    integer :: u,v,p
+    integer(8) :: a, b, c
+    integer :: u, v, p
     integer :: ci
     integer :: i, j, ii, jj
     integer :: s, numberOfSpecies, auxnumberOfSpecies
@@ -825,148 +828,145 @@ contains
     integer(8), allocatable :: indexConf(:)
     integer, allocatable :: cilevel(:)
 
-
-    if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "NONE" ) return
+    if (CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "NONE") return
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-    numberOfConfigurations = CIcore_instance%numberOfConfigurations 
+    numberOfConfigurations = CIcore_instance%numberOfConfigurations
 
-    write (*,*) ""
-    write (*, "(T1,A)") "CI EIGENVECTORS" 
-    write (*,*) ""
-    write (*, "(T1,A,ES8.1)") "Printing coefficients larger than:", CONTROL_instance%CI_PRINT_THRESHOLD 
-    write (*,*) ""
+    write (*, *) ""
+    write (*, "(T1,A)") "CI EIGENVECTORS"
+    write (*, *) ""
+    write (*, "(T1,A,ES8.1)") "Printing coefficients larger than:", CONTROL_instance%CI_PRINT_THRESHOLD
+    write (*, *) ""
 
-    if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
+    if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI") then
 
-      allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
-      allocate ( ciLevel ( numberOfSpecies ) )
-      allocate ( indexConf ( numberOfSpecies ) )
+      allocate (CIcore_instance%allIndexConf(numberOfSpecies, numberOfConfigurations))
+      allocate (indexConf(numberOfSpecies))
+      allocate (ciLevel(numberOfSpecies))
       ciLevel = 0
       CIcore_instance%allIndexConf = 0
       indexConf = 0
-  
+
       !! gather all configurations
       s = 0
       c = 0
       ciLevel = 0
-  
-      do ci = 1,  CIcore_instance%sizeCiOrderList 
-  
-        cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
-        s = 0
-        auxnumberOfSpecies = CIcore_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
-      end do
-  
-      deallocate ( ciLevel )
 
-      if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
- 
+      do ci = 1, CIcore_instance%sizeCiOrderList
+
+        cilevel(:) = CIcore_instance%ciOrderList(CIcore_instance%auxciOrderList(ci), :)
+        s = 0
+        auxnumberOfSpecies = CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c, cilevel)
+      end do
+
+      deallocate (ciLevel)
+
+      if (CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS") then
+
         do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
+          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c)
           write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
-          write (*,*) ""
+          write (*, *) ""
           do a = 1, numberOfConfigurations
-            if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
-              indexConf(:) = CIcore_instance%allIndexConf(:,a) 
-  
+            if (abs(CIcore_instance%eigenVectors%values(a, c)) > CONTROL_instance%CI_PRINT_THRESHOLD) then
+              indexConf(:) = CIcore_instance%allIndexConf(:, a)
+
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
                 do p = 1, CIcore_instance%numberOfOrbitals%values(i)
-                  write (*, "(I1)", advance="no")  CIcore_instance%orbitals(i)%values(p,indexConf(i)) 
+                  write (*, "(I1)", advance="no") CIcore_instance%orbitals(i)%values(p, indexConf(i))
                 end do
-                write (*, "(A1)", advance="no")  " "
+                write (*, "(A1)", advance="no") " "
               end do
-              write (*, "(F11.8)") CIcore_instance%eigenVectors%values(a,c) 
+              write (*, "(F11.8)") CIcore_instance%eigenVectors%values(a, c)
             end if
           end do
-          write (*,*) ""
+          write (*, *) ""
         end do
-  
-      else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
-  
+
+      else if (CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED") then
+
         do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
+          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c)
           write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
-          write (*,*) ""
+          write (*, *) ""
           do a = 1, numberOfConfigurations
-            if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
-              indexConf(:) = CIcore_instance%allIndexConf(:,a) 
-  
+            if (abs(CIcore_instance%eigenVectors%values(a, c)) > CONTROL_instance%CI_PRINT_THRESHOLD) then
+              indexConf(:) = CIcore_instance%allIndexConf(:, a)
+
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
                 do p = 1, CIcore_instance%numberOfOccupiedOrbitals%values(i)
-                  write (*, "(I3,A1)", advance="no") CIcore_instance%strings(i)%values(p,indexConf(i) ), " "
+                  write (*, "(I3,A1)", advance="no") CIcore_instance%strings(i)%values(p, indexConf(i)), " "
                 end do
-                write (*, "(A1)", advance="no")  "|"
+                write (*, "(A1)", advance="no") "|"
               end do
-              write (*, "(A1,F11.8)") " ", CIcore_instance%eigenVectors%values(a,c) 
+              write (*, "(A1,F11.8)") " ", CIcore_instance%eigenVectors%values(a, c)
             end if
           end do
-          write (*,*) ""
+          write (*, *) ""
         end do
-  
+
       end if
-  
-      deallocate ( indexConf )
-      deallocate ( CIcore_instance%allIndexConf )
 
-    else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+      deallocate (indexConf)
+      deallocate (CIcore_instance%allIndexConf)
 
-      if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
-  
+    else if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI") then
+
+      if (CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS") then
+
         do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
+          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c)
           write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
-          write (*,*) ""
+          write (*, *) ""
           do a = 1, numberOfConfigurations
-            if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
+            if (abs(CIcore_instance%eigenVectors%values(a, c)) > CONTROL_instance%CI_PRINT_THRESHOLD) then
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
                 do p = 1, CIcore_instance%numberOfOrbitals%values(i)
-                  write (*, "(I1)", advance="no") CISCI_instance%saved_confTarget(i)%values(p,a)
-                                                  !CISCI_instance%targetOrb(i,a)%values(p)
+                  write (*, "(I1)", advance="no") CISCI_instance%saved_confTarget(i)%values(p, a)
+                  !CISCI_instance%targetOrb(i,a)%values(p)
                 end do
-                write (*, "(A1)", advance="no")  " "
+                write (*, "(A1)", advance="no") " "
               end do
-              write (*, "(F11.8)") CIcore_instance%eigenVectors%values(a,c) 
+              write (*, "(F11.8)") CIcore_instance%eigenVectors%values(a, c)
             end if
           end do
-          write (*,*) ""
+          write (*, *) ""
         end do
-  
-  
-      else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
+
+      else if (CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED") then
 
         do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
-          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
+          write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c)
           write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
-          write (*,*) ""
+          write (*, *) ""
           do a = 1, numberOfConfigurations
-            if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
-  
+            if (abs(CIcore_instance%eigenVectors%values(a, c)) > CONTROL_instance%CI_PRINT_THRESHOLD) then
+
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
                 do p = 1, CIcore_instance%numberOfOrbitals%values(i)
-                  if ( CISCI_instance%saved_confTarget(i)%values(p,a)  == 1 ) then
+                  if (CISCI_instance%saved_confTarget(i)%values(p, a) == 1) then
                     !CISCI_instance%targetOrb(i,a)%values(p)
                     write (*, "(I3,A1)", advance="no") p, " "
-                  endif
+                  end if
                 end do
-                write (*, "(A1)", advance="no")  "|"
+                write (*, "(A1)", advance="no") "|"
               end do
-              write (*, "(A1,F11.8)") " ", CIcore_instance%eigenVectors%values(a,c) 
+              write (*, "(A1,F11.8)") " ", CIcore_instance%eigenVectors%values(a, c)
             end if
           end do
-          write (*,*) ""
+          write (*, *) ""
         end do
-  
+
       end if
 
-    endif
+    end if
 
   end subroutine CImod_showEigenVectors
-
 
   !FELIX IS HERE
   subroutine CImod_densityMatrices()
@@ -980,10 +980,10 @@ contains
     integer :: state, species, orbital, orbitalA, orbitalB
     character(50) :: file, wfnfile, speciesName, auxstring
     character(100) :: arguments(2)
-    type(matrix), allocatable :: coefficients(:), atomicDensityMatrix(:,:), ciDensityMatrix(:,:), auxDensMatrix(:,:)
+    type(matrix), allocatable :: coefficients(:), atomicDensityMatrix(:, :), ciDensityMatrix(:, :), auxDensMatrix(:, :)
     type(matrix), allocatable :: kineticMatrix(:), attractionMatrix(:), externalPotMatrix(:)
     integer numberOfSpecies
-    type(matrix) :: auxdensityEigenVectors 
+    type(matrix) :: auxdensityEigenVectors
     type(matrix) :: densityEigenVectors
     type(vector) :: auxdensityEigenValues
     type(vector) :: densityEigenValues
@@ -1007,312 +1007,310 @@ contains
     integer :: spi
     integer :: pi
     integer :: oia, oib
-    type (ivector), allocatable :: occA(:), occB(:)
-    type (ivector), allocatable :: orbA(:), orbB(:)
+    type(ivector), allocatable :: occA(:), occB(:)
+    type(ivector), allocatable :: orbA(:), orbB(:)
     integer :: factorA
     integer :: diffOrbi(4)
 
-
-
     !!Iterators: i,j - Configurations .... k,l - molecular orbitals .... mu,nu - atomic orbitals ... n - threads
-    if ( CIcore_instance%isInstanced .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0 ) then
-       !$  timeDA = omp_get_wtime()
+    if (CIcore_instance%isInstanced .and. CONTROL_instance%CI_STATES_TO_PRINT .gt. 0) then
+!$    timeDA = omp_get_wtime()
 
       numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-  
-      numberOfConfigurations = CIcore_instance%numberOfConfigurations 
-  
-      if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
-        allocate (stringAinB ( numberOfSpecies ))
-  
-        do i = 1, numberOfSpecies 
-          call Vector_constructorInteger (stringAinB(i), CIcore_instance%numberOfOccupiedOrbitals%values(i), 0)
-        end do 
-  
-        allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
-        allocate ( ciLevelA ( numberOfSpecies ) )
-        allocate ( ciLevel ( numberOfSpecies ) )
-        allocate ( indexConf ( numberOfSpecies ) )
+
+      numberOfConfigurations = CIcore_instance%numberOfConfigurations
+
+      if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI") then
+        allocate (stringAinB(numberOfSpecies))
+
+        do i = 1, numberOfSpecies
+          call Vector_constructorInteger(stringAinB(i), CIcore_instance%numberOfOccupiedOrbitals%values(i), 0)
+        end do
+
+        allocate (CIcore_instance%allIndexConf(numberOfSpecies, numberOfConfigurations))
+        allocate (ciLevelA(numberOfSpecies))
+        allocate (ciLevel(numberOfSpecies))
+        allocate (indexConf(numberOfSpecies))
         ciLevelA = 0
         ciLevel = 0
         CIcore_instance%allIndexConf = 0
         indexConf = 0
-  
+
         !! gather all configurations
         s = 0
         c = 0
         ciLevel = 0
-  
-        do ci = 1,  CIcore_instance%sizeCiOrderList 
-  
-          cilevel(:) =  CIcore_instance%ciOrderList(  CIcore_instance%auxciOrderList(ci), :)
-          s = 0
-          auxnumberOfSpecies = CIcore_gatherConfRecursion( s, numberOfSpecies, indexConf,  c, cilevel )
-        end do
-  
-        deallocate ( indexConf )
-        allocate ( coupling ( numberOfSpecies ) )
 
-        allocate ( indexConfA ( numberOfSpecies ) )
-        allocate ( indexConfB ( numberOfSpecies ) )
-        allocate ( jj ( numberOfSpecies ) )
+        do ci = 1, CIcore_instance%sizeCiOrderList
+
+          cilevel(:) = CIcore_instance%ciOrderList(CIcore_instance%auxciOrderList(ci), :)
+          s = 0
+          auxnumberOfSpecies = CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c, cilevel)
+        end do
+
+        deallocate (indexConf)
+        allocate (coupling(numberOfSpecies))
+
+        allocate (indexConfA(numberOfSpecies))
+        allocate (indexConfB(numberOfSpecies))
+        allocate (jj(numberOfSpecies))
 
         indexConfA = 0
         indexConfB = 0
         jj = 0
 
-      else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+      else if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI") then
 
-        allocate ( occA ( numberOfSpecies ) )
-        allocate ( occB ( numberOfSpecies ) )
-        allocate ( orbA ( numberOfSpecies ) )
-        allocate ( orbB ( numberOfSpecies ) )
-        allocate ( couplingS ( numberOfSpecies ) )
-    
+        allocate (occA(numberOfSpecies))
+        allocate (occB(numberOfSpecies))
+        allocate (orbA(numberOfSpecies))
+        allocate (orbB(numberOfSpecies))
+        allocate (couplingS(numberOfSpecies))
+
         do spi = 1, numberOfSpecies
-          call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
-          call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-          call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-          call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+          call Vector_constructorInteger(occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0) ! use core here? yes
+          call Vector_constructorInteger(occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0)
+          call Vector_constructorInteger(orbA(spi), CIcore_instance%numberOfOrbitals%values(spi), 0)
+          call Vector_constructorInteger(orbB(spi), CIcore_instance%numberOfOrbitals%values(spi), 0)
         end do
 
-      endif !!SCI
+      end if !!SCI
 
-      write(6,*) "-----------------------------------------------------------------------"
-      write (*,*) "BUILDING CI DENSITY MATRICES"
-      write(6,*) "-----------------------------------------------------------------------"
-      write (*,*) ""
+      write (6, *) "-----------------------------------------------------------------------"
+      write (*, *) "BUILDING CI DENSITY MATRICES"
+      write (6, *) "-----------------------------------------------------------------------"
+      write (*, *) ""
 
-      allocate( coefficients(numberOfSpecies), &
-           kineticMatrix(numberOfSpecies), &
-           attractionMatrix(numberOfSpecies), &
-           externalPotMatrix(numberOfSpecies), &
-           atomicDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
-           ciDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
-           auxDensMatrix(numberOfSpecies,CIcore_instance%nproc) )
+      allocate (coefficients(numberOfSpecies), &
+                kineticMatrix(numberOfSpecies), &
+                attractionMatrix(numberOfSpecies), &
+                externalPotMatrix(numberOfSpecies), &
+                atomicDensityMatrix(numberOfSpecies, CONTROL_instance%CI_STATES_TO_PRINT), &
+                ciDensityMatrix(numberOfSpecies, CONTROL_instance%CI_STATES_TO_PRINT), &
+                auxDensMatrix(numberOfSpecies, CIcore_instance%nproc))
 
       wfnFile = "lowdin.wfn"
       wfnUnit = 20
-      open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
+      open (unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
-      !Inicializando las matrices
-      do species=1, numberOfSpecies
-         speciesName = MolecularSystem_getNameOfSpecies(species)
-         
-         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-         ! numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(species)
-         numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(species)
+      !! matrix allocation
+      do species = 1, numberOfSpecies
+        speciesName = MolecularSystem_getNameOfSpecies(species)
 
-         arguments(2) = speciesName
+        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(species)
+        !numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(species)
+        numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(species)
 
-         arguments(1) = "COEFFICIENTS"
-         coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+        arguments(2) = speciesName
 
-         arguments(1) = "KINETIC"
-         kineticMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-         
-         arguments(1) = "ATTRACTION"
-         attractionMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+        arguments(1) = "COEFFICIENTS"
+        coefficients(species) = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                                                   columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
 
-         arguments(1) = "EXTERNAL-POTENTIAL"
-         if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
-              externalPotMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-              columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
-        
-         do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+        arguments(1) = "KINETIC"
+        kineticMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                                                    columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
 
-            call Matrix_constructor ( ciDensityMatrix(species,state) , &
-                 int(numberOfContractions,8), &
-                 int(numberOfContractions,8),  0.0_8 )
+        arguments(1) = "ATTRACTION"
+        attractionMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                                                       columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
 
-            do k=1, numberOfOccupiedOrbitals
-               ciDensityMatrix(species,state)%values( k, k)=1.0_8
-            end do
+        arguments(1) = "EXTERNAL-POTENTIAL"
+        if (CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+          externalPotMatrix(species) = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                                                          columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
 
-         end do
+        do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
 
-         do n=1, CIcore_instance%nproc
+          call Matrix_constructor(ciDensityMatrix(species, state), &
+                                  int(numberOfContractions, 8), &
+                                  int(numberOfContractions, 8), 0.0_8)
 
-            call Matrix_constructor ( auxDensMatrix(species,n) , &
-                 int(numberOfContractions,8), &
-                 int(numberOfContractions,8),  0.0_8 )
-         end do
+          do k = 1, numberOfOccupiedOrbitals
+            ciDensityMatrix(species, state)%values(k, k) = 1.0_8
+          end do
+
+        end do
+
+        do n = 1, CIcore_instance%nproc
+
+          call Matrix_constructor(auxDensMatrix(species, n), &
+                                  int(numberOfContractions, 8), &
+                                  int(numberOfContractions, 8), 0.0_8)
+        end do
       end do
-       
-      close(wfnUnit)
+
+      close (wfnUnit)
 
       !! Building the CI reduced density matrix in the molecular orbital representation in parallel
-      do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+      do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
 
-        if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
-          !$omp parallel & 
+        if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI") then
+          !$omp parallel &
           !$omp& firstprivate (stringAinB,indexConfA,indexConfB, jj) &
           !$omp& private(i,j, species, s, numberOfOccupiedOrbitals, k, coupling, orbital, orbitalA, orbitalB, AA, BB, a, b, factor, n, cilevelA, ss, ssize, cilevel, ci, u, uu, bj),&
           !$omp& shared(CIcore_instance, auxDensMatrix )
           n = omp_get_thread_num() + 1
-          !$omp do schedule (dynamic) 
-          do i=1, CIcore_instance%numberOfConfigurations
+          !$omp do schedule (dynamic)
+          do i = 1, CIcore_instance%numberOfConfigurations
 
-             !!if( mod( i , 50000 ) .eq. 0 ) print *, state, floor(real(100*i/CIcore_instance%numberOfConfigurations)), "%"
-             !!Filter very small coefficients
-             if( abs(CIcore_instance%eigenVectors%values(i,state)) .ge. 1E-10) then
+            !!if( mod( i , 50000 ) .eq. 0 ) print *, state, floor(real(100*i/CIcore_instance%numberOfConfigurations)), "%"
+            !!Filter very small coefficients
+            if (abs(CIcore_instance%eigenVectors%values(i, state)) .ge. 1E-10) then
 
-                indexConfA(:) = CIcore_instance%allIndexConf(:,i) 
+              indexConfA(:) = CIcore_instance%allIndexConf(:, i)
 
                 !!Diagonal contributions
-                do species=1, numberOfSpecies
-                   numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(species)
+              do species = 1, numberOfSpecies
+                numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(species)
 
-                   do k=1, numberOfOccupiedOrbitals
+                do k = 1, numberOfOccupiedOrbitals
 
                       !!Occupied orbitals
-                      auxDensMatrix(species,n)%values(k,k)=auxDensMatrix(species,n)%values(k,k) - CIcore_instance%eigenVectors%values(i,state)**2
-                      orbital =  CIcore_instance%strings(species)%values(k,indexConfA(species))
+                  auxDensMatrix(species, n)%values(k, k) = auxDensMatrix(species, n)%values(k, k) - CIcore_instance%eigenVectors%values(i, state)**2
+                  orbital = CIcore_instance%strings(species)%values(k, indexConfA(species))
                       !!Unoccupied orbitals
 
-                      auxDensMatrix(species,n)%values(orbital,orbital)=auxDensMatrix(species,n)%values(orbital,orbital) + CIcore_instance%eigenVectors%values(i,state)**2
+                  auxDensMatrix(species, n)%values(orbital, orbital) = auxDensMatrix(species, n)%values(orbital, orbital) + CIcore_instance%eigenVectors%values(i, state)**2
 
-                   end do
                 end do
+              end do
 
                 !!Off Diagonal contributions
-                cilevelA = 0
-                do ss = 1, numberOfSpecies 
-                  stringAinB(ss)%values = 0
-                  do k = 1, CIcore_instance%numberOfOccupiedOrbitals%values(ss)
+              cilevelA = 0
+              do ss = 1, numberOfSpecies
+                stringAinB(ss)%values = 0
+                do k = 1, CIcore_instance%numberOfOccupiedOrbitals%values(ss)
 
-                    stringAinB(ss)%values(k) = CIcore_instance%orbitals(ss)%values( &
-                                              CIcore_instance%strings(ss)%values(k,  CIcore_instance%allIndexConf(ss,1)), indexConfA(ss))
-                  end do
-                  cilevelA(ss) = CIcore_instance%numberOfOccupiedOrbitals%values(ss) - sum ( stringAinB(ss)%values )
-                end do 
+                  stringAinB(ss)%values(k) = CIcore_instance%orbitals(ss)%values( &
+                                             CIcore_instance%strings(ss)%values(k, CIcore_instance%allIndexConf(ss, 1)), indexConfA(ss))
+                end do
+                cilevelA(ss) = CIcore_instance%numberOfOccupiedOrbitals%values(ss) - sum(stringAinB(ss)%values)
+              end do
 
-                jj = 0
-                coupling = 0
-                do ss = 1, numberOfSpecies 
-                  ssize = 0 
+              jj = 0
+              coupling = 0
+              do ss = 1, numberOfSpecies
+                ssize = 0
 
-                  indexConfB(:) = indexConfA(:)
-                  cilevel = cilevelA
+                indexConfB(:) = indexConfA(:)
+                cilevel = cilevelA
 
-                  do ci = 1,  size(CIcore_instance%numberOfStrings(ss)%values, dim = 1)
-                    cilevel(ss) = ci - 1
-                    do u = 1,  CIcore_instance%sizeCiOrderList 
-                      if ( sum(abs(cilevel - &
-                           CIcore_instance%ciOrderList( CIcore_instance%auxciOrderList(u), :))) == 0 ) then
-                        uu = CIcore_instance%auxciOrderList(u)
-                        do bj = 1 + ssize , CIcore_instance%numberOfStrings(ss)%values(ci) + ssize
-                          indexConfB(ss) = bj
-  
-                          do s=1, numberOfSpecies
-                            jj(s) = (indexConfB(s) - CIcore_instance%numberOfStrings2(s)%values(cilevel(s)+1) + &
-                                     CIcore_instance%ciOrderSize1(uu,s) )* CIcore_instance%ciOrderSize2(uu,s) 
-                          end do
+                do ci = 1, size(CIcore_instance%numberOfStrings(ss)%values, dim=1)
+                  cilevel(ss) = ci - 1
+                  do u = 1, CIcore_instance%sizeCiOrderList
+                    if (sum(abs(cilevel - &
+                                CIcore_instance%ciOrderList(CIcore_instance%auxciOrderList(u), :))) == 0) then
+                      uu = CIcore_instance%auxciOrderList(u)
+                      do bj = 1 + ssize, CIcore_instance%numberOfStrings(ss)%values(ci) + ssize
+                        indexConfB(ss) = bj
 
-                          j = sum(jj)
-                          if ( j > i ) then
-                            if( abs(CIcore_instance%eigenVectors%values(j,state)) .ge. 1E-10) then
+                        do s = 1, numberOfSpecies
+                          jj(s) = (indexConfB(s) - CIcore_instance%numberOfStrings2(s)%values(cilevel(s) + 1) + &
+                                   CIcore_instance%ciOrderSize1(uu, s))*CIcore_instance%ciOrderSize2(uu, s)
+                        end do
 
-                              coupling = 0
-                              do s=1, numberOfSpecies
-                                 stringAinB(s)%values = 0
-                                 do k = 1, CIcore_instance%numberOfOccupiedOrbitals%values(s)
-                                    stringAinB(s)%values(k) = CIcore_instance%orbitals(s)%values( &
-                                         CIcore_instance%strings(s)%values(k,indexConfA(s) ), indexConfB(s) ) 
-                                 end do
-                                 coupling(s) = CIcore_instance%numberOfOccupiedOrbitals%values(s) - sum ( stringAinB(s)%values )
+                        j = sum(jj)
+                        if (j > i) then
+                          if (abs(CIcore_instance%eigenVectors%values(j, state)) .ge. 1E-10) then
+
+                            coupling = 0
+                            do s = 1, numberOfSpecies
+                              stringAinB(s)%values = 0
+                              do k = 1, CIcore_instance%numberOfOccupiedOrbitals%values(s)
+                                stringAinB(s)%values(k) = CIcore_instance%orbitals(s)%values( &
+                                                          CIcore_instance%strings(s)%values(k, indexConfA(s)), indexConfB(s))
                               end do
-                              if (sum(coupling) == 1) then
-    
-                                do s = 1, numberOfSpecies
-    
-                                  if ( coupling(s) == 1) then !!hmm
+                              coupling(s) = CIcore_instance%numberOfOccupiedOrbitals%values(s) - sum(stringAinB(s)%values)
+                            end do
+                            if (sum(coupling) == 1) then
 
-                                    orbitalA = 0
-                                    orbitalB = 0
-                                    AA = 0
-                                    BB = 0
-                                    a = indexConfA(s)
-                                    b = indexConfB(s)
-    
-                                    do k = 1, CIcore_instance%occupationNumber(s) 
-                                       if ( CIcore_instance%orbitals(s)%values( &
-                                            CIcore_instance%strings(s)%values(k,a),b) == 0 ) then
-                                          orbitalA =  CIcore_instance%strings(s)%values(k,a)
-                                          AA = k
-                                          exit
-                                       end if
-                                    end do
-                                    do k = 1, CIcore_instance%occupationNumber(s) 
-                                       if ( CIcore_instance%orbitals(s)%values( &
-                                            CIcore_instance%strings(s)%values(k,b),a) == 0 ) then
-                                          orbitalB =  CIcore_instance%strings(s)%values(k,b)
-                                          BB = k
-                                          exit
-                                       end if
-                                    end do
-    
-                                    factor = (-1)**(AA-BB)
-    
-                                    numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(s)
-    
-                                    auxDensMatrix(s,n)%values( orbitalA,orbitalB)= auxDensMatrix(s,n)%values( orbitalA, orbitalB) + &
-                                         factor*CIcore_instance%eigenVectors%values(i,state)* &
-                                         CIcore_instance%eigenVectors%values(j,state)
-                                    auxDensMatrix(s,n)%values( orbitalB,orbitalA)= auxDensMatrix(s,n)%values( orbitalB, orbitalA) + &
-                                         factor*CIcore_instance%eigenVectors%values(i,state)* &
-                                         CIcore_instance%eigenVectors%values(j,state)
-                                   end if
-                                 end do
-                               end if
+                              do s = 1, numberOfSpecies
+
+                                if (coupling(s) == 1) then !!hmm
+
+                                  orbitalA = 0
+                                  orbitalB = 0
+                                  AA = 0
+                                  BB = 0
+                                  a = indexConfA(s)
+                                  b = indexConfB(s)
+
+                                  do k = 1, CIcore_instance%occupationNumber(s)
+                                    if (CIcore_instance%orbitals(s)%values( &
+                                        CIcore_instance%strings(s)%values(k, a), b) == 0) then
+                                      orbitalA = CIcore_instance%strings(s)%values(k, a)
+                                      AA = k
+                                      exit
+                                    end if
+                                  end do
+                                  do k = 1, CIcore_instance%occupationNumber(s)
+                                    if (CIcore_instance%orbitals(s)%values( &
+                                        CIcore_instance%strings(s)%values(k, b), a) == 0) then
+                                      orbitalB = CIcore_instance%strings(s)%values(k, b)
+                                      BB = k
+                                      exit
+                                    end if
+                                  end do
+
+                                  factor = (-1)**(AA - BB)
+
+                                  numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(s)
+
+                                  auxDensMatrix(s, n)%values(orbitalA, orbitalB) = auxDensMatrix(s, n)%values(orbitalA, orbitalB) + &
+                                                                                   factor*CIcore_instance%eigenVectors%values(i, state)* &
+                                                                                   CIcore_instance%eigenVectors%values(j, state)
+                                  auxDensMatrix(s, n)%values(orbitalB, orbitalA) = auxDensMatrix(s, n)%values(orbitalB, orbitalA) + &
+                                                                                   factor*CIcore_instance%eigenVectors%values(i, state)* &
+                                                                                   CIcore_instance%eigenVectors%values(j, state)
+                                end if
+                              end do
                             end if
                           end if
-                        end do
-                        ssize = ssize + CIcore_instance%numberOfStrings(ss)%values(ci)
-                      end if
+                        end if
+                      end do
+                      ssize = ssize + CIcore_instance%numberOfStrings(ss)%values(ci)
+                    end if
 
-                    end do
                   end do
+                end do
 
-                end do 
+              end do
 
-             end if
+            end if
           end do
           !$omp end do nowait
           !$omp end parallel
-          
+
           !! Gather the parallel results
-          do species=1, numberOfSpecies
-             do n=1, CIcore_instance%nproc
-                ciDensityMatrix(species,state)%values = ciDensityMatrix(species,state)%values + auxDensMatrix(species,n)%values
-                auxDensMatrix(species,n)%values=0.0
-             end do
+          do species = 1, numberOfSpecies
+            do n = 1, CIcore_instance%nproc
+              ciDensityMatrix(species, state)%values = ciDensityMatrix(species, state)%values + auxDensMatrix(species, n)%values
+              auxDensMatrix(species, n)%values = 0.0
+            end do
           end do
-                
+
         !!------------------------------------------------------------------------------------
-        else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
+        else if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI") then
 
           do a = 1, CIcore_instance%numberOfConfigurations
             n = 1
 
-            do spi = 1, numberOfSpecies 
-              oia = 0 
+            do spi = 1, numberOfSpecies
+              oia = 0
 
               !!orbA(spi)%values = CISCI_instance%targetOrb(spi,a)%values
-              orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,a)
+              orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:, a)
 
               !! build auxiliary vectors of occupied and virtuals orbitals
               do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-                if ( orbA(spi)%values(pi) == 1 ) then
+                if (orbA(spi)%values(pi) == 1) then
                   oia = oia + 1
                   occA(spi)%values(oia) = pi
                 end if
-              enddo
-       
-            enddo
+              end do
+
+            end do
 
             !!Diagonal contributions
             do spi = 1, numberOfSpecies
@@ -1321,268 +1319,288 @@ contains
               do k = 1, numberOfOccupiedOrbitals
 
                 !!Occupied orbitals
-                auxDensMatrix(spi,n)%values(k,k) = auxDensMatrix(spi,n)%values(k,k) - CIcore_instance%eigenVectors%values(a,state)**2
-                orbital = occA(spi)%values(k) 
+                auxDensMatrix(spi, n)%values(k, k) = auxDensMatrix(spi, n)%values(k, k) - CIcore_instance%eigenVectors%values(a, state)**2
+                orbital = occA(spi)%values(k)
 
                 !!Unoccupied orbitals
-                auxDensMatrix(spi,n)%values(orbital,orbital) = auxDensMatrix(spi,n)%values(orbital,orbital) + CIcore_instance%eigenVectors%values(a,state)**2
+                auxDensMatrix(spi, n)%values(orbital, orbital) = auxDensMatrix(spi, n)%values(orbital, orbital) + CIcore_instance%eigenVectors%values(a, state)**2
 
-               end do
-             end do
+              end do
+            end do
 
             !!Off Diagonal contributions
-            do b = 1, CICore_instance%numberOfConfigurations 
+            do b = 1, CICore_instance%numberOfConfigurations
 
-              do spi = 1, numberOfSpecies 
+              do spi = 1, numberOfSpecies
                 !orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values
-                orbB(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,b)
-              enddo
+                orbB(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:, b)
+              end do
 
               !! determinate number of diff orbitals
               couplingS = 0
               do spi = 1, numberOfSpecies
                 couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
-                                  - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) 
+                                 - sum(orbA(spi)%values(:)*orbB(spi)%values(:))
               end do
-      
-              !! just single particle diff 
-              if ( sum(couplingS) == 1 ) then
 
-                do spi = 1, numberOfSpecies 
-                  oib = 0 
+              !! just single particle diff
+              if (sum(couplingS) == 1) then
+
+                do spi = 1, numberOfSpecies
+                  oib = 0
                   !! build auxiliary vectors of occupied and virtuals orbitals
                   do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-                    if ( orbB(spi)%values(pi) == 1 ) then
+                    if (orbB(spi)%values(pi) == 1) then
                       oib = oib + 1
                       occB(spi)%values(oib) = pi
                     end if
-                  enddo
-                enddo
-
-                do i = 1, numberOfSpecies
-                    if ( couplingS(i) == 1 ) spi = i
+                  end do
                 end do
 
-                diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
+                do i = 1, numberOfSpecies
+                  if (couplingS(i) == 1) spi = i
+                end do
 
-                auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) = auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) + &
-                                                                factorA * & 
-                                                                CIcore_instance%eigenVectors%values(a,state) * &
-                                                                CIcore_instance%eigenVectors%values(b,state)
-                auxDensMatrix(spi,n)%values( diffOrbi(3), diffOrbi(1) ) = auxDensMatrix(spi,n)%values( diffOrbi(3), diffOrbi(1) ) + &
-                                                                factorA * &
-                                                                CIcore_instance%eigenVectors%values(a,state) * &
-                                                                CIcore_instance%eigenVectors%values(b,state)
-               
-              endif !! coupling 
-            enddo !! b
+                diffOrbi = CISCI_getDiffOrbitals(spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA)
+
+                auxDensMatrix(spi, n)%values(diffOrbi(1), diffOrbi(3)) = auxDensMatrix(spi, n)%values(diffOrbi(1), diffOrbi(3)) + &
+                                                                         factorA* &
+                                                                         CIcore_instance%eigenVectors%values(a, state)* &
+                                                                         CIcore_instance%eigenVectors%values(b, state)
+                auxDensMatrix(spi, n)%values(diffOrbi(3), diffOrbi(1)) = auxDensMatrix(spi, n)%values(diffOrbi(3), diffOrbi(1)) + &
+                                                                         factorA* &
+                                                                         CIcore_instance%eigenVectors%values(a, state)* &
+                                                                         CIcore_instance%eigenVectors%values(b, state)
+
+              end if !! coupling
+            end do !! b
           end do !! a
 
           !! Gather the parallel results
-          do species=1, numberOfSpecies
-             do n=1, CIcore_instance%nproc
-                ciDensityMatrix(species,state)%values = ciDensityMatrix(species,state)%values + auxDensMatrix(species,n)%values
-                auxDensMatrix(species,n)%values=0.0
-             end do
-          end do
- 
-
-        endif !! SCI or not SCI
-      end do !! number of CI states
-      
-     !! Open file - to write density matrices
-     unit = 29
-       
-     file = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
-     open(unit = unit, file=trim(file), status="new", form="formatted")
-       
-     !! Building the CI reduced density matrix in the atomic orbital representation       
-     do species=1, numberOfSpecies
-       speciesName = MolecularSystem_getNameOfSpecies(species)
-       numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-
-       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
-          
-         call Matrix_constructor ( atomicDensityMatrix(species,state) , &
-                                   int(numberOfContractions,8), &
-                                   int(numberOfContractions,8),  0.0_8 )
-
-         do mu=1, numberOfContractions
-            do nu=1, numberOfContractions
-               do k=1, numberOfContractions
-                  atomicDensityMatrix(species,state)%values(mu,nu) =  &
-                       atomicDensityMatrix(species,state)%values(mu,nu) + &
-                       ciDensityMatrix(species,state)%values(k,k) *&
-                       coefficients(species)%values(mu,k)*coefficients(species)%values(nu,k)
-
-                  do l=k+1, numberOfContractions
-
-                     atomicDensityMatrix(species,state)%values(mu,nu) =  &
-                          atomicDensityMatrix(species,state)%values(mu,nu) + &
-                          ciDensityMatrix(species,state)%values(k,l) *&
-                          (coefficients(species)%values(mu,k)*coefficients(species)%values(nu,l) + & 
-                          coefficients(species)%values(mu,l)*coefficients(species)%values(nu,k))
-
-                  end do
-               end do
+          do species = 1, numberOfSpecies
+            do n = 1, CIcore_instance%nproc
+              ciDensityMatrix(species, state)%values = ciDensityMatrix(species, state)%values + auxDensMatrix(species, n)%values
+              auxDensMatrix(species, n)%values = 0.0
             end do
-         end do
-       
-         write(auxstring,*) state
-         arguments(2) = speciesName
-         arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring)) 
-             
-         call Matrix_writeToFile ( atomicDensityMatrix(species,state), unit , arguments=arguments(1:2) )
-
-         end do
-       end do
-
-       write(6,*) "-----------------------------------------------------------------------"
-       write(*,*) " ONE BODY ENERGY CONTRIBUTIONS:"
-       write(*,*) ""
-       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
-          write(*,*) " STATE: ", state
-          do species=1, molecularSystem_instance%numberOfQuantumSpecies
-             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%symbol ) // &
-                  " Kinetic energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*kineticMatrix(species)%values)
-             write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%symbol ) // &
-                  "/Fixed interact. energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*attractionMatrix(species)%values)
-             if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
-                  write(*,"(A38,F25.12)") trim( MolecularSystem_instance%species(species)%symbol) // &
-                  " Ext Pot energy = ", sum(transpose(atomicDensityMatrix(species,state)%values)*externalPotMatrix(species)%values)
-             print *, ""
           end do
+
+        end if !! SCI or not SCI
+      end do !! number of CI states
+
+     !! Open file - to write density matrices
+      unit = 29
+
+      file = trim(CONTROL_instance%INPUT_FILE)//"Matrices.ci"
+      open (unit=unit, file=trim(file), status="new", form="formatted")
+
+     !! Building the CI reduced density matrix in the atomic orbital representation
+      do species = 1, numberOfSpecies
+        speciesName = MolecularSystem_getNameOfSpecies(species)
+        numberOfContractions = MolecularSystem_getTotalNumberOfContractions(species)
+
+        do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
+
+          call Matrix_constructor(atomicDensityMatrix(species, state), &
+                                  int(numberOfContractions, 8), &
+                                  int(numberOfContractions, 8), 0.0_8)
+
+          do mu = 1, numberOfContractions
+            do nu = 1, numberOfContractions
+              do k = 1, numberOfContractions
+                atomicDensityMatrix(species, state)%values(mu, nu) = &
+                  atomicDensityMatrix(species, state)%values(mu, nu) + &
+                  ciDensityMatrix(species, state)%values(k, k)* &
+                  coefficients(species)%values(mu, k)*coefficients(species)%values(nu, k)
+
+                do l = k + 1, numberOfContractions
+
+                  atomicDensityMatrix(species, state)%values(mu, nu) = &
+                    atomicDensityMatrix(species, state)%values(mu, nu) + &
+                    ciDensityMatrix(species, state)%values(k, l)* &
+                    (coefficients(species)%values(mu, k)*coefficients(species)%values(nu, l) + &
+                     coefficients(species)%values(mu, l)*coefficients(species)%values(nu, k))
+
+                end do
+              end do
+            end do
+          end do
+
+          write (auxstring, *) state
+          arguments(2) = speciesName
+          arguments(1) = "DENSITYMATRIX"//trim(adjustl(auxstring))
+
+          call Matrix_writeToFile(atomicDensityMatrix(species, state), unit, arguments=arguments(1:2))
+
+        end do
+      end do
+
+      write (6, *) "-----------------------------------------------------------------------"
+      write (*, *) " ONE BODY ENERGY CONTRIBUTIONS:"
+      write (*, *) ""
+      do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
+        write (*, *) " STATE: ", state
+        do species = 1, molecularSystem_instance%numberOfQuantumSpecies
+          write (*, "(A38,F25.12)") trim(MolecularSystem_instance%species(species)%symbol)// &
+            " Kinetic energy = ", sum(transpose(atomicDensityMatrix(species, state)%values)*kineticMatrix(species)%values)
+          write (*, "(A38,F25.12)") trim(MolecularSystem_instance%species(species)%symbol)// &
+            "/Fixed interact. energy = ", sum(transpose(atomicDensityMatrix(species, state)%values)*attractionMatrix(species)%values)
+          if (CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
+            write (*, "(A38,F25.12)") trim(MolecularSystem_instance%species(species)%symbol)// &
+            " Ext Pot energy = ", sum(transpose(atomicDensityMatrix(species, state)%values)*externalPotMatrix(species)%values)
           print *, ""
-       end do
- 
+        end do
+        print *, ""
+      end do
+
       !! Natural orbitals
 
-       if (CONTROL_instance%CI_NATURAL_ORBITALS) then
+      if (CONTROL_instance%CI_NATURAL_ORBITALS) then
 
-          write(6,*) "-----------------------------------------------------------------------"
-          write(*,*) " NATURAL ORBITALS: "
-          write(*,*) ""
+        write (6, *) "-----------------------------------------------------------------------"
+        write (*, *) " NATURAL ORBITALS: "
+        write (*, *) ""
 
-          do state=1, CONTROL_instance%CI_STATES_TO_PRINT
+        do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
 
-             write(*,*) " STATE: ", state
+          write (*, *) " STATE: ", state
 
-             do species=1, numberOfSpecies
+          do species = 1, numberOfSpecies
 
-                write(*,*) ""
-                write(*,*) " Natural Orbitals in state: ", state, " for: ", trim( MolecularSystem_instance%species(species)%symbol )
-                write(*,*) "-----------------"
+            write (*, *) ""
+            write (*, *) " Natural Orbitals in state: ", state, " for: ", trim(MolecularSystem_instance%species(species)%symbol)
+            write (*, *) "-----------------"
 
-                numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-                speciesName = MolecularSystem_getNameOfSpecies(species)
+            numberOfContractions = MolecularSystem_getTotalNumberOfContractions(species)
+            speciesName = MolecularSystem_getNameOfSpecies(species)
 
+            call Vector_constructor(auxdensityEigenValues, &
+                                    int(numberOfContractions, 8), 0.0_8)
 
-                call Vector_constructor ( auxdensityEigenValues, &
-                     int(numberOfContractions,4),  0.0_8 )
+            call Matrix_constructor(auxdensityEigenVectors, &
+                                    int(numberOfContractions, 8), &
+                                    int(numberOfContractions, 8), 0.0_8)
 
-                call Matrix_constructor ( auxdensityEigenVectors, &
-                     int(numberOfContractions,8), &
-                     int(numberOfContractions,8),  0.0_8 )
+            call Vector_constructor(densityEigenValues, &
+                                    int(numberOfContractions, 8), 0.0_8)
 
-                call Vector_constructor ( densityEigenValues, &
-                     int(numberOfContractions,4),  0.0_8 )
+            call Matrix_constructor(densityEigenVectors, &
+                                    int(numberOfContractions, 8), &
+                                    int(numberOfContractions, 8), 0.0_8)
 
-                call Matrix_constructor ( densityEigenVectors, &
-                     int(numberOfContractions,8), &
-                     int(numberOfContractions,8),  0.0_8 )
+            call Matrix_eigen(ciDensityMatrix(species, state), auxdensityEigenValues, auxdensityEigenVectors, SYMMETRIC)
 
-                call Matrix_eigen ( ciDensityMatrix(species,state), auxdensityEigenValues, auxdensityEigenVectors, SYMMETRIC )  
-
-                ! reorder and count significant occupations
-                k=0
-                do u = 1, numberOfContractions
-                   densityEigenValues%values(u) =  auxdensityEigenValues%values(numberOfContractions - u + 1)
-                   densityEigenVectors%values(:,u) = auxdensityEigenVectors%values(:,numberOfContractions - u + 1)
-                   if(densityEigenValues%values(u) .ge. 5.0E-5 ) k=k+1
-                end do
+            ! reorder and count significant occupations
+            k = 0
+            do u = 1, numberOfContractions
+              densityEigenValues%values(u) = auxdensityEigenValues%values(numberOfContractions - u + 1)
+              densityEigenVectors%values(:, u) = auxdensityEigenVectors%values(:, numberOfContractions - u + 1)
+              if (densityEigenValues%values(u) .ge. 5.0E-5) k = k + 1
+            end do
 
                 !! Transform to atomic basis
-                densityEigenVectors%values = matmul( coefficients(species)%values, densityEigenVectors%values )
+            densityEigenVectors%values = matmul(coefficients(species)%values, densityEigenVectors%values)
 
-                ! Print eigenvectors with occupation larger than 5.0E-5
-                call Matrix_constructor(auxdensityEigenVectors,int(numberOfContractions,8),int(k,8),0.0_8)
-                do u=1, numberOfContractions
-                   do j=1, k
-                      auxdensityEigenVectors%values(u,j)=densityEigenVectors%values(u,j)
-                   end do
-                end do
-                call Matrix_show( auxdensityEigenVectors, &
-                     rowkeys = MolecularSystem_getlabelsofcontractions( species ), &
-                     columnkeys = string_convertvectorofrealstostring( densityEigenValues ),&
-                     flags=WITH_BOTH_KEYS)
+            ! Print eigenvectors with occupation larger than 5.0E-5
+            call Matrix_constructor(auxdensityEigenVectors, int(numberOfContractions, 8), int(k, 8), 0.0_8)
+            do u = 1, numberOfContractions
+              do j = 1, k
+                auxdensityEigenVectors%values(u, j) = densityEigenVectors%values(u, j)
+              end do
+            end do
+            call Matrix_show(auxdensityEigenVectors, &
+                             rowkeys=MolecularSystem_getlabelsofcontractions(species), &
+                             columnkeys=string_convertvectorofrealstostring(densityEigenValues), &
+                             flags=WITH_BOTH_KEYS)
 
-                write(auxstring,*) state
-                arguments(2) = speciesName
-                arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
+            write (auxstring, *) state
+            arguments(2) = speciesName
+            arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring))
 
-                call Matrix_writeToFile ( densityEigenVectors, unit , arguments=arguments(1:2) )
-                arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
+            call Matrix_writeToFile(densityEigenVectors, unit, arguments=arguments(1:2))
+            arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring))
 
-                call Vector_writeToFile( densityEigenValues, unit, arguments=arguments(1:2) )
-                !! it's the same
-                !!auxdensityEigenVectors%values = 0
+            call Vector_writeToFile(densityEigenValues, unit, arguments=arguments(1:2))
+            !! it's the same as
+            !!auxdensityEigenVectors%values = 0
 
-                !!do mu=1, numberOfContractions
-                !!  do nu=1, numberOfContractions
-                !!    do k=1, numberOfContractions
-                !!      auxdensityEigenVectors%values(mu,nu) = auxdensityEigenVectors%values(mu,nu) + &
-                !!                              densityEigenVectors%values(mu,k) *  densityEigenVectors%values(nu,k)*densityEigenValues%values(k) 
-                !!    end do
-                !!  end do
-                !!end do
-                !!print *, "atomic density matrix from natural orbitals"
-                !!call Matrix_show ( auxdensityEigenVectors)
-                write(*,"(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_instance%species(species)%symbol) , "natural orbital occupations", sum(densityEigenValues%values)
+            !!do mu=1, numberOfContractions
+            !!  do nu=1, numberOfContractions
+            !!    do k=1, numberOfContractions
+            !!      auxdensityEigenVectors%values(mu,nu) = auxdensityEigenVectors%values(mu,nu) + &
+            !!                              densityEigenVectors%values(mu,k) *  densityEigenVectors%values(nu,k)*densityEigenValues%values(k)
+            !!    end do
+            !!  end do
+            !!end do
+            !!print *, "atomic density matrix from natural orbitals"
+            !!call Matrix_show ( auxdensityEigenVectors)
+            write (*, "(A10,A10,A40,F17.12)") "sum of ", trim(MolecularSystem_instance%species(species)%symbol), "natural orbital occupations", sum(densityEigenValues%values)
 
-                write(*,*) " End of natural orbitals in state: ", state, " for: ", trim(MolecularSystem_instance%species(species)%symbol)
-             end do
+            write (*, *) " End of natural orbitals in state: ", state, " for: ", trim(MolecularSystem_instance%species(species)%symbol)
+
+            call Vector_destructor(auxdensityEigenValues)
+            call Matrix_destructor(auxdensityEigenVectors)
+            call Vector_destructor(densityEigenValues)
+            call Matrix_destructor(densityEigenVectors)
+
           end do
+        end do
 
-          write(*,*) ""
-          write(*,*) " END OF NATURAL ORBITALS"
-          write(6,*) "-----------------------------------------------------------------------"
-          write(*,*) ""
+        write (*, *) ""
+        write (*, *) " END OF NATURAL ORBITALS"
+        write (6, *) "-----------------------------------------------------------------------"
+        write (*, *) ""
 
-       end if
-   
-      close(unit)
+      end if
 
+      close (unit)
 
-      if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI" ) then
-        deallocate ( jj )
-        deallocate ( indexConfB )
-        deallocate ( indexConfA )
-        deallocate ( coupling )
-        deallocate ( cilevel )
-        deallocate ( cilevelA )
-        deallocate ( CIcore_instance%allIndexConf )
-        deallocate ( stringAinB )
-      else if ( CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI" ) then
-        deallocate ( occA )
-        deallocate ( occB )
-        deallocate ( orbA )
-        deallocate ( orbB )
-        deallocate ( couplingS )
-      endif
+      do species = 1, numberOfSpecies
+        do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
+          call Matrix_destructor(atomicDensityMatrix(species, state))
+          call Matrix_destructor(ciDensityMatrix(species, state))
+        end do
 
-      deallocate( coefficients, atomicDensityMatrix, ciDensityMatrix )
+        call Matrix_destructor(coefficients(species))
+        call Matrix_destructor(kineticMatrix(species))
+        call Matrix_destructor(attractionMatrix(species))
+        call Matrix_destructor(externalPotMatrix(species))
 
-      !$  timeDB = omp_get_wtime()
-      !$  write(*,"(A,F10.4,A4)") "** TOTAL Elapsed Time for Building density matrices: ", timeDB - timeDA ," (s)"
-     
+        do n = 1, CIcore_instance%nproc
+          call Matrix_destructor(auxDensMatrix(species, n))
+        end do
+
+      end do
+
+      deallocate (coefficients, atomicDensityMatrix, ciDensityMatrix)
+
+      if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL /= "SCI") then
+        deallocate (jj)
+        deallocate (indexConfB)
+        deallocate (indexConfA)
+        deallocate (coupling)
+        deallocate (cilevel)
+        deallocate (cilevelA)
+        deallocate (CIcore_instance%allIndexConf)
+        deallocate (stringAinB)
+      else if (CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "SCI") then
+        deallocate (occA)
+        deallocate (occB)
+        deallocate (orbA)
+        deallocate (orbB)
+        deallocate (couplingS)
+      end if
+
+!$    timeDB = omp_get_wtime()
+!$    write (*, "(A,F10.4,A4)") "** TOTAL Elapsed Time for Building density matrices: ", timeDB - timeDA, " (s)"
+
     end if
-       
+
   end subroutine CImod_densityMatrices
 
   !>
   !! @brief  Maneja excepciones de la clase
   !<
-  subroutine CImod_exception( typeMessage, description, debugDescription)
+  subroutine CImod_exception(typeMessage, description, debugDescription)
     implicit none
     integer :: typeMessage
     character(*) :: description
@@ -1590,11 +1608,11 @@ contains
 
     type(Exception) :: ex
 
-    call Exception_constructor( ex , typeMessage )
-    call Exception_setDebugDescription( ex, debugDescription )
-    call Exception_setDescription( ex, description )
-    call Exception_show( ex )
-    call Exception_destructor( ex )
+    call Exception_constructor(ex, typeMessage)
+    call Exception_setDebugDescription(ex, debugDescription)
+    call Exception_setDescription(ex, description)
+    call Exception_show(ex)
+    call Exception_destructor(ex)
 
   end subroutine CImod_exception
 
@@ -1605,7 +1623,7 @@ contains
   !<
   subroutine CImod_destructor()
     implicit none
-    integer i,j,m,n,p,q,c
+    integer i, j, m, n, p, q, c
     integer numberOfSpecies
     integer :: isLambdaEqual1
 
@@ -1614,33 +1632,33 @@ contains
     !!Destroy configurations
     !!Ground State
     if (allocated(CIcore_instance%configurations)) then
-      c=1
-      call Configuration_destructor(CIcore_instance%configurations(c) )
-  
-      do c=2, CIcore_instance%numberOfConfigurations
-         call Configuration_destructor(CIcore_instance%configurations(c) )                
+      c = 1
+      call Configuration_destructor(CIcore_instance%configurations(c))
+
+      do c = 2, CIcore_instance%numberOfConfigurations
+        call Configuration_destructor(CIcore_instance%configurations(c))
       end do
-  
-      if (allocated(CIcore_instance%configurations)) deallocate(CIcore_instance%configurations)
+
+      if (allocated(CIcore_instance%configurations)) deallocate (CIcore_instance%configurations)
     end if
 
+    call Vector_destructor(CIcore_instance%diagonalHamiltonianMatrix2)
     call Matrix_destructor(CIcore_instance%hamiltonianMatrix)
-    call Vector_destructorInteger (CIcore_instance%numberOfOccupiedOrbitals)
-    call Vector_destructorInteger (CIcore_instance%numberOfOrbitals)
-    call Vector_destructor (CIcore_instance%lambda)
+    call Vector_destructorInteger8(CIcore_instance%numberOfOccupiedOrbitals)
+    call Vector_destructorInteger8(CIcore_instance%numberOfOrbitals)
+    call Vector_destructor(CIcore_instance%lambda)
 
-    deallocate(CIcore_instance%twoCenterIntegrals )
-    deallocate(CIcore_instance%fourCenterIntegrals )
+    call Matrix_destructor(CIcore_instance%eigenVectors)
+    call Vector_destructor(CIcore_instance%eigenValues)
 
-    deallocate(CIcore_instance%twoIndexArray )
-    deallocate(CIcore_instance%fourIndexArray )
+    if (allocated(CIcore_instance%twoCenterIntegrals)) deallocate (CIcore_instance%twoCenterIntegrals)
+    if (allocated(CIcore_instance%fourCenterIntegrals)) deallocate (CIcore_instance%fourCenterIntegrals)
+    if (allocated(CIcore_instance%twoIndexArray)) deallocate (CIcore_instance%twoIndexArray)
+    if (allocated(CIcore_instance%fourIndexArray)) deallocate (CIcore_instance%fourIndexArray)
 
-
-    CIcore_instance%isInstanced=.false.
+    CIcore_instance%isInstanced = .false.
 
   end subroutine CImod_destructor
 
-
 end module CImod_
-
 

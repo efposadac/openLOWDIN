@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 
@@ -30,7 +30,7 @@
 !! <b>Extended Charge Equilibration approach (EQeq)</b> \n
 !! \n
 !! Wilmer, C.E., Kim, K.C., Snurr, R.Q., <b>An Extended Charge Equilibration Method</b>,
-!! J. Phys. Chem. Lett, 3, 2506--2511, 2012 
+!! J. Phys. Chem. Lett, 3, 2506--2511, 2012
 !! @author  J.M. Rodas
 !!
 !! <b> Creation date : </b> 2014-06-02
@@ -39,8 +39,8 @@
 !!
 !!   - <tt> 2014-06-02 </tt>: Jose Mauricio Rodas R. ( jmrodasr@unal.edu.co )
 !!        -# Basics functions has been created
-!! 
-!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs, 
+!!
+!! @warning This programs only works linked to lowdincore library, and using lowdin-ints.x and lowdin-SCF.x programs,
 !!          all those tools are provided by LOWDIN quantum chemistry package
 !!
 module ChargesEQeq_
@@ -51,9 +51,8 @@ module ChargesEQeq_
   use Exception_
   implicit none
 
-
   public :: &
-       ChargesEQeq_getCharges
+    ChargesEQeq_getCharges
 
 contains
 
@@ -110,52 +109,52 @@ contains
     numberOfCenters = vertices%numberOfVertices
     totalCharge = MolecularSystem_instance%charge
     ! write(*,"(T20,A,I)") "Carga Total: ", totalCharge
-    
-    allocate( partialCharges( vertices%numberOfVertices ) )
-    allocate( electronegativities( vertices%numberOfVertices ) )
-    allocate( hardness( vertices%numberOfVertices ) )
 
-    do i=1,vertices%numberOfVertices
-       partialCharges(i) = 0.0
+    allocate (partialCharges(vertices%numberOfVertices))
+    allocate (electronegativities(vertices%numberOfVertices))
+    allocate (hardness(vertices%numberOfVertices))
+
+    do i = 1, vertices%numberOfVertices
+      partialCharges(i) = 0.0
     end do
 
     chargeCenter = 0 !! In the future we can change this for any charges
 
-    do i=1,vertices%numberOfVertices
-       if(trim(vertices%type(i)) == "H_" .or. trim(vertices%type(i)) == "H_b") then !! Correction for Hydrogen
-          ionizationPotential = 13.598
-          electronAffinity = -2.0
-          electronegativities(i) = 0.5*(ionizationPotential + electronAffinity)
-          hardness(i) = ionizationPotential - electronAffinity
-       else
-          ionizationPosition = chargeCenter + 1
-          ionizationPotential = vertices%ionizationPotential(i)%values(1,ionizationPosition+1)
-          electronAffinity = vertices%ionizationPotential(i)%values(1,ionizationPosition)
-          electronegativities(i) = 0.5*(ionizationPotential + electronAffinity)
-          hardness(i) = ionizationPotential - electronAffinity
-          electronegativities(i) = electronegativities(i) - chargeCenter*hardness(i) 
-       end if
+    do i = 1, vertices%numberOfVertices
+      if (trim(vertices%type(i)) == "H_" .or. trim(vertices%type(i)) == "H_b") then !! Correction for Hydrogen
+        ionizationPotential = 13.598
+        electronAffinity = -2.0
+        electronegativities(i) = 0.5*(ionizationPotential + electronAffinity)
+        hardness(i) = ionizationPotential - electronAffinity
+      else
+        ionizationPosition = chargeCenter + 1
+        ionizationPotential = vertices%ionizationPotential(i)%values(1, ionizationPosition + 1)
+        electronAffinity = vertices%ionizationPotential(i)%values(1, ionizationPosition)
+        electronegativities(i) = 0.5*(ionizationPotential + electronAffinity)
+        hardness(i) = ionizationPotential - electronAffinity
+        electronegativities(i) = electronegativities(i) - chargeCenter*hardness(i)
+      end if
     end do
 
     !! We need to solve the system Ax = b, but, first we need to obtain A and b matrix
-    allocate( B( vertices%numberOfVertices ) )
+    allocate (B(vertices%numberOfVertices))
     B(1) = totalCharge
 
-    do i=2,vertices%numberOfVertices
-       B(i) = electronegativities(i) - electronegativities(i-1)
-    end do
-     
-    call Matrix_constructor( A, numberOfCenters, numberOfCenters)
-    do i=1,vertices%numberOfVertices
-       A%values(1,i) = 1.0
+    do i = 2, vertices%numberOfVertices
+      B(i) = electronegativities(i) - electronegativities(i - 1)
     end do
 
-    do i=2,vertices%numberOfVertices
-       do j=1,vertices%numberOfVertices
-          call ChargesEQeq_getIdempotential(i-1,j,hardness,vertices,Ja)
-          call ChargesEQeq_getIdempotential(i,j,hardness,vertices,Jb)          
-          A%values(i,j) = Ja - Jb
-       end do
+    call Matrix_constructor(A, numberOfCenters, numberOfCenters)
+    do i = 1, vertices%numberOfVertices
+      A%values(1, i) = 1.0
+    end do
+
+    do i = 2, vertices%numberOfVertices
+      do j = 1, vertices%numberOfVertices
+        call ChargesEQeq_getIdempotential(i - 1, j, hardness, vertices, Ja)
+        call ChargesEQeq_getIdempotential(i, j, hardness, vertices, Jb)
+        A%values(i, j) = Ja - Jb
+      end do
     end do
 
     ! write(*,"(T20,A)") "B original"
@@ -172,7 +171,6 @@ contains
 
     call Matrix_linear(vertices%numberOfVertices, 1, A, vertices%numberOfVertices, B, vertices%numberOfVertices, partialCharges, info)
 
-    
     ! write(*,"(T20,A,I)") "Info: ", info
     ! do i=1,vertices%numberOfVertices
     !    write(*,"(T20,F12.5)") partialCharges(i)
@@ -195,7 +193,7 @@ contains
   !! J. Phys. Chem. Lett, 3, 2506--2511, 2012 \n
   !! \n
   !! \f[
-  !! J_{ij} = \lambda\left(\frac{K}{2}\right)\left[\frac{1}{R_{ij}} + E_{0}(R_{ij})\right] 
+  !! J_{ij} = \lambda\left(\frac{K}{2}\right)\left[\frac{1}{R_{ij}} + E_{0}(R_{ij})\right]
   !! \f]
   !! \f[
   !! E_{0}(R_{ab}) = e^{-\left(\frac{J_{ab}R_{ab}}{K}\right)^2}\left(\frac{2J_{ab}}{K}-\frac{J_{ab}^{2}R_{ab}}{K^{2}}-\frac{1}{R_{ab}}\right)
@@ -209,9 +207,9 @@ contains
   !! - \f$E_{0}(R_{ij})\f$ is the orbital energy term
   !! - \f$J_{ab}\f$ is geometric mean of the chemical hardness
   !! - \f$J_{a}\f$ and \f$J_{b}\f$ are the hardnees of atoms
-  !! - \f$K = 14.4 \f$ 
-  !! - \f$\lambda = 1.2 \f$ 
-  subroutine ChargesEQeq_getIdempotential(i,j,hardness,vertices,idempotential) 
+  !! - \f$K = 14.4 \f$
+  !! - \f$\lambda = 1.2 \f$
+  subroutine ChargesEQeq_getIdempotential(i, j, hardness, vertices, idempotential)
     implicit none
     integer, intent(in) :: i, j
     real(8), allocatable, intent(in) :: hardness(:)
@@ -227,15 +225,15 @@ contains
     K = 14.4
     lambda = 1.2
 
-    if(i==j) then
-       idempotential = hardness(i)
+    if (i == j) then
+      idempotential = hardness(i)
     else
-       separationOfCenters = sum( ( vertices%cartesianMatrix%values(i,:) - vertices%cartesianMatrix%values(j,:))**2.0 )
-       Rab = (sqrt(separationOfCenters)) * ANGSTROM
-       Jij = dsqrt(hardness(i)*hardness(j))
-       a = Jij/K
-       orbitalOverlap = (exp(-(a*a*Rab*Rab)))*(2*a - a*a*Rab - 1/Rab)
-       idempotential = lambda*(K/2)*((1/Rab) + orbitalOverlap)
+      separationOfCenters = sum((vertices%cartesianMatrix%values(i, :) - vertices%cartesianMatrix%values(j, :))**2.0)
+      Rab = (sqrt(separationOfCenters))*ANGSTROM
+      Jij = dsqrt(hardness(i)*hardness(j))
+      a = Jij/K
+      orbitalOverlap = (exp(-(a*a*Rab*Rab)))*(2*a - a*a*Rab - 1/Rab)
+      idempotential = lambda*(K/2)*((1/Rab) + orbitalOverlap)
     end if
 
   end subroutine ChargesEQeq_getIdempotential

@@ -43,6 +43,7 @@ CONTROL
 	!CIPrintEigenVectorsFormat = "NONE","ORBITALS"
 	CIPrintThreshold = 5e-2
 	totalEnergyTolerance=1E-12 
+	integralThreshold = 1E-16
 END CONTROL
 
 !INPUT_CI block help us define the frozen core and active virtuals orbitals. Here we are not restricting the excitation space 

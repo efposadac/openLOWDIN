@@ -2,35 +2,65 @@ TOPDIR=..
 
 include $(TOPDIR)/CONFIG
 
-SUBDIRS = ints DFT scf integralsTransformation MBPT PT cosmo CalcProp output CI MM NOCI
-ALLDIRS = $(SUBDIRS) core
+# Build folder to keep .o .mod and .a
+BUILD_DIR = $(abspath $(TOPDIR)/build)
 
-LDR=$(FC)
-INC=-I$(TOPDIR)/src/core/
-LDPATH=$(TOPDIR)/lib/lowdincore.a
-FLAGS=$(FCFLAGS)
+# Let Fortran knows the building dir 
+ifeq ($(FC),ifx)
+    FCFLAGS += -module $(BUILD_DIR)
+else
+    FCFLAGS += -J $(BUILD_DIR)
+endif
+
+# openlowdin library for each folder here with a configure inside
+SUBDIRS = Core Output CI MM MBPT PT COSMO Ints Deriv IntegralsTransformation CalcProp DFT SCF NOCI Solver
+#SUBDIRS := $(patsubst %/,%,$(dir $(wildcard */configure)))
+
+# Reverse function
+reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1))) $(firstword $(1)))
+
+# Reverse the SUBDIRS list so the linker gets the correct dependency order
+LINK_ORDER = $(call reverse,$(SUBDIRS))
+
+# Automatically generate library paths in correct order
+STATIC_LIBS = $(foreach dir,$(LINK_ORDER),$(BUILD_DIR)/$(dir)/$(dir).a)
+
+# External libraries
 LIBS=$(ALL_LIBS)
+LIBS += $(TOPDIR)/lib/libtransform.a 
+LIBS += $(TOPDIR)/lib/libjadamilu.a
+LIBS += $(TOPDIR)/lib/libmolden2aim.a
 
-TARGET=lowdin.x
-OBJECTS=lowdin.x.o
+TARGET=$(BUILD_DIR)/lowdin.x
 
-default::
-	(cd core && $(MAKE) $(JOBS)) || exit 1;\
+.PHONY: all subdirs $(SUBDIRS) clean setup
 
-	for dir in $(SUBDIRS); \
-	do \
-	  (cd $${dir} && $(MAKE) $(JOBS)) || exit 1; \
-	done
+all: setup subdirs $(TARGET)
 
-	$(FC) -c $(INC) $(FLAGS) lowdin.x.f90
+# Creating build folders
+setup:
+	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(foreach dir, $(SUBDIRS), $(BUILD_DIR)/$(dir))
 
-	$(LDR) $(FLAGS) -o $(TARGET) $(OBJECTS) $(LDPATH) $(LIBS)
+# declare the internal dependencies here for each library
+subdirs: $(SUBDIRS)
+
+include dependencies
+
+# Make for each library
+$(SUBDIRS):
+	$(MAKE) -C $@
+
+# Linking Step
+$(TARGET): $(BUILD_DIR)/lowdin.x.o
+	$(FC) $(FCFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS) 
 	mv $(TARGET) $(TOPDIR)/bin/
 
-clean::
-	for dir in $(ALLDIRS); \
-	  do \
-	    (cd $${dir} && $(MAKE) $(DODEPENDOPT) clean) || exit 1; \
-	  done
+# Compiling main 
+$(BUILD_DIR)/lowdin.x.o: lowdin.x.f90 subdirs 
+	$(FC) $(FCFLAGS) -c $< -o $@
 
+clean:
+	rm -rf $(BUILD_DIR) 
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean; done
 

@@ -13,6 +13,7 @@ END TASKS
 
 CONTROL
 totalEnergyTolerance=1E-10
+integralThreshold = 1E-16
 readCoefficients=F
 electronExchangeCorrelationFunctional="PBE0"
 END CONTROL

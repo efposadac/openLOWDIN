@@ -27,6 +27,7 @@ CONTROL
 	readCoefficients=F
 	CIConvergence = 1e-6 !! 1e-4 for energies, 1e-6 for dipole
 	totalEnergyTolerance=1e-12
+	integralThreshold = 1E-16
 END CONTROL
 
 INPUT_CI

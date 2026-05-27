@@ -32,6 +32,7 @@ END TASKS
 CONTROL
 	readCoefficients=F
 	totalEnergyTolerance=1E-12
+	integralThreshold = 1E-16
 	integralsTransformationMethod = "C"
 	numberOfCIstates=1
 	CIdiagonalizationMethod = "JADAMILU"

@@ -23,6 +23,7 @@ CINaturalOrbitals=T
 	overlapEigenThreshold=1E-6	
 	CIPrintThreshold = 5e-2
 	totalEnergyTolerance = 1E-8
+	integralThreshold = 1E-12
 END CONTROL
 
 INPUT_CI

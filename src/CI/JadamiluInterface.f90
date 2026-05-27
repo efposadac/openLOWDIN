@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 !>
@@ -26,23 +26,23 @@ module JadamiluInterface_
 
   use, intrinsic :: iso_c_binding
   implicit none
-  
-  interface JadamiluInterface
-     
-      SUBROUTINE DPJDREVCOM ( N , A , JA , IA , EIGS , RES , X , LX , NEIG  , &
-                            SIGMA , ISEARCH , NINIT , MADSPACE , ITER , &
-                            TOL , SHIFT , DROPTOL , MEM , ICNTL , &
-                            IJOB , NDX1 , NDX2 , IPRINT , INFO , GAP )
-        implicit none
 
-        integer(8) N , LX , NEIG , ISEARCH , NINIT , MADSPACE , INFO
-        integer(8) ITER , ICNTL (5) , IJOB , NDX1 , NDX2 , IPRINT
-        DOUBLE PRECISION SIGMA , TOL , SHIFT , DROPTOL , MEM , GAP
-        integer(8) JA (*) , IA (*)
-        DOUBLE PRECISION A (*), X(*)
-        DOUBLE PRECISION EIGS (* ) , RES (*) 
-      END SUBROUTINE DPJDREVCOM 
+  interface JadamiluInterface
+
+    SUBROUTINE DPJDREVCOM(N, A, JA, IA, EIGS, RES, X, LX, NEIG, &
+                          SIGMA, ISEARCH, NINIT, MADSPACE, ITER, &
+                          TOL, SHIFT, DROPTOL, MEM, ICNTL, &
+                          IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
+      implicit none
+
+      integer(8) N, LX, NEIG, ISEARCH, NINIT, MADSPACE, INFO
+      integer(8) ITER, ICNTL(5), IJOB, NDX1, NDX2, IPRINT
+      DOUBLE PRECISION SIGMA, TOL, SHIFT, DROPTOL, MEM, GAP
+      integer(8) JA(*), IA(*)
+      DOUBLE PRECISION A(*), X(*)
+      DOUBLE PRECISION EIGS(*), RES(*)
+    END SUBROUTINE DPJDREVCOM
 
   end interface
-  
+
 end module JadamiluInterface_

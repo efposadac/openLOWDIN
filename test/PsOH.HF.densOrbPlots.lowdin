@@ -16,6 +16,7 @@ CONTROL
 	readCoefficients=F
 	numberOfPointsPerDimension=250	
 	totalEnergyTolerance=1E-12
+	integralThreshold = 1E-16
 END CONTROL
 
 OUTPUTS
