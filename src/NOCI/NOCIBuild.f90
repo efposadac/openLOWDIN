@@ -549,13 +549,20 @@ contains
                     ! return
                   end if
 
-                  distanceCheck = &
-                    (CONTROL_instance%TRANSLATION_STEP*((i + 1)/2.0 - (CONTROL_instance%TRANSLATION_SCAN_GRID(1) + 1)/2.0))**2/ &
-                    CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(1)**2 + &
-                    (CONTROL_instance%TRANSLATION_STEP*((j + 1)/2.0 - (CONTROL_instance%TRANSLATION_SCAN_GRID(2) + 1)/2.0))**2/ &
-                    CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(2)**2 + &
-                    (CONTROL_instance%TRANSLATION_STEP*((k + 1)/2.0 - (CONTROL_instance%TRANSLATION_SCAN_GRID(3) + 1)/2.0))**2/ &
-                    CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(3)**2
+                  ! Check if displacements are uninitialized/zero BEFORE doing the math
+                  if (any(CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT == 0.0)) then
+                      ! If displacements are zero, the normalized distance is effectively infinite
+                      distanceCheck = HUGE(distanceCheck)
+                  else
+                      ! Only perform the division if it is safe to do so
+                      distanceCheck = &
+                           (CONTROL_instance%TRANSLATION_STEP*((i + 1)/2.0 - (CONTROL_instance%TRANSLATION_SCAN_GRID(1) + 1)/2.0))**2/ &
+                           CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(1)**2 + &
+                           (CONTROL_instance%TRANSLATION_STEP*((j + 1)/2.0 - (CONTROL_instance%TRANSLATION_SCAN_GRID(2) + 1)/2.0))**2/ &
+                           CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(2)**2 + &
+                           (CONTROL_instance%TRANSLATION_STEP*((k + 1)/2.0 - (CONTROL_instance%TRANSLATION_SCAN_GRID(3) + 1)/2.0))**2/ &
+                           CONTROL_instance%CONFIGURATION_MIN_DISPLACEMENT(3)**2
+                  end if
 
                   if (distanceCheck .lt. 1.0) then
                     skip = .true.
