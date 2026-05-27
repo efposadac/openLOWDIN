@@ -103,4 +103,4 @@ jobs:
       if: always() 
       with:
         name: test-failure-outputs
-        path: $PWD/test/testResults_openlowdin/
+        path: test/testResults_openlowdin/
