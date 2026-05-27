@@ -94,11 +94,7 @@ jobs:
         # Install Lowdin
         make install
         # Run Tests
-        #make test
-        cd test
-        python3 FHF-.NOCI-RHF.py
-        mkdir test/testResults_openlowdin/
-        cp FHF-.NOCI.RHF.* test/testResults_openlowdin/
+        make test
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       if: failure()
