@@ -1083,7 +1083,7 @@ contains
     !! Parameter to control Integrals library
     !!
     LowdinParameters_tv = 1.0E-6
-    LowdinParameters_integralThreshold = 1.0E-10
+    LowdinParameters_integralThreshold = 1.0E-12
     LowdinParameters_integralStackSize = 30000
     LowdinParameters_integralStorage = "DISK" !! "MEMORY" or "DISK" or "DIRECT"
     LowdinParameters_integralScheme = "LIBINT" !! LIBINT or RYS
@@ -1432,7 +1432,7 @@ contains
     !! Parameter to control Integrals library
     !!
     CONTROL_instance%TV = 1.0E-6
-    CONTROL_instance%INTEGRAL_THRESHOLD = 1.0E-10
+    CONTROL_instance%INTEGRAL_THRESHOLD = 1.0E-12
     CONTROL_instance%INTEGRAL_STACK_SIZE = 30000
     CONTROL_instance%INTEGRAL_STORAGE = "DISK" !! "DISK" or "DIRECT"
     CONTROL_instance%INTEGRAL_SCHEME = "LIBINT" !! LIBINT or Rys
@@ -2835,6 +2835,11 @@ contains
       write (*, "(T10,A,A)") "SINGLE POINT CALCULATION"
 
     end if
+
+    if ( CONTROL_instance%TOTAL_ENERGY_TOLERANCE <= CONTROL_instance%INTEGRAL_THRESHOLD ) then
+      call CONTROL_exception(WARNING, "totalEnergyTolerance is lower than integralThreshold", "at core program, CONTROL module")
+    endif
+
 
     if (CONTROL_instance%METHOD /= "MM") then
       write (*, "(T10,A)") "NONELECTRONIC DENSITY GUESS: "//trim(CONTROL_instance%SCF_NONELECTRONIC_TYPE_GUESS)
