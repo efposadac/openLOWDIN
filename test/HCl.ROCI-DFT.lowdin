@@ -16,6 +16,7 @@ CONTROL
 	rotationAroundZStep=5
 	numberOfCIStates=5
 	totalEnergyTolerance=1E-12
+	integralThreshold = 1E-16
 	configurationOverlapThreshold=1E-10
 	electronExchangeCorrelationFunctional="B3LYP"
 	nuclearElectronCorrelationFunctional="epc17-2"

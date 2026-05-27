@@ -20,6 +20,7 @@ CONTROL
 	integralStorage="MEMORY"
 	readCoefficients=.T.
 	totalEnergyTolerance=1E-12
+	integralThreshold = 1E-16
 	scfGlobalMaxIterations=5000
 	translationScanGrid=1 1 3
 	translationStep=0.36

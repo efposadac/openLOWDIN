@@ -13,6 +13,7 @@ CONTROL
 	readCoefficients=F
 	numberOfPointsPerDimension=1000	
 	totalEnergyTolerance=1E-12
+	integralThreshold = 1E-16
 	units="BOHRS"
 END CONTROL
 

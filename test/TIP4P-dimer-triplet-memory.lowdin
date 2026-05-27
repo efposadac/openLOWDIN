@@ -16,6 +16,7 @@ CONTROL
 	readCoefficients=.F.
 	units="BOHRS"
 	totalEnergyTolerance=1E-10
+	integralThreshold = 1E-16
 	scfGlobalMaxIterations=1000
 	integralStorage="MEMORY"
 END CONTROL

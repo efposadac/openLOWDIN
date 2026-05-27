@@ -22,6 +22,7 @@ erkaleLocalizationMethod="IAO"
 readCoefficients=.F.
 localizeOrbitals=.T.
 totalEnergyTolerance=1E-10
+integralThreshold = 1E-16
 scfGlobalMaxIterations=1000
 integralsTransformationMethod = "C"
 ionizeMO=1

@@ -17,6 +17,7 @@ CONTROL
 	integralStorage="DIRECT"
 	readCoefficients=.F.
 	totalEnergyTolerance=1E-10
+	integralThreshold = 1E-16
 	scfGlobalMaxIterations=2000
 	configurationMinPPDistance=3.7
 	numberOfCIstates=110

@@ -16,6 +16,7 @@ CONTROL
 	electronicEnergyTolerance=1E-10
 	nonElectronicEnergyTolerance=1E-10
 	totalEnergyTolerance=1E-10
+	integralThreshold = 1E-16
 	scfNonelectronicMaxIterations=15
 	scfElectronicMaxIterations=5
 	scfGlobalMaxIterations=10000
