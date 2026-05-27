@@ -95,4 +95,9 @@ jobs:
         make install
         # Run Tests
         make test
-    
+    - name: Upload test output folder
+      uses: actions/upload-artifact@v4
+      if: failure() 
+      with:
+        name: test-failure-outputs
+        path: $PWD/test/testResults_openlowdin/
