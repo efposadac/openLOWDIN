@@ -322,9 +322,16 @@ contains
 !$        timeTwoIntegrals = timeTwoIntegrals + (timeB - timeA)
         end if
 
+        do speciesID = 1, nspecies
+            if (allocated(mergedCoefficients(speciesID)%values)) deallocate(mergedCoefficients(speciesID)%values)
+            if (allocated(inverseOverlapMatrices(speciesID)%values)) deallocate(inverseOverlapMatrices(speciesID)%values)
+        end do
+
         ! print *, "thread", omp_get_thread_num()+1,"me", me, "mySysI", " mySysII", mySysI, mySysII, "S", this%configurationOverlapMatrix%values(mySysI,mySysII), "H", this%configurationHamiltonianMatrix%values(mySysI,mySysII)
       end do procs
       !$omp end do nowait
+      deallocate(mergedCoefficients)
+      deallocate(inverseOverlapMatrices)
       !$omp end parallel
 
       !In serial, symmetrize, free memory and print
@@ -539,7 +546,7 @@ contains
     type(MolecularSystem) :: molecularSystemI, molecularSystemII, mergedMolecularSystem
     type(Matrix) :: coefficientsI(nspecies), coefficientsII(nspecies)
     type(IVector) :: sysIbasisList(nspecies), sysIIbasisList(nspecies)
-    type(Matrix) :: mergedCoefficients(nspecies)
+    type(Matrix), intent(inout) :: mergedCoefficients(nspecies)
 
     integer :: speciesID, i, j, mu
     integer :: occupationNumberI, occupationNumberII, numberOfContractions
@@ -825,8 +832,8 @@ contains
     type(NonOrthogonalCI) :: this
     type(MolecularSystem) :: mergedMolecularSystem
     integer :: sysI, sysII
-    type(Matrix) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies)
-    type(Matrix) :: inverseOverlapMatrices(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(Matrix), intent(inout) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(Matrix), intent(inout) :: inverseOverlapMatrices(mergedMolecularSystem%numberOfQuantumSpecies)
     type(IVector) :: sysIbasisList(mergedMolecularSystem%numberOfQuantumSpecies)
     type(IVector) :: sysIIbasisList(mergedMolecularSystem%numberOfQuantumSpecies)
 
@@ -846,6 +853,7 @@ contains
               molecularKineticMatrix(mergedMolecularSystem%numberOfQuantumSpecies), &
               molecularAttractionMatrix(mergedMolecularSystem%numberOfQuantumSpecies), &
               molecularExternalMatrix(mergedMolecularSystem%numberOfQuantumSpecies))
+
 
     !!Initialize overlap
     this%configurationOverlapMatrix%values(sysI, sysII) = 1.0
@@ -898,6 +906,7 @@ contains
         ! call Matrix_show(inverseOverlapMatrices(speciesID))
         call Matrix_getDeterminant(molecularOverlapMatrix, overlapDeterminant%values(speciesID), method="LU")
         ! print *, "OverlapDeterminantLU speciesID, sysI, sysII", speciesID, sysI, sysII, overlapDeterminant%values(speciesID)
+
       else
         overlapDeterminant%values(speciesID) = 1.0
       end if
@@ -1076,8 +1085,8 @@ contains
     type(NonOrthogonalCI) :: this
     integer :: sysI, sysII
     type(MolecularSystem) :: mergedMolecularSystem
-    type(Matrix) :: inverseOverlapMatrices(mergedMolecularSystem%numberOfQuantumSpecies)
-    type(Matrix) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(Matrix), intent(inout) :: inverseOverlapMatrices(mergedMolecularSystem%numberOfQuantumSpecies)
+    type(Matrix), intent(inout) :: mergedCoefficients(mergedMolecularSystem%numberOfQuantumSpecies)
     type(Libint2Interface) :: Libint2LocalInstance(mergedMolecularSystem%numberOfQuantumSpecies)
 
     type(matrix), allocatable :: fourCenterIntegrals(:, :)
