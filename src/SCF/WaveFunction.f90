@@ -813,6 +813,7 @@ contains
   !>
   !! @brief Builds two-particles matrix.
   subroutine WaveFunction_buildTwoParticlesMatrix(this, densityMatrixIN, factorIN, twoParticlesMatrixOUT, Libint2Objects)
+    use, intrinsic :: omp_lib
     implicit none
     type(WaveFunction) :: this
     type(Matrix), optional :: densityMatrixIN
@@ -825,7 +826,7 @@ contains
     real(8) :: factor
     real(8) :: shellIntegrals(CONTROL_instance%INTEGRAL_STACK_SIZE)
     real(8), allocatable, target :: tmpTwoParticlesMatrix(:, :)
-    real(8), allocatable :: tmpArray(:, :)
+    !real(8), allocatable :: tmpArray(:, :)
 
     integer :: aa(CONTROL_instance%INTEGRAL_STACK_SIZE)
     integer :: bb(CONTROL_instance%INTEGRAL_STACK_SIZE)
@@ -866,185 +867,192 @@ contains
 
       if (CONTROL_instance%INTEGRAL_STORAGE == "DISK") then
 
-        !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, rr, ss, shellIntegrals, i, coulomb, exchange, tmpArray)
-        nthreads = OMP_GET_NUM_THREADS()
-        threadid = OMP_GET_THREAD_NUM()
-        unitid = 40 + threadid
+        !allocate (tmpArray(totalNumberOfContractions, totalNumberOfContractions ))
+        !tmpArray = 0.0_8
 
-        write (fileid, *) threadid
-        fileid = trim(adjustl(fileid))
+        !!$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, rr, ss, shellIntegrals, i, coulomb, exchange) 
+        !nthreads = OMP_GET_NUM_THREADS()
+        nthreads = omp_get_max_threads()
+        print *, "omp", nthreads
 
-        if (CONTROL_instance%IS_OPEN_SHELL .and. this%molSys%species(this%species)%isElectron) then
-          open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA.ints", status='old', access='stream', form='Unformatted')
-        else
-          open (UNIT=unitid, FILE=trim(fileid)//trim(this%name)//".ints", status='old', access='stream', form='Unformatted')
-        end if
+        do threadid = 0, nthreads - 1
+          !threadid = OMP_GET_THREAD_NUM()
+          unitid = 40 + threadid
 
-        allocate (tmpArray(totalNumberOfContractions, totalNumberOfContractions))
-        tmpArray = 0.0_8
+          write (fileid, *) threadid
+          fileid = trim(adjustl(fileid))
 
-        loadintegrals: do
-
-          read (UNIT=unitid, iostat=status) &
-            ss(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            rr(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-            shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-
-          if (status == -1) then
-            print *, "end of file! file: ", trim(fileid)//"E-ALPHA.ints"
-            exit loadintegrals
+          if (CONTROL_instance%IS_OPEN_SHELL .and. this%molSys%species(this%species)%isElectron) then
+            open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA.ints", status='old', access='stream', form='Unformatted')
+          else
+            open (UNIT=unitid, FILE=trim(fileid)//trim(this%name)//".ints", status='old', access='stream', form='Unformatted')
           end if
 
-          buildmatrix: do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+          shellIntegrals = 0.0_8
+          ss = 0
+          rr = 0
+          bb = 0
+          aa = 0
 
-            if (ss(i) == -1) exit loadintegrals
-            ! print*, ss(i), rr(i),  bb(i), aa(i), shellIntegrals(i)
-            coulomb = densityMatrix%values(rr(i), ss(i))*shellIntegrals(i)
+          loadintegrals: do
 
-            !!*****************************************************************************
-            !! Adds coulomb operator contributions
-
-            if (aa(i) == rr(i) .and. bb(i) == ss(i)) then
-
-              tmpArray(aa(i), bb(i)) = tmpArray(aa(i), bb(i)) + coulomb
-
-              if (rr(i) /= ss(i)) then
-
-                tmpArray(aa(i), bb(i)) = tmpArray(aa(i), bb(i)) + coulomb
-
-              end if
-
-            else
-
-              tmpArray(aa(i), bb(i)) = tmpArray(aa(i), bb(i)) + coulomb
-
-              if (rr(i) /= ss(i)) then
-
-                tmpArray(aa(i), bb(i)) = tmpArray(aa(i), bb(i)) + coulomb
-
-              end if
-
-              coulomb = densityMatrix%values(aa(i), bb(i))*shellIntegrals(i)
-
-              tmpArray(rr(i), ss(i)) = tmpArray(rr(i), ss(i)) + coulomb
-
-              if (aa(i) /= bb(i)) then
-
-                tmpArray(rr(i), ss(i)) = tmpArray(rr(i), ss(i)) + coulomb
-
-              end if
-
+            read (UNIT=unitid, iostat=status) &
+              ss(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+              rr(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+              bb(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+              aa(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+              shellIntegrals(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+            if (status == -1) then
+              print *, "end of file! file: ", trim(fileid)//"E-ALPHA.ints"
+              exit loadintegrals
             end if
 
-            !!
-            !!*****************************************************************************
+            buildmatrix: do i = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
 
-            !!*****************************************************************************
-            !! Adds exchange operator contributions
-            !!
-            if (abs(factor) .gt. 0.0_8) then
+              if (ss(i) == -1) exit loadintegrals
 
-              if (rr(i) /= ss(i)) then
+              coulomb = densityMatrix%values(rr(i), ss(i))*shellIntegrals(i)
 
-                exchange = densityMatrix%values(bb(i), ss(i))*shellIntegrals(i)*factor
+              !!*****************************************************************************
+              !! Adds coulomb operator contributions
 
-                tmpArray(aa(i), rr(i)) = tmpArray(aa(i), rr(i)) + exchange
+              if (aa(i) == rr(i) .and. bb(i) == ss(i)) then
 
-                if (aa(i) == rr(i) .and. bb(i) /= ss(i)) then
-
-                  tmpArray(aa(i), rr(i)) = tmpArray(aa(i), rr(i)) + exchange
-
-                end if
-
-              end if
-
-              if (aa(i) /= bb(i)) then
-
-                exchange = densityMatrix%values(aa(i), rr(i))*shellIntegrals(i)*factor
-
-                if (bb(i) > ss(i)) then
-
-                  tmpArray(ss(i), bb(i)) = tmpArray(ss(i), bb(i)) + exchange
-
-                else
-
-                  tmpArray(bb(i), ss(i)) = tmpArray(bb(i), ss(i)) + exchange
-
-                  if (bb(i) == ss(i) .and. aa(i) /= rr(i)) then
-
-                    tmpArray(bb(i), ss(i)) = tmpArray(bb(i), ss(i)) + exchange
-
-                  end if
-
-                end if
+                twoParticlesMatrix%values(aa(i), bb(i)) = twoParticlesMatrix%values(aa(i), bb(i)) + coulomb
 
                 if (rr(i) /= ss(i)) then
 
-                  exchange = densityMatrix%values(aa(i), ss(i))*shellIntegrals(i)*factor
+                  twoParticlesMatrix%values(aa(i), bb(i)) = twoParticlesMatrix%values(aa(i), bb(i)) + coulomb
 
-                  if (bb(i) <= rr(i)) then
+                end if
 
-                    tmpArray(bb(i), rr(i)) = tmpArray(bb(i), rr(i)) + exchange
+              else
 
-                    if (bb(i) == rr(i)) then
+                twoParticlesMatrix%values(aa(i), bb(i)) = twoParticlesMatrix%values(aa(i), bb(i)) + coulomb
 
-                      tmpArray(bb(i), rr(i)) = tmpArray(bb(i), rr(i)) + exchange
+                if (rr(i) /= ss(i)) then
 
-                    end if
+                  twoParticlesMatrix%values(aa(i), bb(i)) = twoParticlesMatrix%values(aa(i), bb(i)) + coulomb
 
-                  else
+                end if
 
-                    tmpArray(rr(i), bb(i)) = tmpArray(rr(i), bb(i)) + exchange
+                coulomb = densityMatrix%values(aa(i), bb(i))*shellIntegrals(i)
 
-                    if (aa(i) == rr(i) .and. ss(i) == bb(i)) cycle buildmatrix
+                twoParticlesMatrix%values(rr(i), ss(i)) = twoParticlesMatrix%values(rr(i), ss(i)) + coulomb
 
-                  end if
+                if (aa(i) /= bb(i)) then
+
+                  twoParticlesMatrix%values(rr(i), ss(i)) = twoParticlesMatrix%values(rr(i), ss(i)) + coulomb
 
                 end if
 
               end if
 
-              exchange = densityMatrix%values(bb(i), rr(i))*shellIntegrals(i)*factor
+              !!
+              !!*****************************************************************************
 
-              tmpArray(aa(i), ss(i)) = tmpArray(aa(i), ss(i)) + exchange
+              !!*****************************************************************************
+              !! Adds exchange operator contributions
+              !!
+              if (abs(factor) .gt. 0.0_8) then
 
-            end if
-            !!
-            !!*****************************************************************************
+                if (rr(i) /= ss(i)) then
 
-          end do buildmatrix
+                  exchange = densityMatrix%values(bb(i), ss(i))*shellIntegrals(i)*factor
 
-        end do loadintegrals
+                  twoParticlesMatrix%values(aa(i), rr(i)) = twoParticlesMatrix%values(aa(i), rr(i)) + exchange
 
-        close (unitid)
+                  if (aa(i) == rr(i) .and. bb(i) /= ss(i)) then
 
-        do u = 1, totalNumberOfContractions
-          do v = 1, totalNumberOfContractions
-            !$OMP ATOMIC
-            twoParticlesMatrix%values(u, v) = &
-              twoParticlesMatrix%values(u, v) + tmpArray(u, v)
-          end do
-        end do
+                    twoParticlesMatrix%values(aa(i), rr(i)) = twoParticlesMatrix%values(aa(i), rr(i)) + exchange
 
-        deallocate (tmpArray)
+                  end if
 
-        !$OMP END PARALLEL
+                end if
 
-        do u = 1, totalNumberOfContractions
-          do v = u + 1, totalNumberOfContractions
+                if (aa(i) /= bb(i)) then
 
-            twoParticlesMatrix%values(v, u) = twoParticlesMatrix%values(v, u) + &
-                                              twoParticlesMatrix%values(u, v)
+                  exchange = densityMatrix%values(aa(i), rr(i))*shellIntegrals(i)*factor
 
-            twoParticlesMatrix%values(u, v) = twoParticlesMatrix%values(v, u)
+                  if (bb(i) > ss(i)) then
 
-          end do
-        end do
+                    twoParticlesMatrix%values(ss(i), bb(i)) = twoParticlesMatrix%values(ss(i), bb(i)) + exchange
 
-        if (.not. InterPotential_instance%isInstanced) &
-          twoParticlesMatrix%values = twoParticlesMatrix%values*(MolecularSystem_getCharge(this%species, this%molSys))**2.0_8
+                  else
+
+                    twoParticlesMatrix%values(bb(i), ss(i)) = twoParticlesMatrix%values(bb(i), ss(i)) + exchange
+
+                    if (bb(i) == ss(i) .and. aa(i) /= rr(i)) then
+
+                      twoParticlesMatrix%values(bb(i), ss(i)) = twoParticlesMatrix%values(bb(i), ss(i)) + exchange
+
+                    end if
+
+                  end if
+
+               if (rr(i) /= ss(i)) then
+
+                 exchange = densityMatrix%values(aa(i), ss(i))*shellIntegrals(i)*factor
+
+                 if (bb(i) <= rr(i)) then
+
+                   twoParticlesMatrix%values(bb(i), rr(i)) = twoParticlesMatrix%values(bb(i), rr(i)) + exchange
+
+                   if (bb(i) == rr(i)) then
+
+                     twoParticlesMatrix%values(bb(i), rr(i)) = twoParticlesMatrix%values(bb(i), rr(i)) + exchange
+
+                   end if
+
+                 else
+
+                   twoParticlesMatrix%values(rr(i), bb(i)) = twoParticlesMatrix%values(rr(i), bb(i)) + exchange
+
+                   if (aa(i) == rr(i) .and. ss(i) == bb(i)) cycle buildmatrix
+
+                 end if
+
+               end if
+
+             end if
+
+             exchange = densityMatrix%values(bb(i), rr(i))*shellIntegrals(i)*factor
+
+             twoParticlesMatrix%values(aa(i), ss(i)) = twoParticlesMatrix%values(aa(i), ss(i)) + exchange
+
+           end if
+           !!
+           !!*****************************************************************************
+
+         end do buildmatrix
+
+       end do loadintegrals
+
+       close (unitid)
+
+       !! gathering results
+       !!$OMP CRITICAL
+       !twoParticlesMatrix%values(:,:) = twoParticlesMatrix%values(:,:) + twoParticlesMatrix%values(:,:)
+       !!$OMP END CRITICAL
+
+       !!$OMP END PARALLEL
+
+       !deallocate (tmpArray)
+     enddo ! nthreads
+
+     do u = 1, totalNumberOfContractions
+       do v = u + 1, totalNumberOfContractions
+
+         twoParticlesMatrix%values(v, u) = twoParticlesMatrix%values(v, u) + &
+                                           twoParticlesMatrix%values(u, v)
+
+         twoParticlesMatrix%values(u, v) = twoParticlesMatrix%values(v, u)
+
+       end do
+     end do
+
+     if (.not. InterPotential_instance%isInstanced) &
+       twoParticlesMatrix%values = twoParticlesMatrix%values*(MolecularSystem_getCharge(this%species, this%molSys))**2.0_8
 
       else if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY") then
 
@@ -1159,6 +1167,7 @@ contains
   !>
   !! @brief Builds the coupling matrix for the selected speciesID.
   subroutine WaveFunction_buildCouplingMatrix(these, speciesID, densityMatricesIN, couplingMatrixOUT, hartreeMatricesOUT, Libint2Objects)
+    use, intrinsic :: omp_lib
     implicit none
     type(WaveFunction) :: these(*)
     integer :: speciesID
@@ -1221,155 +1230,168 @@ contains
 
       if (CONTROL_instance%INTEGRAL_STORAGE == "DISK") then
 
-        !$OMP PARALLEL private(fileid, nthreads, threadid, unitid, a, b, r, s, integral, u, i, j, coulomb, auxMatrix, speciesIterator, &
-        !$OMP& otherSpeciesID, nameofOtherSpecies, otherNumberOfContractions)
-
-        nthreads = OMP_GET_NUM_THREADS()
-        threadid = OMP_GET_THREAD_NUM()
-        unitid = 40 + threadid
-
-        write (fileid, *) threadid
-        fileid = trim(adjustl(fileid))
-
         allocate (auxMatrix(numberOfContractions, numberOfContractions))
         auxMatrix = 0.0_8
 
-        do otherSpeciesID = 1, numberOfSpecies
+        !!$OMP PARALLEL private(fileid, nthreads, threadid, unitid, a, b, r, s, integral, u, i, j, coulomb, auxMatrix, speciesIterator, &
+        !!$OMP& otherSpeciesID, nameofOtherSpecies, otherNumberOfContractions)
 
-          nameOfOtherSpecies = MolecularSystem_getNameOfSpecies(otherSpeciesID, these(otherSpeciesID)%molSys)
-          OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID, these(otherSpeciesID)%molSys)
+        !nthreads = OMP_GET_NUM_THREADS()
+        !threadid = OMP_GET_THREAD_NUM()
 
-          !! Restringe suma de terminos repulsivos de la misma especie.
-          if (otherSpeciesID .eq. speciesID) cycle
+        nthreads = omp_get_max_threads()
+        do threadid = 0, nthreads - 1 
 
-          ! hartreeMatrices(otherSpeciesID)%values = 0.0_8
-          if (speciesID > otherSpeciesID) then
+          unitid = 40 + threadid
 
-            auxMatrix = 0.0_8
+          write (fileid, *) threadid
+          fileid = trim(adjustl(fileid))
 
-            !! open file for integrals
-            if (CONTROL_instance%IS_OPEN_SHELL .and. &
-                these(speciesID)%molSys%species(speciesID)%isElectron .and. &
-                these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
-              open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
-                    STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-            else if (CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
-              open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA."//trim(nameOfSpecies)//".ints", &
-                    STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-            else if (CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(speciesID)%isElectron) then
-              open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfOtherSpecies)//".E-ALPHA.ints", &
-                    STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-            else
-              open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfOtherSpecies)//"."//trim(nameOfSpecies)//".ints", &
-                    STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-            end if
+          !allocate (auxMatrix(numberOfContractions, numberOfContractions))
+          auxMatrix = 0.0_8
 
-            readIntegrals1: do
+          do otherSpeciesID = 1, numberOfSpecies
 
-              read (unitid, iostat=status) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
+            nameOfOtherSpecies = MolecularSystem_getNameOfSpecies(otherSpeciesID, these(otherSpeciesID)%molSys)
+            OtherNumberOfContractions = MolecularSystem_getTotalNumberOfContractions(otherSpeciesID, these(otherSpeciesID)%molSys)
 
-              if (status == -1) then
-                print *, "end of file! file: ", trim(fileid)//trim(nameOfOtherSpecies)//"."//trim(nameOfSpecies)//".ints"
-                exit readIntegrals1
+            !! Restringe suma de terminos repulsivos de la misma especie.
+            if (otherSpeciesID .eq. speciesID) cycle
+
+            ! hartreeMatrices(otherSpeciesID)%values = 0.0_8
+            if (speciesID > otherSpeciesID) then
+
+              auxMatrix = 0.0_8
+
+              !! open file for integrals
+              if (CONTROL_instance%IS_OPEN_SHELL .and. &
+                  these(speciesID)%molSys%species(speciesID)%isElectron .and. &
+                  these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
+                open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
+                      STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+              else if (CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
+                open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA."//trim(nameOfSpecies)//".ints", &
+                      STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+              else if (CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(speciesID)%isElectron) then
+                open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfOtherSpecies)//".E-ALPHA.ints", &
+                      STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+              else
+                open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfOtherSpecies)//"."//trim(nameOfSpecies)//".ints", &
+                      STATUS='OLD', ACCESS='stream', FORM='Unformatted')
               end if
 
-              do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
-                if (a(u) == -1) exit readIntegrals1
+              readIntegrals1: do
 
-                coulomb = densityMatrices(otherSpeciesID)%values(a(u), b(u))*integral(u)
+                read (unitid, iostat=status) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-                auxMatrix(r(u), s(u)) = auxMatrix(r(u), s(u)) + coulomb
+                if (status == -1) then
+                  print *, "end of file! file: ", trim(fileid)//trim(nameOfOtherSpecies)//"."//trim(nameOfSpecies)//".ints"
+                  exit readIntegrals1
+                end if
 
-                if (a(u) /= b(u)) auxMatrix(r(u), s(u)) = auxMatrix(r(u), s(u)) + coulomb
+                do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+                  if (a(u) == -1) exit readIntegrals1
 
-              end do
+                  coulomb = densityMatrices(otherSpeciesID)%values(a(u), b(u))*integral(u)
 
-            end do readIntegrals1
+                  auxMatrix(r(u), s(u)) = auxMatrix(r(u), s(u)) + coulomb
 
-            close (unitid)
+                  if (a(u) /= b(u)) auxMatrix(r(u), s(u)) = auxMatrix(r(u), s(u)) + coulomb
 
-            if (.not. InterPotential_instance%isInstanced) &
-              auxMatrix = auxMatrix*MolecularSystem_getCharge(speciesID, these(speciesID)%molSys)*MolecularSystem_getCharge(otherSpeciesID, these(otherSpeciesID)%molSys)
+                end do
 
-            do i = 1, numberOfContractions
-              do j = i, numberOfContractions
-                !$OMP ATOMIC
-                hartreeMatrices(otherSpeciesID)%values(i, j) = &
-                  hartreeMatrices(otherSpeciesID)%values(i, j) + auxMatrix(i, j)
-              end do
-            end do
+              end do readIntegrals1
 
-          else
+              close (unitid)
 
-            auxMatrix = 0.0_8
+              if (.not. InterPotential_instance%isInstanced) &
+                auxMatrix = auxMatrix*MolecularSystem_getCharge(speciesID, these(speciesID)%molSys)*MolecularSystem_getCharge(otherSpeciesID, these(otherSpeciesID)%molSys)
 
-            !! open file for integrals
-            if (CONTROL_instance%IS_OPEN_SHELL .and. &
-                these(speciesID)%molSys%species(speciesID)%isElectron .and. &
-                these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
-              open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
-                    STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-            else if (CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
-              open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfSpecies)//".E-ALPHA.ints", &
-                    STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-            else if (CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(speciesID)%isElectron) then
-              open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA."//trim(nameOfOtherSpecies)//".ints", &
-                    STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+              !do i = 1, numberOfContractions
+              !  do j = i, numberOfContractions
+              !    !$OMP ATOMIC
+              !    hartreeMatrices(otherSpeciesID)%values(i, j) = &
+              !      hartreeMatrices(otherSpeciesID)%values(i, j) + auxMatrix(i, j)
+              !  end do
+              !end do
+              hartreeMatrices(otherSpeciesID)%values = hartreeMatrices(otherSpeciesID)%values + auxMatrix
+
             else
-              open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".ints", &
-                    STATUS='OLD', ACCESS='stream', FORM='Unformatted')
-            end if
 
-            readIntegrals2: do
+              auxMatrix = 0.0_8
 
-              read (unitid, iostat=status) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
-                integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
-
-              if (status == -1) then
-                print *, "end of file! file: ", trim(fileid)//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".ints"
-                exit readIntegrals2
+              !! open file for integrals
+              if (CONTROL_instance%IS_OPEN_SHELL .and. &
+                  these(speciesID)%molSys%species(speciesID)%isElectron .and. &
+                  these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
+                open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA.E-BETA.ints", &
+                      STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+              else if (CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(otherSpeciesID)%isElectron) then
+                open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfSpecies)//".E-ALPHA.ints", &
+                      STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+              else if (CONTROL_instance%IS_OPEN_SHELL .and. these(speciesID)%molSys%species(speciesID)%isElectron) then
+                open (UNIT=unitid, FILE=trim(fileid)//"E-ALPHA."//trim(nameOfOtherSpecies)//".ints", &
+                      STATUS='OLD', ACCESS='stream', FORM='Unformatted')
+              else
+                open (UNIT=unitid, FILE=trim(fileid)//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".ints", &
+                      STATUS='OLD', ACCESS='stream', FORM='Unformatted')
               end if
 
-              do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
-                if (a(u) == -1) exit readIntegrals2
+              readIntegrals2: do
 
-                coulomb = densityMatrices(otherSpeciesID)%values(r(u), s(u))*integral(u)
+                read (unitid, iostat=status) a(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  b(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  r(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  s(1:CONTROL_instance%INTEGRAL_STACK_SIZE), &
+                  integral(1:CONTROL_instance%INTEGRAL_STACK_SIZE)
 
-                auxMatrix(a(u), b(u)) = auxMatrix(a(u), b(u)) + coulomb
+                if (status == -1) then
+                  print *, "end of file! file: ", trim(fileid)//trim(nameOfSpecies)//"."//trim(nameOfOtherSpecies)//".ints"
+                  exit readIntegrals2
+                end if
 
-                if (r(u) /= s(u)) auxMatrix(a(u), b(u)) = auxMatrix(a(u), b(u)) + coulomb
+                do u = 1, CONTROL_instance%INTEGRAL_STACK_SIZE
+                  if (a(u) == -1) exit readIntegrals2
 
-              end do
+                  coulomb = densityMatrices(otherSpeciesID)%values(r(u), s(u))*integral(u)
 
-            end do readIntegrals2
+                  auxMatrix(a(u), b(u)) = auxMatrix(a(u), b(u)) + coulomb
 
-            close (unitid)
+                  if (r(u) /= s(u)) auxMatrix(a(u), b(u)) = auxMatrix(a(u), b(u)) + coulomb
 
-            if (.not. InterPotential_instance%isInstanced) &
-              auxMatrix = auxMatrix*MolecularSystem_getCharge(speciesID, these(speciesID)%molSys)*MolecularSystem_getCharge(otherSpeciesID, these(otherSpeciesID)%molSys)
+                end do
 
-            do i = 1, numberOfContractions
-              do j = i, numberOfContractions
-                !$OMP ATOMIC
-                hartreeMatrices(otherSpeciesID)%values(i, j) = &
-                  hartreeMatrices(otherSpeciesID)%values(i, j) + auxMatrix(i, j)
-              end do
-            end do
+              end do readIntegrals2
 
-          end if
+              close (unitid)
 
-        end do
+              if (.not. InterPotential_instance%isInstanced) &
+                auxMatrix = auxMatrix*MolecularSystem_getCharge(speciesID, these(speciesID)%molSys)*MolecularSystem_getCharge(otherSpeciesID, these(otherSpeciesID)%molSys)
+
+              !do i = 1, numberOfContractions
+              !  do j = i, numberOfContractions
+              !    !$OMP ATOMIC
+              !    hartreeMatrices(otherSpeciesID)%values(i, j) = &
+              !      hartreeMatrices(otherSpeciesID)%values(i, j) + auxMatrix(i, j)
+              !  end do
+              !end do
+
+              hartreeMatrices(otherSpeciesID)%values = hartreeMatrices(otherSpeciesID)%values + auxMatrix
+
+            end if
+
+          end do
+
+          !deallocate (auxMatrix)
+
+        !!$OMP END PARALLEL
+        enddo ! nthreads
 
         deallocate (auxMatrix)
-
-        !$OMP END PARALLEL
 
       else if (CONTROL_instance%INTEGRAL_STORAGE == "MEMORY") then
         do otherSpeciesID = 1, numberOfSpecies
