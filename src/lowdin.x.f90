@@ -32,13 +32,14 @@ program lowdin_
   implicit none
 
   character(50) :: strAuxNumber
+  type(Stopwatch) :: global_stopwatch
 
   !! Time Control
-  call Stopwatch_constructor(lowdin_stopwatch)
-  call Stopwatch_start(lowdin_stopwatch)
+  call Stopwatch_constructor(global_stopwatch)
+  call Stopwatch_start(global_stopwatch)
 
   !! Show credits
-  write (6, *) "LOWDIN execution started at : ", trim(Stopwatch_getCurretData(lowdin_stopwatch))
+  write (6, *) "LOWDIN execution started at : ", trim(Stopwatch_getCurretData(global_stopwatch))
   write (6, *) "---------------------------------------------------------------"
   write (6, *) ""
   write (6, *) "***************************************************************"
@@ -145,18 +146,18 @@ program lowdin_
   call MolecularSystem_destroy()
 
   !!Shows time information
-  call Stopwatch_stop(lowdin_stopwatch)
+  call Stopwatch_stop(global_stopwatch)
   write (*, *)
-  write (*, "(A,F10.3,A4)") "  TOTAL CPU Time: ", lowdin_stopwatch%enlapsetTime, " (s)"
-  write (*, "(A,F10.3,A4)") " TOTAL Wall Time: ", lowdin_stopwatch%elapsetWTime, " (s)"
+  write (*, "(A,F10.3,A4)") "  TOTAL CPU Time: ", global_stopwatch%enlapsetTime, " (s)"
+  write (*, "(A,F10.3,A4)") " TOTAL Wall Time: ", global_stopwatch%elapsetWTime, " (s)"
   write (6, "(A16,i3,A1,i3,A1,i3,A1,i4,A2)") &
     "Elapsed Time: ", &
-    lowdin_stopwatch%endTime(5), "h", &
-    lowdin_stopwatch%endTime(6), "m", &
-    lowdin_stopwatch%endTime(7), "s", &
-    lowdin_stopwatch%endTime(8), "ms"
+    global_stopwatch%endTime(5), "h", &
+    global_stopwatch%endTime(6), "m", &
+    global_stopwatch%endTime(7), "s", &
+    global_stopwatch%endTime(8), "ms"
 
-  write (6, "(A, A)") "LOWDIN execution terminated normally at : ", trim(Stopwatch_getCurretData(lowdin_stopwatch))
-  call Stopwatch_destructor(lowdin_stopwatch)
+  write (6, "(A, A)") "LOWDIN execution terminated normally at : ", trim(Stopwatch_getCurretData(global_stopwatch))
+  call Stopwatch_destructor(global_stopwatch)
 
 end program lowdin_
