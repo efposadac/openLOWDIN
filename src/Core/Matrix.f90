@@ -1369,7 +1369,7 @@ contains
       call Matrix_constructor(nullSpace, int(dim, 8), int(dim, 8), 0.0_8)
       call Matrix_constructor(singular, int(dim, 8), int(dim, 8), 0.0_8)
 
-      call Matrix_svd(this, range, nullSpace, singular)
+      call Matrix_svd(this, range, nullSpace, singular, "O", "S")
 
       determinant = 1.0
       do i = 1, dim
@@ -2259,12 +2259,14 @@ contains
 
   !>
   !! @brief  Calcula la descomposicion en valores simples de la matriz especificada
-  subroutine Matrix_svd(this, basisOfRange, basisOfNullSpace, singularValues)
+  subroutine Matrix_svd(this, basisOfRange, basisOfNullSpace, singularValues, jobU, jobVT)
     implicit none
     type(Matrix), intent(in) :: this
     type(Matrix), intent(inout) :: basisOfRange
     type(Matrix), intent(inout) :: basisOfNullSpace
     type(Matrix), intent(inout) :: singularValues
+    character(1), intent(in) :: jobU
+    character(1), intent(in) :: jobVT
 
     real(8), allocatable :: singularValuesVector(:)
     real(8), allocatable :: workSpace(:)
@@ -2287,21 +2289,41 @@ contains
     !! Crea el vector de trabajo
     allocate (workSpace(lengthWorkSpace))
     allocate (singularValuesVector(min(numberOfRows, numberOfColumns)))
+    lengthWorkSpace = -1 
 
     call dgesvd( &
-      'O', &
-      'S', &
-      numberOfRows, &
-      numberOfColumns, &
-      basisOfRange%values, &
-      numberOfRows, &
-      singularValuesVector, &
-      dummy, &
-      1, &
-      basisOfNullSpace%values, &
-      min(numberOfColumns, numberOfRows), &
-      workSpace, &
-      lengthWorkSpace, &
+      jobU, & ! O
+      jobVT, & !S
+      numberOfRows, & ! M
+      numberOfColumns, & ! N
+      basisOfRange%values, & ! A (MxN)
+      numberOfRows, & ! LDA, Leading dimension A
+      singularValuesVector, & ! S, Sigma, singular values of A
+      dummy, & ! U (
+      1, & ! LDU
+      basisOfNullSpace%values, & ! Vt
+      min(numberOfColumns, numberOfRows), & ! LDVt
+      workSpace, & ! Work 
+      lengthWorkSpace, & ! Lwork
+      infoProcess)
+
+    deallocate (workSpace)
+    allocate (workSpace(lengthWorkSpace))
+
+    call dgesvd( &
+      jobU, & ! O
+      jobVT, & !S
+      numberOfRows, & ! M
+      numberOfColumns, & ! N
+      basisOfRange%values, & ! A (MxN)
+      numberOfRows, & ! LDA, Leading dimension A
+      singularValuesVector, & ! S, Sigma, singular values of A
+      dummy, & ! U (
+      1, & ! LDU
+      basisOfNullSpace%values, & ! Vt
+      min(numberOfColumns, numberOfRows), & ! LDVt
+      workSpace, & ! Work 
+      lengthWorkSpace, & ! Lwork
       infoProcess)
 
     singularValues%values = 0.0_8
@@ -2704,7 +2726,7 @@ contains
     call Matrix_constructor(U, int(dim, 8), int(dim, 8), 0.0_8)
     call Matrix_constructor(VT, int(dim, 8), int(dim, 8), 0.0_8)
     call Matrix_constructor(singular, int(dim, 8), int(dim, 8), 0.0_8)
-    call Matrix_svd(this, U, VT, singular)
+    call Matrix_svd(this, U, VT, singular, "O", "S")
 
     ! vectorsInverted = Matrix_inverse( range )
 

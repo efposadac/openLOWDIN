@@ -873,7 +873,6 @@ contains
         !!$OMP PARALLEL private(fileid, nthreads, threadid, unitid, aa, bb, rr, ss, shellIntegrals, i, coulomb, exchange) 
         !nthreads = OMP_GET_NUM_THREADS()
         nthreads = omp_get_max_threads()
-        print *, "omp", nthreads
 
         do threadid = 0, nthreads - 1
           !threadid = OMP_GET_THREAD_NUM()
