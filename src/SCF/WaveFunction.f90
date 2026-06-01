@@ -403,12 +403,12 @@ contains
     numberOfContractions = MolecularSystem_getTotalNumberOfContractions(this%species, this%molSys)
 
     if (numberOfContractions > 1) then
-      call Vector_constructor(eigenValues, numberOfContractions)
-      call Matrix_constructor(eigenVectors, numberOfContractions, numberOfContractions)
+      call Vector_constructor(eigenValues, numberOfContractions, 0.0_8)
+      call Matrix_constructor(eigenVectors, numberOfContractions, numberOfContractions, 0.0_8)
       !!****************************************************************
       !! diagonaliza la matriz de overlap obteniendo una matriz unitaria
       !!
-      call Matrix_eigen(this%overlapMatrix, eigenValues, eigenVectors, SYMMETRIC)
+      call Matrix_eigen_dsyevr(this%overlapMatrix, eigenValues, 1_4, int(numberOfContractions,4), eigenVectors, SYMMETRIC)
       ! do i = 1 , numberOfContractions
       !   print *, eigenvalues%values(i)
       ! end do
