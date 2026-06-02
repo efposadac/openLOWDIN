@@ -38,20 +38,42 @@ program lowdin_
   call Stopwatch_constructor(global_stopwatch)
   call Stopwatch_start(global_stopwatch)
 
-  !! Show credits
   write (6, *) "LOWDIN execution started at : ", trim(Stopwatch_getCurretData(global_stopwatch))
-  write (6, *) "---------------------------------------------------------------"
+  write (6, *) "---------------------------------------------------------------------------------"
+
+  !! Show logo
+  write (6, *) "                                                                                 "
+  write (6, *) "                  0000        00000      00000000000           000               " 
+  write (6, *) "                 0000000         000000  000                   000               " 
+  write (6, *) "                      000           000                 000    000               " 
+  write (6, *) "           00          000          000  000000000       0000  000               " 
+  write (6, *) "           000         000  000 00000    000          000  0000000               " 
+  write (6, *) "            000       000   000                       000    00000               " 
+  write (6, *) "             00000000000    000          00000000000  000      000               " 
+  write (6, *) "                                                                                 " 
+  write (6, *) "                                                                                 " 
+  write (6, *) "  00                0000     00             00  0000000       000           000  " 
+  write (6, *) "  00               0000000   000            00  00    00000   000           000  " 
+  write (6, *) "  00                    000   000   00   0000   00       000         000    000  " 
+  write (6, *) "  00         00          000   000  000  000              00  000     0000  000  " 
+  write (6, *) "  00         000         000    000  000000              000  000  000   000000  " 
+  write (6, *) "  00          0000     0000      00   0000              000   000  000     0000  " 
+  write (6, *) "  000000000     000000000         0    00       0000000000    000  000       00  " 
+  write (6, *) "                                                                                 "
+  write (6, *) "---------------------------------------------------------------------------------"
+
+  !! Show credits
   write (6, *) ""
-  write (6, *) "***************************************************************"
-  write (6, *) "*                   LOWDIN 2.0  (May/2013)                    *"
-  write (6, *) "*                                                             *"
-  write (6, *) "*  R. FLORES-MORENO, E. F. POSADA, F. S. MONCADA, J.ROMERO,   *"
-  write (6, *) "*  J. CHARRY, M. DIAZ-TINOCO, S. A. GONZALEZ, N. F. AGUIRRE,  *"
-  write (6, *) "*  A. REYES                                                   *"
-  write (6, *) "*                                                             *"
-  write (6, *) "*  https://sites.google.com/site/lowdinproject/               *"
-  write (6, *) "*                                                             *"
-  write (6, *) "***************************************************************"
+  write (6, *) "---------------------------------------------------------------------------------"
+  write (6, *) "                          OPEN LOWDIN   (May/2026)                               "
+  write (6, *) "                                                                                 "
+  write (6, *) "            R. FLORES-MORENO, E. F. POSADA, F. S. MONCADA, J.ROMERO,             "
+  write (6, *) "            J. CHARRY, M. DIAZ-TINOCO, S. A. GONZALEZ, N. F. AGUIRRE,            "
+  write (6, *) "            A. REYES                                                             "
+  write (6, *) "                                                                                 "
+  write (6, *) "            https://github.com/efposadac/openLOWDIN/                             "
+  write (6, *) "                                                                                 "
+  write (6, *) "---------------------------------------------------------------------------------"
   write (6, *) ""
 
   !!***************************************************************************
