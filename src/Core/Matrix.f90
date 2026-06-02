@@ -2325,6 +2325,7 @@ contains
       lengthWorkSpace, & ! Lwork
       infoProcess)
 
+    lengthWorkSpace = int(workSpace(1))
     deallocate (workSpace)
     allocate (workSpace(lengthWorkSpace))
 
