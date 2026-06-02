@@ -1,14 +1,14 @@
 !!******************************************************************************
-!!	This code is part of LOWDIN Quantum chemistry package                 
-!!	
-!!	this program has been developed under direction of:
+!!        This code is part of LOWDIN Quantum chemistry package
 !!
-!!	Prof. A REYES' Lab. Universidad Nacional de Colombia
-!!		http://www.qcc.unal.edu.co
-!!	Prof. R. FLORES' Lab. Universidad de Guadalajara
-!!		http://www.cucei.udg.mx/~robertof
+!!        this program has been developed under direction of:
 !!
-!!		Todos los derechos reservados, 2013
+!!        Prof. A REYES' Lab. Universidad Nacional de Colombia
+!!                http://www.qcc.unal.edu.co
+!!        Prof. R. FLORES' Lab. Universidad de Guadalajara
+!!                http://www.cucei.udg.mx/~robertof
+!!
+!!                Todos los derechos reservados, 2013
 !!
 !!******************************************************************************
 !>
@@ -24,9 +24,9 @@
 !!        -# Adapta el modulo para su inclusion en Lowdin
 ! module ArpackInterface_
 !   implicit none
-  
+
 !   interface ArpackInterface
-     
+
 !      subroutine dsaupd ( IDO, BMAT, N, WHICH, NEV, TOL, RESID, NCV, V, LDV, IPARAM,IPNTR, WORKD, WORKL, LWORKL, INFO )
 !        character  bmat*1, which*2
 !        integer    ido, info, ldv, lworkl, n, ncv, nev
@@ -46,7 +46,7 @@
 !       logical    select(ncv)
 !       Double precision d(nev), resid(n), v(ldv,ncv), z(ldz, nev), workd(2*n), workl(lworkl)
 !     end subroutine dseupd
-     
+
 !   end interface
-  
+
 ! end module ArpackInterface_

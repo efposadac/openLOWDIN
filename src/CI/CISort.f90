@@ -523,7 +523,4 @@ contains
 
   endsubroutine CISort_sortVectorByIndex
 
-
-
-
 end module CISort_

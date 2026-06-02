@@ -1,6 +1,6 @@
 GEOMETRY
         ea-   aug-cc-pvtz	0.00    0.00    10.00 m = 0.3020 q = -1.3314 omega=0.7272 multiplicity=2 
-        H       dirac		0.00    0.00    10.00 q = 1.3314 qdoCenterOf=EA-
+        Ar       dirac		0.00    0.00    10.00 q = 1.3314 qdoCenterOf=EA-
 END GEOMETRY
 
 TASKS

@@ -21,9 +21,9 @@
      integer(8) :: numberOfConfigurations
      integer :: nproc
      integer :: numberOfQuantumSpecies
-     type(ivector) :: numberOfCoreOrbitals
-     type(ivector) :: numberOfOccupiedOrbitals
-     type(ivector) :: numberOfOrbitals
+    type(ivector8) :: numberOfCoreOrbitals
+    type(ivector8) :: numberOfOccupiedOrbitals
+    type(ivector8) :: numberOfOrbitals
      type(vector) ::  numberOfSpatialOrbitals2 
      type(vector) :: eigenvalues
      type(vector) :: groundStateEnergies
@@ -36,7 +36,7 @@
      type(imatrix), allocatable :: strings(:) !! species, conf, occupations. index for occupied orbitals, e.g. 1 2 5 6
      type(imatrix1), allocatable :: orbitals(:) !! species, conf, occupations. array with 1 for occupied and 0 unoccupied orb, e.g. 1 1 0 0 1 1
      integer, allocatable :: sumstrings(:) !! species
-     type(ivector), allocatable :: auxstring(:,:) !! species, occupations
+    type(ivector8), allocatable :: auxstring(:, :) !! species, occupations
      type(ivector8), allocatable :: numberOfStrings(:) !! species, excitation level, number of strings
      type(ivector8), allocatable :: numberOfStrings2(:) !! species, excitation level, number of strings
 
@@ -44,7 +44,7 @@
      type(imatrix), allocatable :: couplingMatrix(:,:)
      type(Vector), allocatable :: couplingMatrixEnergyOne(:,:)
 !     type(matrix), allocatable :: couplingMatrixEnergyTwo(:)
-     type(ivector), allocatable :: couplingMatrixFactorOne(:,:)
+    type(ivector1), allocatable :: couplingMatrixFactorOne(:, :)
      type(ivector), allocatable :: couplingMatrixOrbOne(:,:)
      type(imatrix), allocatable :: nCouplingOneTwo(:,:)
      type(imatrix), allocatable :: nCouplingSize(:,:)
@@ -67,8 +67,8 @@
 
      type(configuration), allocatable :: configurations(:)
      integer(2), allocatable :: auxconfs(:,:,:) ! nconf, species, occupation
-     type (Vector8) :: diagonalHamiltonianMatrix
-     type (Vector8) :: diagonalHamiltonianMatrix2
+    type(Vector) :: diagonalHamiltonianMatrix
+    type(Vector) :: diagonalHamiltonianMatrix2
      real(8) :: totalEnergy
      integer, allocatable :: totalNumberOfContractions(:)
      integer, allocatable :: occupationNumber(:)
@@ -100,7 +100,6 @@
   public :: &
        CIcore_constructor
 
-
 contains
 
   !>
@@ -112,7 +111,7 @@ contains
     implicit none
     character(*) :: level
 
-    integer :: numberOfSpecies
+    integer(8) :: numberOfSpecies
     integer :: i,j,k,l,m,n,p,q,cc,r,s,el, nproc
     integer(8) :: c
     integer :: ma,mb,mc,md,me,pa,pb,pc,pd,pe
@@ -143,7 +142,6 @@ contains
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
     CIcore_instance%numberOfSpecies = numberOfSpecies
 
-
     do i=1, numberOfSpecies
         nameOfSpecie= trim(  MolecularSystem_getNameOfSpecies( i ) )
         numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
@@ -151,22 +149,22 @@ contains
         arguments(2) = nameOfSpecie
         arguments(1) = "HCORE"
         HartreeFock_instance%HcoreMatrix  = &
-                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-                  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+        Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                           columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
 
         arguments(1) = "COEFFICIENTS"
         HartreeFock_instance%coefficientsofcombination = &
-                  Matrix_getFromFile(unit=wfnUnit, rows= int(numberOfContractions,4), &
-                  columns= int(numberOfContractions,4), binary=.true., arguments=arguments(1:2))
+        Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
+                           columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
     end do
 
     CIcore_instance%isInstanced=.true.
     CIcore_instance%level=level
     CIcore_instance%numberOfConfigurations=0
 
-    call Vector_constructorInteger (CIcore_instance%numberOfCoreOrbitals, numberOfSpecies)
-    call Vector_constructorInteger (CIcore_instance%numberOfOccupiedOrbitals, numberOfSpecies)
-    call Vector_constructorInteger (CIcore_instance%numberOfOrbitals, numberOfSpecies)
+    call Vector_constructorInteger8(CIcore_instance%numberOfCoreOrbitals, numberOfSpecies)
+    call Vector_constructorInteger8(CIcore_instance%numberOfOccupiedOrbitals, numberOfSpecies)
+    call Vector_constructorInteger8(CIcore_instance%numberOfOrbitals, numberOfSpecies)
     call Vector_constructor (CIcore_instance%lambda, numberOfSpecies)
     call Vector_constructor (CIcore_instance%numberOfSpatialOrbitals2, numberOfSpecies)
 
@@ -286,13 +284,12 @@ contains
       !! auxiliary string for omp paralelization
       do n = 1, CIcore_instance%nproc
         do i = 1, numberOfSpecies
-          call Vector_constructorInteger( CIcore_instance%auxstring(n,i), &
-            int(CIcore_instance%numberOfOccupiedOrbitals%values(i),4), int(0,4))
+          call Vector_constructorInteger8(CIcore_instance%auxstring(n, i), &
+                                          int(CIcore_instance%numberOfOccupiedOrbitals%values(i), 8), int(0, 8))
         end do    
       end do  
 
     endif
-
 
   end subroutine CIcore_constructor
 
@@ -333,7 +330,6 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
 
   end function CIcore_gatherConfRecursion
 
-
   function CIcore_getIndex ( indexConf ) result ( output )
     implicit none
     integer(8) :: indexConf(:)
@@ -360,7 +356,7 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
     character(50) :: wfnFile
     integer :: wfnUnit
     integer :: speciesID
-    integer :: canonicalNumberOfOrbitals
+    integer(8) :: canonicalNumberOfOrbitals
     character(50) :: arguments(20)
     character(30) :: nameOfSpecies
     integer :: i,j,k

@@ -10,7 +10,7 @@ def setReferenceValues():
 "Iterations" : [2,1],
 "KT e+ 1" : [-0.02189320,1E-4],
 "KT e- 20" : [-0.51095700,1E-4],
-}                       
+}
     return refValues
 
 def getTestValues(testValues,testName):
@@ -18,7 +18,7 @@ def getTestValues(testValues,testName):
     testValues["KT e+ 1"] = test.getHFeigenvalues(testName,"E+",1)
     testValues["KT e- 20"] = test.getHFeigenvalues(testName,"E-",20)
     testValues["Iterations"] = test.getSCFiterations(testName)
-    return 
+    return
 
 if __name__ == '__main__':
     testName = sys.argv[0][:-3]

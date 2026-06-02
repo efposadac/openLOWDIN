@@ -21,6 +21,7 @@ CONTROL
 	scfConvergenceCriterium="ENERGY"
 	scfGlobalMaxIterations=2000
 	totalEnergyTolerance=1.0E-9
+	integralThreshold = 1E-16
 	debugSCFS=.F.
 	integralStorage="MEMORY"
 END CONTROL

@@ -18,6 +18,7 @@ CONTROL
 	iterationScheme=0
 	NonelectronicEnergyTolerance=1E-10
 	totalEnergyTolerance=1E-11
+	integralThreshold = 1E-16
 	scfNonelectronicMaxIterations=25
 	integralStorage="MEMORY"
 	gridStorage="MEMORY"

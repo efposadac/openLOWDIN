@@ -10,18 +10,12 @@ fi
 
 usage(){
 	echo "Usage:"
-	echo "   $ lowdin -i file.lowdin [-t [all] [list] [file]] [-n number] [-v number] [-p] [-s] [-h] "
+  echo "   $ lowdin -i file.lowdin [-n number] [-v number] [-p] [-s] [-h] "
 	echo ""
 	echo "   -i file.lowdin"
 	echo "      This is the input file name"
 	echo "   -n number"
 	echo "      This will set the number of OMP threads"
-        echo "   -t all"
-        echo "      This will run all the test files located on the test database."
-        echo "   -t list"
-        echo "      This will list all the test files located on the test database."
-        echo "   -t file"
-        echo "      This will run a specific test file which is located on test database."
 	echo "   -v number"
 	echo "      This is the lowdin version that will be used"
 	echo "   -p"
@@ -37,35 +31,10 @@ usage(){
 	echo ""
 }
 
-###############################################
-# Funcion relacionada con la ejecucion de test
-##############################################
-testop(){
-
-if [ $test = "all" ]
-then
-    echo "Running all test file, this may take some time..."
-elif [ $test = "list" ]
-then
-    echo "Looking for a list of test files..."
-else
-    echo "Trying to test file:  $test ..."
-fi
-
-if [  $printOut = "T" ]; then
-	test.x $test | tee  $test.out
-else
-      	test.x $test 2> $test.out
-fi
-
-echo "done"
-}
-
 ############################################
-# Lectura e interpretacion de opciones.
+# Processing input flags
 ############################################
-if [ "$#" -eq "0" ]
-then
+if [ "$#" -eq "0" ]; then
 	usage
 	exit 1
 fi
@@ -74,7 +43,6 @@ printOut="F"
 saveWfn="F"
 singleton="F"
 version=".x"
-runTest="F"
 keepScratch="F"
 
 while getopts 	"i:pt:sv:n:hwkS:" OPTNAME
@@ -106,46 +74,33 @@ do
 			usage
 			exit 0
 			;;
-                t)
-                        test=$OPTARG
-                        runTest="T"
-                        ;;
 		S)	
 			setScratch=$OPTARG
 			;;
 	esac
 done
 
-
-if [ $runTest = "T" ]; then
-	testop
-	exit 0
-fi
-
 if [ -n "$setScratch" ]; then
 	export LOWDIN_SCRATCH=$setScratch
 fi
 
 #############################################
-# Esta seccion verifica todo lo relacionado
-# con el posible proceso tipo singleton de LOWDIN
+# openLOWDIN singleton mode
 #############################################
-if [ -e $LOWDIN_SCRATCH/lowdin.pid ]
-then
+
+if [ -e $LOWDIN_SCRATCH/lowdin.pid ]; then
+
 	prevPID="`cat $LOWDIN_SCRATCH/lowdin.pid`"
 	isRunning=`ps -A | awk -v id=$prevPID '($4~/lowdin/ && $1==id){print "T"}'`
 	
-	if [ $isRunning = "T" ]
-	then
+  if [ $isRunning = "T" ]; then
 		echo "## ERROR ## Another LOWDIN process (pid=`cat $LOWDIN_SCRATCH/lowdin.pid`) is running in singleton mode (-s)"
 		exit 0
 	else
 		chmod +w $LOWDIN_SCRATCH/lowdin.pid
 		echo "## WARNING ## Another LOWDIN process (pid=`cat $LOWDIN_SCRATCH/lowdin.pid`) in singleton mode (-s) have finished with errors"
-		# rm $LOWDIN_SCRATCH/lowdin.pid
 	fi
-elif [ $singleton = "T" ]
-then
+elif [ $singleton = "T" ]; then
 	echo "Running LOWDIN in singleton mode"
 	echo $PID > $LOWDIN_SCRATCH/lowdin.pid
 	chmod -w $LOWDIN_SCRATCH/lowdin.pid
@@ -156,13 +111,11 @@ if [ $extFile="lowdin" ]; then
 	#############################################
 	# Set name file
 	#############################################
-
-	if [ -e  "$nameFile" ]
-	then
+  if [ -e  "$nameFile" ]; then
 		nameFile=`echo $nameFile | gawk '{print substr($1,1,length($1)-7)}'`
 		bashDecimalSeparator=`echo " " | awk '{printf("%f \n",1.0)}' | $SED "s/[10]//g"`
-	if [ $bashDecimalSeparator = "," ]
-	then
+
+    if [ $bashDecimalSeparator = "," ]; then
 	    grep -v "%" $nameFile.lowdin | grep -v "\!"  |  $SED "/^[ tab]*$/d" | $SED "s/\./\,/g" > $nameFile
 	else
 	    grep -v "%" $nameFile.lowdin | grep -v "\!"  |  $SED "/^[ tab]*$/d" | $SED "s/\,/\./g" > $nameFile
@@ -390,17 +343,14 @@ if [ $extFile="lowdin" ]; then
 	}
 	' | $SED "s/,/./g" >> $nameFile.aux
 
-	###########################################
+    #################################################
 	# Check custom basis sets/potentials in the input
-	###########################################
+    #################################################
 
 	BASIS_NAMES=(`gawk '($1~/^BASIS$/){print toupper($2)}' $nameFile`)
-	if [ ${#BASIS_NAMES[@]} -gt "0" ]
-	then
-	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
-	    do
-		if [ -e $LOWDIN_DATA/basis/$BASIS_NAME ]
-		then
+    if [ ${#BASIS_NAMES[@]} -gt "0" ]; then
+      for BASIS_NAME in ${BASIS_NAMES[@]};  do
+        if [ -e $LOWDIN_DATA/basis/$BASIS_NAME ]; then
 		    echo "## ERROR: ## The custom basis file already exists in " $LOWDIN_DATA/basis/$BASIS_NAME		    
 		    echo "Modify the BASIS block in your input and select a different name"
 		    exit 1
@@ -412,12 +362,9 @@ if [ $extFile="lowdin" ]; then
 	fi
 
 	POTENTIALS_NAMES=(`gawk '($1~/^POTENTIAL$/){print toupper($2)}' $nameFile`)
-	if [ ${#POTENTIALS_NAMES[@]} -gt "0" ]
-	then
-	    for POTENTIALS_NAME in ${POTENTIALS_NAMES[@]}				 
-	    do
-		if [ -e $LOWDIN_DATA/basis/$POTENTIALS_NAME ]
-		then
+    if [ ${#POTENTIALS_NAMES[@]} -gt "0" ]; then
+      for POTENTIALS_NAME in ${POTENTIALS_NAMES[@]};  do
+        if [ -e $LOWDIN_DATA/basis/$POTENTIALS_NAME ]; then
 		    echo "## ERROR: ## The custom potential file already exists in " $LOWDIN_DATA/potentials/$POTENTIALS_NAME		    
 		    echo "Modify the POTENTIALS block in your input and select a different name"
 		    exit 1
@@ -428,54 +375,29 @@ if [ $extFile="lowdin" ]; then
      	    done
 	fi
 	
-	
 	###########################################
 	# Exec lowdin.x
 	###########################################
 
 	currentPath=`pwd`
 
-	if [ -d "$LOWDIN_SCRATCH/$nameFile" ]
-	then
+    if [ -d "$LOWDIN_SCRATCH/$nameFile" ]; then
 	    echo "## WARNING ## The scratch directory $LOWDIN_SCRATCH/$nameFile"
 	    echo "              exists, probably it corresponds to"
 	    echo "              a calculation completed or with errors."
-	    # rm -rf $LOWDIN_SCRATCH/$nameFile
 	    mkdir $LOWDIN_SCRATCH/$nameFile
 	else
 	    mkdir $LOWDIN_SCRATCH/$nameFile
 	fi
 	
-	# moving external files to scratch
-	cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	cp $nameFile*.plainvec $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	cp $nameFile*.fchk $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	cp $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	cp $nameFile*.der $LOWDIN_SCRATCH/$nameFile &> /dev/null
-        cp $nameFile*.NOCI* $LOWDIN_SCRATCH/$nameFile &> /dev/null
-        cp $nameFile*.refNOCI* $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	mv $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	mv $nameFile*.coup $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	mv $nameFile*.coeff $LOWDIN_SCRATCH/$nameFile &> /dev/null		
-	cp $nameFile*.gms.bs $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	cp $nameFile*.Matrices.ci $LOWDIN_SCRATCH/$nameFile &> /dev/null
-
 	#PID to avoid basis/potentials duplicates in simultaneous calculations
-	if [ ${#BASIS_NAMES[@]} -gt "0" ]
-	then
-	    for BASIS_NAME in ${BASIS_NAMES[@]}				 
-	    do
+    if [ ${#BASIS_NAMES[@]} -gt "0" ]; then
+      for BASIS_NAME in ${BASIS_NAMES[@]}; do
 		mv $BASIS_NAME.$PID $LOWDIN_SCRATCH/$nameFile/$BASIS_NAME &> /dev/null		
      	    done
 	fi
-	if [ ${#POTENTIALS_NAMES[@]} -gt "0" ]
-	then
-	    for POTENTIALS_NAME in ${POTENTIALS_NAMES[@]}				 
-	    do
+    if [ ${#POTENTIALS_NAMES[@]} -gt "0" ]; then
+      for POTENTIALS_NAME in ${POTENTIALS_NAMES[@]};  do
 		mv $POTENTIALS_NAME.$PID $LOWDIN_SCRATCH/$nameFile/$POTENTIALS_NAME &> /dev/null		
      	    done
 	fi
@@ -489,8 +411,6 @@ if [ $extFile="lowdin" ]; then
 	if [ -n "$numberOfThreads" ]; then
     		export OMP_NUM_THREADS=$numberOfThreads
 	fi
-
-	#echo "Running on " $OMP_NUM_THREADS "OMP threads" 
 
 	# Start ...
 	echo "Running on " $OMP_NUM_THREADS "OMP threads" > $nameFile.out
@@ -507,14 +427,29 @@ if [ $extFile="lowdin" ]; then
 	echo "... END INPUT INFO" >> $nameFile.out
 	echo "" >> $nameFile.out
 	
+    # moving files from input directory to scratch
 	cp $nameFile.lowdin $LOWDIN_SCRATCH/$nameFile
 	mv $nameFile $LOWDIN_SCRATCH/$nameFile
 	cp lowdin.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	cp lowdin.civec $LOWDIN_SCRATCH/$nameFile &> /dev/null
-	echo "" >> $nameFile.out
-	mv $nameFile.out $LOWDIN_SCRATCH/$nameFile
 	mv $nameFile.aux $LOWDIN_SCRATCH/$nameFile
+    mv $nameFile*.coeff $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    mv $nameFile*.coup $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    mv $nameFile*.dens $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.der $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.fchk $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.gms.bs $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.NOCI* $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    mv $nameFile.out $LOWDIN_SCRATCH/$nameFile
+    mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.plainvec $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.refNOCI* $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
+    cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	
+    # run
 	cd $LOWDIN_SCRATCH/$nameFile
 	
 	if [  $printOut = "T" ]; then
@@ -523,72 +458,69 @@ if [ $extFile="lowdin" ]; then
 	    lowdin$version $nameFile.aux >> $nameFile.out 2> >(tee -a $nameFile.out >&2)
 	fi
 	
+    # list all files generated
 	ls -lh * >> $nameFile.out
 
-	if [ -e $nameFile.out ]
-	then
+    if [ -e $nameFile.out ]; then
 	    cp $LOWDIN_SCRATCH/$nameFile/*.out $currentPath
-	    # cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
-	#		cp $LOWDIN_SCRATCH/$nameFile/*.xyzr $currentPath 
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
+        cp $LOWDIN_SCRATCH/$nameFile/*.aux $currentPath
+        #mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.casino $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.ci $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.civec $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.coeff $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*coup $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.com $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.cub $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.dat $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.dens $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.eps $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.fchk $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.gnp $currentPath &> 2
 	#		cp $LOWDIN_SCRATCH/$nameFile/*.inp $currentPath 
+        #mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
+        #mv $LOWDIN_SCRATCH/$nameFile/*.kin $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.molden $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.NOCI.coords $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.NOCI.s* $currentPath &> 2
+         mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.orb* $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.over $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.plainvec $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.sci $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
+        #mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.vec $currentPath &> 2
+        #cp $LOWDIN_SCRATCH/$nameFile/*.xyzr $currentPath
+        #mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfn $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfx $currentPath &> 2
 	fi
 
 	if [ $saveWfn = "T" ]; then
 	   cp $LOWDIN_SCRATCH/$nameFile/lowdin.wfn $currentPath
 	fi
 
-	# mv $LOWDIN_SCRATCH/$nameFile/*.dat* $currentPath &> 2
-	#mv $LOWDIN_SCRATCH/$nameFile/*.ints* $currentPath &> 2
-	#mv $LOWDIN_SCRATCH/$nameFile/*.bas* $currentPath &> 2
-	#mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.xyzr* $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.inp* $currentPath 
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.molden $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfn $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.wfx $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.47 $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.vec $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.plainvec $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.fchk $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.NOCI.coords $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.NOCI.s* $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.cub $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.dens $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.eps $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.orb* $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.gnp $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
-        mv $LOWDIN_SCRATCH/$nameFile/*.civec $currentPath &> 2
-        # mv $LOWDIN_SCRATCH/$nameFile/*.ci $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.coeff $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*coup $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.com $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.over $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.kin $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.dat $currentPath &> 2
-	# mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.casino $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.sci $currentPath &> 2
-	mv $LOWDIN_SCRATCH/$nameFile/*.Matrices.ci $currentPath &> 2
-
 	if [ $keepScratch = "F" ]; then
 	   rm -rf $LOWDIN_SCRATCH/$nameFile
 	fi
 
-    else
+  else # [ -e  "$nameFile" ]
 		echo $1 ", this file does not exist. "
 		exit 1
     fi
-else
+else # [ $extFile="lowdin" ]
     echo $1 " Check your input file or Usage. "
     echo ""
     usage
     exit 1
 fi
 
-if [ $singleton = "T" ]
-then
+if [ $singleton = "T" ]; then
 	cd $LOWDIN_SCRATCH
 	chmod +w lowdin.pid
 	# rm lowdin.pid
@@ -596,3 +528,4 @@ then
 else
 	exit 0
 fi
+

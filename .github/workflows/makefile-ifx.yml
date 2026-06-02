@@ -95,4 +95,12 @@ jobs:
         make install
         # Run Tests
         make test
-    
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: failure()
+    - name: Upload test output folder
+      uses: actions/upload-artifact@v4
+      if: always() 
+      with:
+        name: test-failure-outputs
+        path: test/testResults_openlowdin/

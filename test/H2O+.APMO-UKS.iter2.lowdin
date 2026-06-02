@@ -23,4 +23,5 @@ CONTROL
 	scfNonelectronicMaxIterations=50
 	integralStorage="MEMORY"
 	gridStorage="MEMORY"
+	integralThreshold = 1e-16
 END CONTROL

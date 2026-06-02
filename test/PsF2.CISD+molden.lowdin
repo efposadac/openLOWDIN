@@ -19,6 +19,7 @@ CINaturalOrbitals=T
 CIStatesToPrint = 1
 CIdiagonalizationMethod = "JADAMILU"
 totalEnergyTolerance=1E-10
+integralThreshold = 1E-16
 END CONTROL
 
 INPUT_CI

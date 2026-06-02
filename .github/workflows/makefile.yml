@@ -39,7 +39,7 @@ jobs:
         # # Build libint2
         # git clone https://github.com/evaleev/libint.git
         # cd libint
-        # git checkout 668b10c4bdca5876984058742d4212675eb93f3f
+        # git checkout v2.6.0
         # ./autogen.sh
         # mkdir ../libint2
         # cd ../libint2
@@ -88,5 +88,12 @@ jobs:
         make install
         # Run Tests
         make test
-
-    
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: failure()
+    - name: Upload test output folder
+      uses: actions/upload-artifact@v4
+      if: always() 
+      with:
+        name: test-failure-outputs
+        path: test/testResults_openlowdin/

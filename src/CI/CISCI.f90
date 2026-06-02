@@ -14,9 +14,8 @@ module CISCI_
 
   type, public :: CISCI
     !! arrays for storing coefficients
-    type (Vector8) :: buffer_amplitudeCore
-    type (Vector8) :: coefficientCore
-    type (matrix) :: auxeigenVectors
+    type(Vector) :: buffer_amplitudeCore
+    type(Vector) :: coefficientCore
     !! auxiliary array to trace the original elements in array sorting
     type (ivector8) :: index_amplitudeCore
     !! arrays for storing CI configurations, species, orbitals, vector size
@@ -24,10 +23,11 @@ module CISCI_
     integer(1), allocatable :: confAmplitudeCore(:,:)
     type (IMatrix1), allocatable :: saved_confTarget(:)
     !! storing the CI diagonal matrix elements for Jadamilu preconditioner
-    type (Vector8) :: diagonalTarget
     !! eigenvalues per SCI iteration
     type (Vector), allocatable :: eigenValues(:) ! eigenvalues per SCI iteration
     real(8), allocatable :: minCoeff(:) ! eigenvalues per SCI iteration
+    type(Vector) :: diagonalCore
+    type(Vector) :: diagonalTarget
     !! length of SCI search vectors
     integer(8) :: coreSpaceSize
     integer(8) :: targetSpaceSize
@@ -118,7 +118,6 @@ contains
     write (6,"(T2,A,I8 )") "Length of total buffer space                           :",  CISCI_instance%buffer_amplitudeCoreSize 
     write(6,*) "-----------------------------------------------------------------------"
     
-
   end subroutine CISCI_show
 
   !! Allocating arrays 
@@ -164,8 +163,8 @@ contains
     CISCI_instance%omp_target_iterator_m( CIcore_instance%nproc + 1 ) = 0_8
 
     !! arrays for storing coefficients
-    call Vector_constructor8 ( CISCI_instance%buffer_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize,8),  0.0_8)
-    call Vector_constructor8 ( CISCI_instance%coefficientCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
+    call Vector_constructor(CISCI_instance%buffer_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize, 8), 0.0_8)
+    call Vector_constructor(CISCI_instance%coefficientCore, int(CISCI_instance%coreSpaceSize, 8), 0.0_8)
 
     !! auxiliary array to trace the original elements in array sorting
     call Vector_constructorInteger8 ( CISCI_instance%index_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize,8),  0_8)
@@ -184,13 +183,13 @@ contains
     CISCI_instance%confAmplitudeCore = -1_1
 
     !! storing the CI diagonal matrix elements for Jadamilu preconditioner
-    call Vector_constructor8 ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8) 
+    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8) 
 
     !! eigenvalues per SCI iteration
     allocate ( CISCI_instance%eigenValues ( 20 ) )
     allocate ( CISCI_instance%minCoeff ( 20 ) )
     do k = 1, 20
-      call Vector_constructor ( CISCI_instance%eigenValues(k), CONTROL_instance%NUMBER_OF_CI_STATES, 0.0_8) !! store the eigenvalues per macro iterations
+      call Vector_constructor ( CISCI_instance%eigenValues(k), int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8) !! store the eigenvalues per macro iterations
     enddo
 
     !! store the orbitals for each target configurations, to avoid recomputing them 
@@ -483,7 +482,7 @@ contains
   subroutine CISCI_initialConfigurations ( coefficientCore, confCore )
 
     implicit none
-    type(vector8) :: coefficientCore
+    type(Vector) :: coefficientCore
     type(IMatrix1) :: confCore(:)
     type(IVector), allocatable :: orbA(:), occA(:), virA(:)
     integer :: spi, spj, numberOfSpecies
@@ -652,8 +651,8 @@ contains
 
     !! loop to find all CI configurtions coupled to core space
     !$omp do schedule (runtime) 
-    do a = 1, nonzero !! coreSpace
-      
+    do a = 1, nonzero  
+
       ! getting configuration A
       do spi = 1, numberOfSpecies 
 
@@ -924,8 +923,7 @@ contains
 
     !! loop to find all CI configurtions coupled to core space
     !$omp do schedule (runtime) 
-    do a = 1, nonzero !! coreSpace
-      
+    do a = 1, nonzero  
       ! getting configuration A
       do spi = 1, numberOfSpecies 
 
@@ -1334,7 +1332,9 @@ contains
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
     !$omp do schedule (runtime) 
-    aloop: do aa = 1, nonzero
+    aloop: do aa = 1, nx
+
+       if ( abs(v(aa) ) <= tol) cycle
 
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
       a = aa ! if index_amplitude is sorted
@@ -1359,7 +1359,7 @@ contains
 
       enddo
 
-      bloop: do bb = aa, nonzero
+      bloop: do bb = aa, nx
 
         !b = CISCI_instance%index_amplitudeCore%values(bb)
         b = bb
@@ -1953,7 +1953,7 @@ contains
     nonzero = 0
     do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-9  ) exit
+      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-12  ) exit
       nonzero = nonzero + 1
     enddo
 
@@ -1982,8 +1982,8 @@ contains
     energyCorrection = 0.0_8
     
     !$omp do schedule (runtime),  reduction (+:energyCorrection)
-    aloop: do aa = CISCI_instance%targetSpaceSize + 1, nonzero
-
+!    aloop: do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + 1 + nonzero
+    aloop: do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
 
       !a = aa ! if index_amplitude is sorted

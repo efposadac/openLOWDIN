@@ -17,5 +17,6 @@ CONTROL
 	totalEnergyTolerance=1E-10
 	scfElectronicMaxIterations=25
 	scfGlobalMaxIterations=10000
-	integralStorage="MEMORY"
+!	integralStorage="MEMORY"
+	integralThreshold = 1e-16
 END CONTROL

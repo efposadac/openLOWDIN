@@ -25,5 +25,6 @@ convergenceMethod=1
 	SCFGhostSpecies="E+"
 	HFprintEigenvalues=T
 	totalEnergyTolerance = 1E-9
+	integralThreshold = 1E-16
 END CONTROL
 

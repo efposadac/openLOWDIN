@@ -16,6 +16,7 @@ CONTROL
 	buildTwoParticlesMatrixForOneParticle=T
 	nonElectronicEnergyTolerance=1E-10
 	totalEnergyTolerance=1E-10
+	integralThreshold = 1E-16
 	scfNonelectronicMaxIterations=25
 	scfGlobalMaxIterations=10000
 	integralStorage="MEMORY"
