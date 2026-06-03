@@ -140,27 +140,16 @@ contains
     CISCI_instance%combinedNumberOfOrbitals = sum(CIcore_instance%numberOfOrbitals%values(:))
     allocate ( CISCI_instance%combinedOrbitalsPositions(2,numberOfSpecies) )
     m = 0
-    do spi = 1, numberOfSpecies 
+    do spi = 1, numberOfSpecies
       CISCI_instance%combinedOrbitalsPositions(1,spi) = m + 1
       CISCI_instance%combinedOrbitalsPositions(2,spi) = m + CIcore_instance%numberOfOrbitals%values(spi)
       m = m + CIcore_instance%numberOfOrbitals%values(spi)
     enddo 
 
-    !! auxiliary arrays to store the position of the target space for each omp thread within the big arrays 
+    !! auxiliary arrays to store the position of the target space position for each omp thread within the big arrays
+    !! last batch (nproc + 1) is for collecting the results
     allocate ( CISCI_instance%omp_targetInterval(2, CIcore_instance%nproc + 1 ) ) !fixed
     allocate ( CISCI_instance%omp_target_iterator_m( CIcore_instance%nproc + 1) ) !variable
-
-    m = 0_8
-    do n = 1, CIcore_instance%nproc 
-      CISCI_instance%omp_targetInterval(1, n ) = m + 1_8
-      CISCI_instance%omp_targetInterval(2, n ) = m + CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
-      m = m + CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
-      CISCI_instance%omp_target_iterator_m(n) = CISCI_instance%omp_targetInterval(1, n ) - 1
-    enddo
-
-    CISCI_instance%omp_targetInterval(1, CIcore_instance%nproc + 1 ) = 1_8
-    CISCI_instance%omp_targetInterval(2, CIcore_instance%nproc + 1 ) = CISCI_instance%buffer_amplitudeCoreSize 
-    CISCI_instance%omp_target_iterator_m( CIcore_instance%nproc + 1 ) = 0_8
 
     !! arrays for storing coefficients
     call Vector_constructor(CISCI_instance%buffer_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize, 8), 0.0_8)
@@ -171,19 +160,30 @@ contains
 
     !! arrays for storing CI configurations, species, orbitals, vector size
     allocate ( CISCI_instance%confCore ( numberOfSpecies ) ) 
-    !allocate ( CISCI_instance%confAmplitudeCore ( numberOfSpecies ) ) 
     allocate ( CISCI_instance%saved_confTarget ( numberOfSpecies ) ) 
     do spi = 1, numberOfSpecies 
       call Matrix_constructorInteger1 ( CISCI_instance%confCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%coreSpaceSize,8), -1_1 )
-      !! this was replaced by a "vectorized" array to avoid using arrays of types inside a recursive function
-      !call Matrix_constructorInteger1 ( CISCI_instance%confAmplitudeCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%buffer_amplitudeCoreSize,8), -1_1) 
       call Matrix_constructorInteger1 ( CISCI_instance%saved_confTarget(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
     enddo
     allocate ( CISCI_instance%confAmplitudeCore (  CISCI_instance%combinedNumberOfOrbitals, CISCI_instance%buffer_amplitudeCoreSize ) ) 
-    CISCI_instance%confAmplitudeCore = -1_1
+
+    !! this was replaced by a "vectorized" array to avoid using arrays of types inside a recursive function
+    !!do spi = 1, numberOfSpecies
+    !!allocate ( CISCI_instance%confAmplitudeCore ( numberOfSpecies ) )
+      !!call Matrix_constructorInteger1 ( CISCI_instance%confAmplitudeCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%buffer_amplitudeCoreSize,8), -1_1) 
+    !!enddo
+
+    !! store the orbitals for each target configurations, to avoid recomputing them
+    !! this is helpful when using bit-masking approach to avoid transforming from bit to decimal multiple times
+    !!allocate ( CISCI_instance%targetOrb ( numberOfSpecies, CISCI_instance%targetSpaceSize ) )
+    !!do a = 1, CISCI_instance%targetSpaceSize
+    !!  do spi = 1, numberOfSpecies
+    !!    call Vector_constructorInteger ( CISCI_instance%targetOrb(spi,a), CIcore_instance%numberOfOrbitals%values(spi), 0 )
+    !!  enddo
+    !!enddo
 
     !! storing the CI diagonal matrix elements for Jadamilu preconditioner
-    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8) 
+    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
 
     !! eigenvalues per SCI iteration
     allocate ( CISCI_instance%eigenValues ( 20 ) )
@@ -192,23 +192,9 @@ contains
       call Vector_constructor ( CISCI_instance%eigenValues(k), int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8) !! store the eigenvalues per macro iterations
     enddo
 
-    !! store the orbitals for each target configurations, to avoid recomputing them 
-    !! this is helpful when using bit-masking approach to avoid transforming from bit to decimal multiple times
-    !!allocate ( CISCI_instance%targetOrb ( numberOfSpecies, CISCI_instance%targetSpaceSize ) )
-    !!do a = 1, CISCI_instance%targetSpaceSize
-    !!  do spi = 1, numberOfSpecies 
-    !!    call Vector_constructorInteger ( CISCI_instance%targetOrb(spi,a), CIcore_instance%numberOfOrbitals%values(spi), 0 ) 
-    !!  enddo
-    !!enddo
-
-    a = 1
-    !! initializing index arrays, this index is relative for each omp thread to simplify internal usage during sorting
-    do n = 1, CIcore_instance%nproc 
-      do m = 1,  CISCI_instance%omp_targetInterval(2, n ) - CISCI_instance%omp_targetInterval(1, n ) + 1 
-         CISCI_instance%index_amplitudeCore%values(a) = m
-         a = a + 1
-      enddo
-    enddo
+    !! initialize buffer arrays: omp_targetInterval, omp_target_iterator_m
+    !!                           index_amplitudeCore, buffer_amplitudeCore, confAmplitudeCore
+    call CISCI_resetBuffer()
 
     !! initialize sorting subroutines
     call CISort_constructor()
@@ -453,11 +439,6 @@ contains
     CISCI_instance%omp_targetInterval(2, CIcore_instance%nproc + 1 ) = CISCI_instance%buffer_amplitudeCoreSize 
     CISCI_instance%omp_target_iterator_m( CIcore_instance%nproc + 1 ) = 0_8
 
-    !! reset iterators for next iter
-    do n = 1, CIcore_instance%nproc 
-      CISCI_instance%omp_target_iterator_m(n) = CISCI_instance%omp_targetInterval(1, n ) - 1
-    enddo
-
     !! reset auxindex array. relative indexes, this index is relative for each omp thread to simplify internal usage during sorting
     i = 1
     do n = 1, CIcore_instance%nproc 
@@ -467,8 +448,10 @@ contains
       enddo
     enddo
 
-    !! restart amplitudes for next run, except when exiting to do PT2 corr
+    !! restart amplitudes for next run
     CISCI_instance%buffer_amplitudeCore%values = 0.0_8
+
+    !! restart configurations for next run
     do spi = 1, CIcore_instance%numberOfSpecies
       CISCI_instance%confAmplitudeCore = -1_1
       !CISCI_instance%saved_confTarget(spi)%values = -1_1
