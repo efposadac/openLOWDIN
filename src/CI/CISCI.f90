@@ -627,7 +627,8 @@ contains
     n = omp_get_thread_num() + 1
 
     !! loop to find all CI configurtions coupled to core space
-    !$omp do schedule (runtime) 
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     do a = 1, nonzero  
 
       ! getting configuration A
@@ -899,7 +900,8 @@ contains
     n = omp_get_thread_num() + 1
 
     !! loop to find all CI configurtions coupled to core space
-    !$omp do schedule (runtime) 
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     do a = 1, nonzero  
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1308,7 +1310,9 @@ contains
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
-    !$omp do schedule (runtime) 
+
+    !!$omp do schedule (runtime) ! with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     aloop: do aa = 1, nx
 
        if ( abs(v(aa) ) <= tol) cycle
@@ -1515,7 +1519,8 @@ contains
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
-    !$omp do schedule (runtime) 
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     aloop: do aa = 1, CISCI_instance%targetSpaceSize 
 
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -1955,10 +1960,10 @@ contains
 
 !$  timeA = omp_get_wtime()
 
-!    !$omp parallel &
-!    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, ii, &
-!    !$omp&        diagonal, denominator, diffOrbi, diffOrbj, spj, factorA, factorB, energyIncrement, energyIncrement_corrected, energyCorrection_aux ) &
-!    !$omp& reduction (+:energyCorrection, energyCorrection_errorCrumbs)
+    !$omp parallel &
+    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, ii, &
+    !$omp&        diagonal, denominator, diffOrbi, diffOrbj, spj, factorA, factorB, energyIncrement, energyIncrement_corrected, energyCorrection_aux ) &
+    !$omp& reduction (+:energyCorrection, energyCorrection_errorCrumbs)
 
     allocate ( occA ( numberOfSpecies ) )
     allocate ( occB ( numberOfSpecies ) )
@@ -1976,7 +1981,8 @@ contains
     energyCorrection = 0.0_8
     energyCorrection_errorCrumbs = 0.0_8
     
-!    !$omp do schedule (static)
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     aloop: do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + 1 + nonzero
 
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -2085,7 +2091,7 @@ contains
       energyCorrection = energyCorrection_aux
 
     end do aloop !a 
-!   !$omp end do nowait
+   !$omp end do nowait
 
     do spi = 1, numberOfSpecies
       call Vector_destructorInteger ( occA(spi) ) 
@@ -2099,7 +2105,7 @@ contains
     deallocate ( occB  )
     deallocate ( orbA  )
     deallocate ( orbB  )
-!    !$omp end parallel
+    !$omp end parallel
 
     energyCorrection = energyCorrection - energyCorrection_errorCrumbs
 
