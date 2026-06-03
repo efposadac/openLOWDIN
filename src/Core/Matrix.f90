@@ -2325,6 +2325,7 @@ contains
       lengthWorkSpace, & ! Lwork
       infoProcess)
 
+    lengthWorkSpace = int(workSpace(1))
     deallocate (workSpace)
     allocate (workSpace(lengthWorkSpace))
 
@@ -2744,6 +2745,7 @@ contains
     call Matrix_constructor(U, int(dim, 8), int(dim, 8), 0.0_8)
     call Matrix_constructor(VT, int(dim, 8), int(dim, 8), 0.0_8)
     call Matrix_constructor(singular, int(dim, 8), int(dim, 8), 0.0_8)
+
     call Matrix_svd(this, U, VT, singular, "O", "S")
 
     ! vectorsInverted = Matrix_inverse( range )

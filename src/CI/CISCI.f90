@@ -243,13 +243,11 @@ contains
 
     !! initial step
     if ( initialStep ) then
-
       use_guess = .false. !! usually HF is bad guess
       write (6,*)    ""
       write (6,"(T2,A29 )")    "Starting SCI macro iterations "
       write (6,*)    ""
       call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%confCore )
-
     endif
 
     if ( .not. initialStep ) then
@@ -257,7 +255,6 @@ contains
       write (6,*)    ""
       write (6,"(T2,A29 )")    "Re-starting SCI macro iterations "
       write (6,*)    ""
-
     endif
 
     do k = 2, 20
@@ -328,6 +325,7 @@ contains
                                      CISCI_instance%index_amplitudeCore%values(1:CISCI_instance%targetSpaceSize), & 
                                      1_8,  int(CISCI_instance%targetSpaceSize,8)  )
     
+      !! just some diagnostics
       CISCI_instance%minCoeff(k) = eigenVectors%values(CISCI_instance%targetSpaceSize,1)
 
       !! storing only the largest coefficients, and rearraing the next eigenvector guess 
@@ -343,26 +341,28 @@ contains
         enddo
       enddo
 
-      !! reset iterators for next ier
-      do n = 1, CIcore_instance%nproc 
-        CISCI_instance%omp_target_iterator_m(n) = CISCI_instance%omp_targetInterval(1, n ) - 1
-      enddo
+      !! reset iterators for next iter
+      call CISCI_resetBuffer()
+      !! reset iterators for next iter
+      !do n = 1, CIcore_instance%nproc
+      !  CISCI_instance%omp_target_iterator_m(n) = CISCI_instance%omp_targetInterval(1, n ) - 1
+      !enddo
 
-      !! reset auxindex array. relative indexes
-      i = 1
-      do n = 1, CIcore_instance%nproc 
-        do m = 1, CISCI_instance%omp_targetInterval(2, n ) - CISCI_instance%omp_targetInterval(1, n ) + 1  
-           CISCI_instance%index_amplitudeCore%values(i) = m
-           i = i + 1
-        enddo
-      enddo
+      !!! reset auxindex array. relative indexes
+      !i = 1
+      !do n = 1, CIcore_instance%nproc
+      !  do m = 1, CISCI_instance%omp_targetInterval(2, n ) - CISCI_instance%omp_targetInterval(1, n ) + 1
+      !     CISCI_instance%index_amplitudeCore%values(i) = m
+      !     i = i + 1
+      !  enddo
+      !enddo
 
-      !! restart amplitudes for next run, except when exiting to do PT2 corr
-      CISCI_instance%buffer_amplitudeCore%values = 0.0_8
-      do spi = 1, numberOfSpecies
-        CISCI_instance%confAmplitudeCore = -1_1
-!        CISCI_instance%saved_confTarget(spi)%values = -1_1
-      enddo 
+      !!! restart amplitudes for next run, except when exiting to do PT2 corr
+      !CISCI_instance%buffer_amplitudeCore%values = 0.0_8
+      !do spi = 1, numberOfSpecies
+      !  CISCI_instance%confAmplitudeCore = -1_1
+!     !   CISCI_instance%saved_confTarget(spi)%values = -1_1
+      !enddo
 
 !$  timeB(k) = omp_get_wtime()
 
@@ -453,7 +453,7 @@ contains
     CISCI_instance%omp_targetInterval(2, CIcore_instance%nproc + 1 ) = CISCI_instance%buffer_amplitudeCoreSize 
     CISCI_instance%omp_target_iterator_m( CIcore_instance%nproc + 1 ) = 0_8
 
-    !! reset iterators for next ier
+    !! reset iterators for next iter
     do n = 1, CIcore_instance%nproc 
       CISCI_instance%omp_target_iterator_m(n) = CISCI_instance%omp_targetInterval(1, n ) - 1
     enddo
@@ -1953,7 +1953,7 @@ contains
     nonzero = 0
     do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-12  ) exit
+      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-10 ) exit
       nonzero = nonzero + 1
     enddo
 
@@ -1982,8 +1982,8 @@ contains
     energyCorrection = 0.0_8
     
     !$omp do schedule (runtime),  reduction (+:energyCorrection)
-!    aloop: do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + 1 + nonzero
-    aloop: do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
+    aloop: do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + 1 + nonzero
+!    aloop: do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
 
       !a = aa ! if index_amplitude is sorted
