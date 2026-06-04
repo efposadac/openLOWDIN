@@ -31,6 +31,7 @@ module CISCI_
     !! length of SCI search vectors
     integer(8) :: coreSpaceSize
     integer(8) :: targetSpaceSize
+    integer(8) :: targetSpaceSize_max
     integer(8) :: buffer_amplitudeCoreSize
     !! PT2 perturbative energy correction to SCI
     real(8) :: PT2energy
@@ -60,17 +61,18 @@ contains
 
     !! take from input
     CISCI_instance%coreSpaceSize = CONTROL_instance%CI_SCI_CORE_SPACE
-    CISCI_instance%targetSpaceSize = CONTROL_instance%CI_SCI_TARGET_SPACE
+    CISCI_instance%targetSpaceSize = CONTROL_instance%CI_SCI_TARGET_SPACE !! initial size
+    CISCI_instance%targetSpaceSize_max = CONTROL_instance%CI_SCI_TARGET_SPACE * ( CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR**(CONTROL_instance%CI_SCI_TARGET_STEPS - 1 ))
     !! the first quarter is the real target space, the second quarter is the waiting list if the amplitude could grow more. 
     !! The last half is just a temporary space to avoid sorting a big array for a single addition
-    CISCI_instance%buffer_amplitudeCoreSize = CISCI_instance%targetSpaceSize * CONTROL_instance%CI_SCI_BUFFER_FACTOR
+    CISCI_instance%buffer_amplitudeCoreSize = CISCI_instance%targetSpaceSize_max * CONTROL_instance%CI_SCI_BUFFER_FACTOR
 
     totalSize = 0_8
     do spi = 1, CIcore_instance%numberOfSpecies 
       totalSize = totalSize + &
                   ( CISCI_instance%buffer_amplitudeCoreSize * ( 8 + 8 + 1*CIcore_instance%numberOfOrbitals%values(spi) )  + & ! data type for coeff, index, conf
                   CISCI_instance%coreSpaceSize * ( 8 + 1*CIcore_instance%numberOfOrbitals%values(spi)) + & ! coeff, conf
-                  CISCI_instance%targetSpaceSize * ( 8 + 8 + 2*8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) )  !! coeff, diagonal, eigenvectors, conf
+                  CISCI_instance%targetSpaceSize_max * ( 8 + 8 + 2*8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) )  !! coeff, diagonal, eigenvectors, conf
       do spj = spi, CIcore_instance%numberOfSpecies 
         totalSize = totalSize + &
                     size(CIcore_instance%fourCenterIntegrals( spi, spj )%values,1) * 8
@@ -79,9 +81,9 @@ contains
 
     select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
       case ("DSYEVR")
-        totalSize = totalSize + CISCI_instance%targetSpaceSize * CISCI_instance%targetSpaceSize 
+        totalSize = totalSize + CISCI_instance%targetSpaceSize_max * CISCI_instance%targetSpaceSize_max
       case ("JADAMILU")
-        totalSize = totalSize + CISCI_instance%targetSpaceSize * CONTROL_instance%CI_MADSPACE
+        totalSize = totalSize + CISCI_instance%targetSpaceSize_max * CONTROL_instance%CI_MADSPACE
     end select 
 
     write(6,*) "-----------------------------------------------------------------------"
@@ -112,9 +114,9 @@ contains
     write (6,"(T2,A,F14.3,A3 )") "Estimated memory needed : ", float( totalSize )/(1024**2) , " MB"
     write (6,"(T2,A,F14.3,A3 )") "                          ", float( totalSize )/(1024**3) , " GB"
     write (6,"(T2,A,I8 )") "Length of core (search) space                          :",  CISCI_instance%coreSpaceSize
-    write (6,"(T2,A,I8 )") "Length of target (Full-CI subset) space per OMP thread :",  CISCI_instance%targetSpaceSize / CIcore_instance%nproc
+    write (6,"(T2,A,I8 )") "Length of target (Full-CI subset) space per OMP thread :",  CISCI_instance%targetSpaceSize_max / CIcore_instance%nproc
     write (6,"(T2,A,I8 )") "Length of buffer (auxiliary sort) space per OMP thread :",  CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
-    write (6,"(T2,A,I8 )") "Length of total target space                           :",  CISCI_instance%targetSpaceSize
+    write (6,"(T2,A,I8 )") "Length of total target space                           :",  CISCI_instance%targetSpaceSize_max
     write (6,"(T2,A,I8 )") "Length of total buffer space                           :",  CISCI_instance%buffer_amplitudeCoreSize 
     write(6,*) "-----------------------------------------------------------------------"
     
@@ -123,8 +125,6 @@ contains
   !! Allocating arrays 
   subroutine CISCI_constructor( numberOfConfigurations )
     implicit none
-
-    type(Configuration) :: auxConfigurationA, auxConfigurationB
     integer(8), intent(out) :: numberOfConfigurations
     integer :: a,b,c,aa,bb,i, spi
     real(8) :: CIenergy
@@ -134,7 +134,7 @@ contains
     integer :: k
 
     numberOfSpecies = CIcore_instance%numberOfSpecies 
-    numberOfConfigurations = CISCI_instance%targetSpaceSize
+    numberOfConfigurations = CISCI_instance%targetSpaceSize !! initial size
 
     !! auxiliary variables to map orbitals from vector to array location
     CISCI_instance%combinedNumberOfOrbitals = sum(CIcore_instance%numberOfOrbitals%values(:))
@@ -163,7 +163,7 @@ contains
     allocate ( CISCI_instance%saved_confTarget ( numberOfSpecies ) ) 
     do spi = 1, numberOfSpecies 
       call Matrix_constructorInteger1 ( CISCI_instance%confCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%coreSpaceSize,8), -1_1 )
-      call Matrix_constructorInteger1 ( CISCI_instance%saved_confTarget(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
+      call Matrix_constructorInteger1 ( CISCI_instance%saved_confTarget(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1) !! this will be reallocated
     enddo
     allocate ( CISCI_instance%confAmplitudeCore (  CISCI_instance%combinedNumberOfOrbitals, CISCI_instance%buffer_amplitudeCoreSize ) ) 
 
@@ -182,17 +182,17 @@ contains
     !!  enddo
     !!enddo
 
-    !! storing the CI diagonal matrix elements for Jadamilu preconditioner
-    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
+!    !! storing the CI diagonal matrix elements for Jadamilu preconditioner
+!    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
 
     !! eigenvalues per SCI iteration
-    allocate ( CISCI_instance%eigenValues ( 20 ) )
-    allocate ( CISCI_instance%minCoeff ( 20 ) )
-    do k = 1, 20
+    allocate ( CISCI_instance%eigenValues ( CONTROL_instance%CI_SCI_TARGET_STEPS + 1 ) )
+    allocate ( CISCI_instance%minCoeff ( CONTROL_instance%CI_SCI_TARGET_STEPS +1 ) )
+    do k = 1, CONTROL_instance%CI_SCI_TARGET_STEPS + 1
       call Vector_constructor ( CISCI_instance%eigenValues(k), int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8) !! store the eigenvalues per macro iterations
     enddo
 
-    !! initialize buffer arrays: omp_targetInterval, omp_target_iterator_m
+    !! initialize buffer arrays: diagonalTarger, omp_targetInterval, omp_target_iterator_m
     !!                           index_amplitudeCore, buffer_amplitudeCore, confAmplitudeCore
     call CISCI_resetBuffer()
 
@@ -202,9 +202,10 @@ contains
   end subroutine CISCI_constructor
  
   !! main part
-  subroutine CISCI_run( eigenVectors, initialEnergy, initialStep, finalStep )
+  subroutine CISCI_run( numberOfConfigurations, eigenVectors, initialEnergy, initialStep, finalStep )
     use sort_
     implicit none
+    integer(8), intent(inout) :: numberOfConfigurations
     type(matrix), intent(inout) :: eigenVectors
     real(8), intent(in) :: initialEnergy 
     logical, intent(in):: initialStep, finalStep
@@ -243,18 +244,11 @@ contains
       write (6,*)    ""
     endif
 
-    do k = 2, 20
+    do k = 2, CONTROL_instance%CI_SCI_TARGET_STEPS
         
 !$  timeA(k) = omp_get_wtime()
 
-      !! reset save conf ( core + target) 
-      do spi = 1, numberOfSpecies
-        CISCI_instance%saved_confTarget(spi)%values = -1_1
-      enddo 
-
       !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
-      CISCI_instance%buffer_amplitudeCore%values = 0.0_8
-
       if ( CIcore_instance%level == "CISD-" .or. .not. finalStep ) then
         call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
       endif
@@ -327,39 +321,39 @@ contains
         enddo
       enddo
 
-      !! reset iterators for next iter
-      call CISCI_resetBuffer()
-      !! reset iterators for next iter
-      !do n = 1, CIcore_instance%nproc
-      !  CISCI_instance%omp_target_iterator_m(n) = CISCI_instance%omp_targetInterval(1, n ) - 1
-      !enddo
-
-      !!! reset auxindex array. relative indexes
-      !i = 1
-      !do n = 1, CIcore_instance%nproc
-      !  do m = 1, CISCI_instance%omp_targetInterval(2, n ) - CISCI_instance%omp_targetInterval(1, n ) + 1
-      !     CISCI_instance%index_amplitudeCore%values(i) = m
-      !     i = i + 1
-      !  enddo
-      !enddo
-
-      !!! restart amplitudes for next run, except when exiting to do PT2 corr
-      !CISCI_instance%buffer_amplitudeCore%values = 0.0_8
-      !do spi = 1, numberOfSpecies
-      !  CISCI_instance%confAmplitudeCore = -1_1
-!     !   CISCI_instance%saved_confTarget(spi)%values = -1_1
-      !enddo
-
 !$  timeB(k) = omp_get_wtime()
 
+      finalk = k
       !! convergence criteria. Exit here avoiding matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
-      if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .and. k > 2  ) then
-        finalk = k
+      if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .and. k > 2 ) then
+        write (6,"(T2,A30)") "Reached SCI Energy Convergence of 1E-5 "
         exit
       end if
 
+      if ( k == CONTROL_instance%CI_SCI_TARGET_STEPS ) then
+        write (6,"(T2,A30)") "Reached maximum number of SCI steps without convergence < 1E-5 "
+        exit
+      end if
+
+      !! increase target size
+      CISCI_instance%targetSpaceSize = CISCI_instance%targetSpaceSize * int (CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR )
+      numberOfConfigurations = CISCI_instance%targetSpaceSize
+
+      !! initial size, CISCI_run will increase it
+      call Matrix_constructor (eigenVectors, &
+           int(CISCI_instance%targetSpaceSize, 8), &
+           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+
       !! updating new reference
       currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
+
+      !! reallocate due to increased target size
+      do spi = 1, CIcore_instance%numberOfSpecies
+        call Matrix_constructorInteger1 ( CISCI_instance%saved_confTarget(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
+      enddo
+
+      !! reset iterators for next iter
+      call CISCI_resetBuffer()
 
     enddo !k
 
@@ -376,20 +370,20 @@ contains
                                                           timeB(k) - timeA(k)
     enddo !k
 
+    !! save final eigenValues to CIcore instance
+    CIcore_instance%eigenValues%values(1) = CISCI_instance%eigenValues(finalk)%values(1)
 
-    !! save final eigenvalues to CIcore instance
-    CIcore_instance%eigenvalues%values(1) = CISCI_instance%eigenValues(finalk)%values(1) 
-
-    write (6,"(T2,A30)") "SCI Energy Convergence : 1E-5 " 
     write (6,"(T2,A,ES12.4)") "Minimum coefficient in target space: ", CISCI_instance%minCoeff(finalk) 
     write (6,*)    ""
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
     if ( finalStep ) then
 
+      !! reset iterators
+      call CISCI_resetBuffer()
 
-      !! add the final target configurations at the beggining of the array. in such way, only the non-duplicated connected configurations will be added
-      do n = 1, CIcore_instance%nproc 
+      !! add the final target configurations at the beginning of the array. in such way, only the non-duplicated connected configurations will be added
+      do n = 1, CIcore_instance%nproc
         m1 = CISCI_instance%omp_targetInterval(1, n ) !! position to add 
         m2 = m1 + CISCI_instance%targetSpaceSize / CIcore_instance%nproc - 1 !! number of conf added
 
@@ -410,10 +404,16 @@ contains
         call CISCI_core_amplitudes ( eigenVectors%values(:,1), CISCI_instance%saved_ConfTarget, CISCI_instance%targetSpaceSize, currentEnergy )
       endif
 
-      !! the real PT2 calculation
-      call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CIcore_instance%eigenvalues%values(1), CISCI_instance%PT2energy, eigenVectors )
-    endif
+      !! recalculate n conf to prevent the code breaking in case the targetSpace is not fully filled
+      numberOfConfigurations = 0
+      do a = 1, CISCI_instance%targetSpaceSize
+        if (CISCI_instance%confAmplitudeCore(1,a) == -1_1  ) exit
+        numberOfConfigurations = numberOfConfigurations + 1
+      enddo
 
+      !! the real PT2 calculation
+      call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CIcore_instance%eigenValues%values(1), CISCI_instance%PT2energy, eigenVectors )
+    endif
 
   end subroutine CISCI_run
 
@@ -423,10 +423,12 @@ contains
     integer :: n, m, i
     integer :: spi
 
+    !! storing the CI diagonal matrix elements for Jadamilu preconditioner
+    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
+
     !! auxiliary arrays to store the position of the target space for each omp thread within the big arrays 
     !CISCI_instance%omp_targetInterval ! reminder: this one is fixed
     !CISCI_instance%omp_target_iterator_m ! reminder: this one is variable
-
     m = 0_8
     do n = 1, CIcore_instance%nproc 
       CISCI_instance%omp_targetInterval(1, n ) = m + 1_8
@@ -1904,12 +1906,11 @@ contains
   end function CISCI_calculateEnergyZero
 
   subroutine CISCI_PT2 ( SCITargetSpaceSize, refEnergy, energyCorrection, eigenVectors )
-  
     implicit none
-    integer(8) :: SCITargetSpaceSize
+    integer(8), intent(in) :: SCITargetSpaceSize
     real(8), intent(in) :: refEnergy
-    real(8) :: energyCorrection
-    type(matrix) :: eigenVectors
+    real(8), intent(inout) :: energyCorrection
+    type(matrix), intent(in) :: eigenVectors
     real(8) :: CIEnergy
     integer(8) :: nonzero
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj
@@ -1939,6 +1940,11 @@ contains
       if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-10 ) exit
       nonzero = nonzero + 1
     enddo
+
+    if ( nonzero == 0 ) then
+      write(6,"(T2,A44)") "Buffer is empty, skipping SCI-PT2 correction"
+      return
+    endif
 
     write(6,"(T2,A31)") "Computing SCI-PT2 correction..."
     write(6,"(T2,A26,ES10.2,A5,ES10.2,A9,I8)") "Buffer coefficients. Max: ", &
@@ -2094,9 +2100,8 @@ contains
   end subroutine CISCI_PT2
 
   subroutine CISCI_saveEigenVector ( eigenVectors )
-  
     implicit none
-    type(matrix) :: eigenVectors
+    type(matrix), intent(in) :: eigenVectors
     character(50) :: nameFile
     integer :: unitFile
     real(8) :: timeA, timeB

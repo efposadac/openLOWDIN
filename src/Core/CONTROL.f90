@@ -187,7 +187,7 @@ module CONTROL_
     !! CI
     !!
     character(20) :: CONFIGURATION_INTERACTION_LEVEL
-     character(20) :: SELECTIVE_CONFIGURATION_INTERACTION_METHOD
+    character(20) :: SELECTIVE_CONFIGURATION_INTERACTION_METHOD
     integer :: NUMBER_OF_CI_STATES
     character(20) :: CI_DIAGONALIZATION_METHOD
     character(20) :: CI_PRINT_EIGENVECTORS_FORMAT
@@ -210,7 +210,8 @@ module CONTROL_
     integer :: CI_SCI_TARGET_SPACE
     integer :: CI_SCI_BUFFER_FACTOR
     logical :: CI_UNBOUND_REFERENCE
-    integer :: CI_SCI_NUMBER_OF_SETS
+    integer :: CI_SCI_TARGET_GROWTH_FACTOR
+    integer :: CI_SCI_TARGET_STEPS
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -565,7 +566,8 @@ module CONTROL_
   integer :: LowdinParameters_CISCITargetSpace
   integer :: LowdinParameters_CISCIBufferFactor
   logical :: LowdinParameters_CIunboundReference 
-  integer :: LowdinParameters_CISCINumberOfSets
+  integer :: LowdinParameters_CISCITargetGrowthFactor
+  integer :: LowdinParameters_CISCITargetSteps
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -906,7 +908,9 @@ module CONTROL_
     LowdinParameters_CISCITargetSpace, &
     LowdinParameters_CISCIBufferFactor, &
     LowdinParameters_CIunboundReference, &
-    LowdinParameters_CISCINumberOfSets, &
+    LowdinParameters_CISCITargetGrowthFactor, &
+    LowdinParameters_CISCITargetSteps, &
+
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1267,7 +1271,9 @@ contains
     LowdinParameters_CIPrintThreshold = 1E-1
     LowdinParameters_CISCIBufferFactor = 8
     LowdinParameters_CIunboundReference = .false.
-    LowdinParameters_CISCINumberOfSets = 1
+    LowdinParameters_CISCITargetGrowthFactor = 2
+    LowdinParameters_CISCITargetSteps = 5
+
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1617,7 +1623,8 @@ contains
     CONTROL_instance%CI_SCI_TARGET_SPACE = 10000
     CONTROL_instance%CI_SCI_BUFFER_FACTOR = 8
     CONTROL_instance%CI_UNBOUND_REFERENCE = .FALSE.
-    CONTROL_instance%CI_SCI_NUMBER_OF_SETS = 1
+    CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR = 2
+    CONTROL_instance%CI_SCI_TARGET_STEPS = 10
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2018,7 +2025,8 @@ contains
     CONTROL_instance%CI_SCI_TARGET_SPACE = LowdinParameters_CISCITargetSpace
     CONTROL_instance%CI_SCI_BUFFER_FACTOR = LowdinParameters_CISCIBufferFactor
     CONTROL_instance%CI_UNBOUND_REFERENCE = LowdinParameters_CIunboundReference
-    CONTROL_instance%CI_SCI_NUMBER_OF_SETS = LowdinParameters_CISCINumberOfSets
+    CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR = LowdinParameters_CISCITargetGrowthFactor
+    CONTROL_instance%CI_SCI_TARGET_STEPS = LowdinParameters_CISCITargetSteps
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2378,7 +2386,6 @@ contains
     LowdinParameters_numberOfCIStates = CONTROL_instance%NUMBER_OF_CI_STATES
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
     LowdinParameters_CIdiagonalDressedShift = CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
-
     LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE
     LowdinParameters_CIstatesToPrint = CONTROL_instance%CI_STATES_TO_PRINT
     LowdinParameters_CImaxNCV = CONTROL_instance%CI_MAX_NCV
@@ -2394,7 +2401,9 @@ contains
     LowdinParameters_CISCITargetSpace = CONTROL_instance%CI_SCI_TARGET_SPACE
     LowdinParameters_CISCIBufferFactor = CONTROL_instance%CI_SCI_BUFFER_FACTOR
     LowdinParameters_CIunboundReference = CONTROL_instance%CI_UNBOUND_REFERENCE 
-    LowdinParameters_CISCINumberOfSets = CONTROL_instance%CI_SCI_NUMBER_OF_SETS
+    LowdinParameters_CISCITargetGrowthFactor = CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR
+    LowdinParameters_CISCITargetSteps = CONTROL_instance%CI_SCI_TARGET_STEPS
+
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
