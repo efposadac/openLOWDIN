@@ -372,7 +372,6 @@ contains
 
     !! save final eigenValues to CIcore instance
     CIcore_instance%eigenValues%values(1) = CISCI_instance%eigenValues(finalk)%values(1)
-
     write (6,"(T2,A,ES12.4)") "Minimum coefficient in target space: ", CISCI_instance%minCoeff(finalk) 
     write (6,*)    ""
 
@@ -388,7 +387,7 @@ contains
         m2 = m1 + CISCI_instance%targetSpaceSize / CIcore_instance%nproc - 1 !! number of conf added
 
         CISCI_instance%omp_target_iterator_m(n) = m2
-        CISCI_instance%buffer_amplitudeCore%values(m1:m2) = 1E6 !! big number to ensure this conf won't be discarded after sorting
+        CISCI_instance%buffer_amplitudeCore%values(m1:m2) = huge(0.0_8) !! big number to ensure this conf won't be discarded after sorting
         do spi = 1, numberOfSpecies
           do m = 1, m2 - m1 + 1
             CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), m + m1 - 1)  = CISCI_instance%saved_confTarget(spi)%values(:,m)
@@ -635,7 +634,8 @@ contains
     n = omp_get_thread_num() + 1
 
     !! loop to find all CI configurtions coupled to core space
-    !$omp do schedule (runtime) 
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     do a = 1, nonzero  
 
       ! getting configuration A
@@ -907,7 +907,8 @@ contains
     n = omp_get_thread_num() + 1
 
     !! loop to find all CI configurtions coupled to core space
-    !$omp do schedule (runtime) 
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     do a = 1, nonzero  
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1316,7 +1317,9 @@ contains
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
-    !$omp do schedule (runtime) 
+
+    !!$omp do schedule (runtime) ! with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     aloop: do aa = 1, nx
 
        if ( abs(v(aa) ) <= tol) cycle
@@ -1523,7 +1526,8 @@ contains
       call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
     end do
-    !$omp do schedule (runtime) 
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     aloop: do aa = 1, CISCI_instance%targetSpaceSize 
 
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -1912,7 +1916,7 @@ contains
     real(8), intent(inout) :: energyCorrection
     type(matrix), intent(in) :: eigenVectors
     real(8) :: CIEnergy
-    integer(8) :: nonzero
+    integer(8) :: nonzero, nonzeroTarget
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj
     real(8) :: timeA, timeB
     real(8) :: tol
@@ -1928,11 +1932,19 @@ contains
     integer :: oia, oib
     integer :: factorA, factorB
     real(8) :: diagonal, denominator
+    real(8) :: energyIncrement, energyIncrement_corrected, energyCorrection_errorCrumbs, energyCorrection_aux ! For Kahan summ
     integer(1) :: coupling
     integer :: diffOrbi(4)
     integer :: diffOrbj(4)
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+
+    nonzeroTarget = 0
+    do aa = 1, CISCI_instance%targetSpaceSize
+      a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
+      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-10 ) exit
+      nonzeroTarget = nonzeroTarget + 1
+    enddo
 
     nonzero = 0
     do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
@@ -1941,20 +1953,23 @@ contains
       nonzero = nonzero + 1
     enddo
 
-    if ( nonzero == 0 ) then
-      write(6,"(T2,A44)") "Buffer is empty, skipping SCI-PT2 correction"
-      return
-    endif
-
     write(6,"(T2,A31)") "Computing SCI-PT2 correction..."
     write(6,"(T2,A26,ES10.2,A5,ES10.2,A9,I8)") "Buffer coefficients. Max: ", &
                                        CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + 1), &
                                        " Min: ", CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + nonzero), &
                                        " Nonzero: ", nonzero
+    if ( nonzero == 0 ) then
+      write(6,"(T2,A44)") "Buffer is empty, skipping SCI-PT2 correction"
+      return
+    endif
+
 !$  timeA = omp_get_wtime()
 
     !$omp parallel &
-    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, ii, diagonal, denominator, diffOrbi, diffOrbj, spj, factorA, factorB ) 
+    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, ii, &
+    !$omp&        diagonal, denominator, diffOrbi, diffOrbj, spj, factorA, factorB, energyIncrement, energyIncrement_corrected, energyCorrection_aux ) &
+    !$omp& reduction (+:energyCorrection, energyCorrection_errorCrumbs)
+
     allocate ( occA ( numberOfSpecies ) )
     allocate ( occB ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
@@ -1969,15 +1984,14 @@ contains
     end do
 
     energyCorrection = 0.0_8
+    energyCorrection_errorCrumbs = 0.0_8
     
-    !$omp do schedule (runtime),  reduction (+:energyCorrection)
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
     aloop: do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + 1 + nonzero
-!    aloop: do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
-      a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
 
+      a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
       !a = aa ! if index_amplitude is sorted
-      !if (CISCI_instance%confAmplitudeCore(1,a) == -1_1) cycle ! cycle or exit?
-      !if (CISCI_instance%confAmplitudeCore(1)%values(1,a) == -1_1) cycle ! cycle or exit?
 
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1999,11 +2013,10 @@ contains
       enddo
 
       CIenergy = 0.0_8
-      bloop: do bb = 1,  CISCI_instance%targetSpaceSize
+      bloop: do bb = 1,  nonzeroTarget
 
         !b = CISCI_instance%index_amplitudeCore%values(bb)
         b = bb
-        !if (CISCI_instance%saved_confTarget(1)%values(1,b) == -1_1) exit ! this is never ocurring
 
         ! getting configuration B
         do spi = 1, numberOfSpecies 
@@ -2073,8 +2086,14 @@ contains
       !! calculate diagonal term and denominator of Eq5 10.1063/1.4955109
       diagonal = CISCI_calculateEnergyZero( occA )
       denominator = 1 / ( refEnergy - diagonal ) 
-      !! PT2 correction
-      energyCorrection = energyCorrection + ( CIenergy**2) * denominator
+      !! PT2 correction, normal way
+      !! energyCorrection = energyCorrection + ( CIenergy**2) * denominator
+      !! Kahan summation way
+      energyIncrement = (CIenergy**2) * denominator
+      energyIncrement_corrected = energyIncrement - energyCorrection_errorCrumbs
+      energyCorrection_aux = energyCorrection + energyIncrement_corrected
+      energyCorrection_errorCrumbs = ( energyCorrection_aux - energyCorrection ) - energyIncrement_corrected
+      energyCorrection = energyCorrection_aux
 
     end do aloop !a 
    !$omp end do nowait
@@ -2093,8 +2112,10 @@ contains
     deallocate ( orbB  )
     !$omp end parallel
 
+    energyCorrection = energyCorrection - energyCorrection_errorCrumbs
+
 !$  timeB = omp_get_wtime()
-    write (6,"(T2,A,F25.12)") "CI-PT2 energy correction :", energyCorrection
+    write (6,"(T2,A,F25.12,A,ES10.2)") "CI-PT2 energy correction: ", energyCorrection, " Kahan's error crumbs: ", energyCorrection_errorCrumbs
 !$  write(*,"(A,ES10.2)") "Time for CI-PT2 correction: ", timeB -timeA
 
   end subroutine CISCI_PT2
