@@ -211,7 +211,8 @@ module CONTROL_
     integer :: CI_SCI_BUFFER_FACTOR
     logical :: CI_UNBOUND_REFERENCE
     integer :: CI_SCI_TARGET_GROWTH_FACTOR
-    integer :: CI_SCI_TARGET_STEPS
+    integer :: CI_SCI_TARGET_GROWTH_STEPS
+    integer :: CI_SCI_REFINEMENT_STEPS
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -567,7 +568,8 @@ module CONTROL_
   integer :: LowdinParameters_CISCIBufferFactor
   logical :: LowdinParameters_CIunboundReference 
   integer :: LowdinParameters_CISCITargetGrowthFactor
-  integer :: LowdinParameters_CISCITargetSteps
+  integer :: LowdinParameters_CISCITargetGrowthSteps
+  integer :: LowdinParameters_CISCIRefinementSteps
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -909,8 +911,8 @@ module CONTROL_
     LowdinParameters_CISCIBufferFactor, &
     LowdinParameters_CIunboundReference, &
     LowdinParameters_CISCITargetGrowthFactor, &
-    LowdinParameters_CISCITargetSteps, &
-
+    LowdinParameters_CISCITargetGrowthSteps, &
+    LowdinParameters_CISCIRefinementSteps, &
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1272,7 +1274,8 @@ contains
     LowdinParameters_CISCIBufferFactor = 8
     LowdinParameters_CIunboundReference = .false.
     LowdinParameters_CISCITargetGrowthFactor = 2
-    LowdinParameters_CISCITargetSteps = 5
+    LowdinParameters_CISCITargetGrowthSteps = 5
+    LowdinParameters_CISCIRefinementSteps = 2
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -1624,7 +1627,8 @@ contains
     CONTROL_instance%CI_SCI_BUFFER_FACTOR = 8
     CONTROL_instance%CI_UNBOUND_REFERENCE = .FALSE.
     CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR = 2
-    CONTROL_instance%CI_SCI_TARGET_STEPS = 10
+    CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS = 5
+    CONTROL_instance%CI_SCI_REFINEMENT_STEPS = 2
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2026,7 +2030,8 @@ contains
     CONTROL_instance%CI_SCI_BUFFER_FACTOR = LowdinParameters_CISCIBufferFactor
     CONTROL_instance%CI_UNBOUND_REFERENCE = LowdinParameters_CIunboundReference
     CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR = LowdinParameters_CISCITargetGrowthFactor
-    CONTROL_instance%CI_SCI_TARGET_STEPS = LowdinParameters_CISCITargetSteps
+    CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS = LowdinParameters_CISCITargetGrowthSteps
+    CONTROL_instance%CI_SCI_REFINEMENT_STEPS = LowdinParameters_CISCIRefinementSteps
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2402,7 +2407,8 @@ contains
     LowdinParameters_CISCIBufferFactor = CONTROL_instance%CI_SCI_BUFFER_FACTOR
     LowdinParameters_CIunboundReference = CONTROL_instance%CI_UNBOUND_REFERENCE 
     LowdinParameters_CISCITargetGrowthFactor = CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR
-    LowdinParameters_CISCITargetSteps = CONTROL_instance%CI_SCI_TARGET_STEPS
+    LowdinParameters_CISCITargetGrowthSteps = CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS
+    LowdinParameters_CISCIRefinementSteps = CONTROL_instance%CI_SCI_REFINEMENT_STEPS
 
     !!***************************************************************************
     !! Non-orthogonal CI

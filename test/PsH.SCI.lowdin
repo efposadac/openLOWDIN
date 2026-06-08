@@ -10,8 +10,10 @@ TASKS
 END TASKS
 
 CONTROL
-	selectiveConfigurationInteractionMethod = "ASCI"
 	readCoefficients=F
+	buildTwoParticlesMatrixForOneParticle=T
+	HFprintEigenVectors = "ALL"
+	selectiveConfigurationInteractionMethod = "ASCI"
 	numberOfCIstates=1	
 	CINaturalOrbitals=T
 	CIStatesToPrint = 1
@@ -19,15 +21,14 @@ CONTROL
 	!CIPrintEigenVectorsFormat = "NONE"
 	!CIPrintEigenVectorsFormat = "OCCUPIED"
 	!CIPrintEigenVectorsFormat = "ORBITALS"
-	!CIPrintThreshold = 5e-2
-	buildTwoParticlesMatrixForOneParticle=T
+	CIPrintThreshold = 5e-2
 	CISCICoreSpace = 50
 	CISCITargetSpace = 50
 	CISCITargetGrowthFactor = 2
-	CISCITargetSteps = 5
+	CISCITargetGrowthSteps = 4
+	CISCIRefinementSteps = 0
 	CISCIBufferFactor = 8
 	CIMatVecTolerance = 1e-10
-	HFprintEigenVectors = "ALL"
 END CONTROL
 
 INPUT_CI
