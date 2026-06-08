@@ -76,11 +76,11 @@ contains
     do spi = 1, CIcore_instance%numberOfSpecies 
       totalSize = totalSize + &
                   ( CISCI_instance%buffer_amplitudeCoreSize * &
-                                  ( 8 + 8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) & ! data type for coeff, index, conf_orb, conf_occ
+                                  ( 8 + 8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) & ! data type for coeff, index, conf_orb
                   + CISCI_instance%coreSpaceSize * &
                                   ( 8 + 1*CIcore_instance%numberOfOrbitals%values(spi)) & ! coeff, conf
                   + CISCI_instance%targetSpaceSize_max * &
-                                  ( 8 + 8 + 2*8 + 1*CIcore_instance%numberOfOrbitals%values(spi)  ) )  !! coeff, diagonal, eigenvectors, conf
+                                  ( 8 + 8 + 2*8 + 1*CIcore_instance%numberOfOrbitals%values(spi) + 4*CIcore_instance%numberOfOrbitals%values(spi) ) )  !! coeff, diagonal, eigenvectors, conf_orb, conf_cc
 
       do spj = spi, CIcore_instance%numberOfSpecies 
         totalSize = totalSize + &
@@ -1438,7 +1438,7 @@ contains
             if ( couplingS(i) == 1 ) spi = i
           end do
 
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
+          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
           CIenergy = CISCI_calculateEnergyOne( spi, occA, occB, diffOrbi(1), diffOrbi(3)  )
 
           !$omp atomic
@@ -1454,7 +1454,7 @@ contains
             if ( couplingS(i) == 2 ) spi = i
           end do
 
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
+          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
           CIenergy = CISCI_calculateEnergyTwoSame( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  )
 
           !$omp atomic
@@ -1476,8 +1476,8 @@ contains
           do i = spi+1, numberOfSpecies
             if ( couplingS(i) == 1 ) spj = i
           end do
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
-          diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj), occA(spj), occB(spj), factorB )
+          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
+          diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj)%values, orbB(spj)%values, occA(spj)%values, occB(spj)%values, factorB )
           CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  )
 
           !$omp atomic
@@ -1649,7 +1649,7 @@ contains
             if ( couplingS(i) == 1 ) spi = i
           end do
 
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
+          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
           CIenergy = CISCI_calculateEnergyOne( spi, occA, occB, diffOrbi(1), diffOrbi(3)  )
 
           hamiltonianMatrix%values(a,b) = CIenergy * factorA 
@@ -1660,7 +1660,7 @@ contains
             if ( couplingS(i) == 2 ) spi = i
           end do
 
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
+          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
           CIenergy = CISCI_calculateEnergyTwoSame( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  )
 
           hamiltonianMatrix%values(a,b) = CIenergy * factorA 
@@ -1677,8 +1677,8 @@ contains
           do i = spi+1, numberOfSpecies
             if ( couplingS(i) == 1 ) spj = i
           end do
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
-          diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj), occA(spj), occB(spj), factorB )
+          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
+          diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj)%values, orbB(spj)%values, occA(spj)%values, occB(spj)%values, factorB )
           CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  )
 
           hamiltonianMatrix%values(a,b) = CIenergy * factorA * factorB 
@@ -1851,9 +1851,7 @@ contains
     type(ivector), intent(in) :: occA(:), occB(:)
     integer, intent(in) :: ai, aj, bi, bj
     integer, intent(in) :: si
-    integer :: sj
     integer(8) :: aibi_ajbj, aibj_ajbi
-    integer :: l, la
     real(8) :: CIenergy
 
     CIenergy = 0.0_8
@@ -2047,22 +2045,15 @@ contains
 
         oia = 0 
 
-        !! build the orbital from the index using the bit mapping
-        !!call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,a), orbA(spi)%values )
         orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        !!$omp simd
         do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
           if ( orbA(spi)%values(pi) == 1 ) then
             oia = oia + 1
             occA(spi)%values(oia) = pi
           end if
         enddo
-        !!$omp end simd
-
-        !! from binary to occupied orbital representation (vectorized)
-        !!occA(spi)%values(:) = pack( CISCI_instance%canonicalOrder(spi)%values, orbA(spi)%values(:) == 1 )
 
       enddo
 
@@ -2075,26 +2066,7 @@ contains
         ! getting configuration B
         do spi = 1, numberOfSpecies 
 
-          oib = 0 
-
-          !! build the orbital from the index using the bit mapping
-          !call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,b), orbB(spi)%values )
           orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,b)
-
-          !! build auxiliary vectors of occupied and virtuals orbitals
-          !!$omp simd
-          !do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-          !  if ( orbB(spi)%values(pi) == 1 ) then
-          !    oib = oib + 1
-          !    occB(spi)%values(oib) = pi
-          !  end if
-          !enddo
-          !!$omp end simd
-
-          !! from binary to occupied orbital representation (vectorized)
-          !!$omp simd
-          !occB(spi)%values(:) = pack( CISCI_instance%canonicalOrder(spi)%values, orbB(spi)%values(:) == 1 )
-
           occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:, b) 
 
         enddo
@@ -2103,46 +2075,50 @@ contains
         couplingS = 0
         do spi = 1, numberOfSpecies
           couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
-                            - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) 
+                            - dot_product ( orbA(spi)%values(:), orbB(spi)%values(:) ) 
         end do
 
+        select case ( sum(couplingS) )
+    
         !! one orbital different
-        if ( sum(couplingS) == 1 ) then
+        case (1)
           do i = 1, numberOfSpecies
             if ( couplingS(i) == 1 ) spi = i
           end do
 
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
+          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
           CIenergy = CIenergy + CISCI_calculateEnergyOne( spi, occA, occB, diffOrbi(1), diffOrbi(3)  ) * factorA * eigenVectors%values(bb,1)
 
-        endif
-        !! two orbital different, same species
-        if ( sum(couplingS) == 2 .and. maxval(couplingS) == 2 ) then
-          do i = 1, numberOfSpecies
-            if ( couplingS(i) == 2 ) spi = i
-          end do
+        !! two orbital different
+        case(2)
 
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
-          CIenergy = CIenergy + CISCI_calculateEnergyTwoSame( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  ) * factorA * eigenVectors%values(bb,1)
+          select case ( maxval(couplingS) )
 
-        endif
-        !! two orbital different, different species
-        if ( sum(couplingS) == 2 .and. maxval(couplingS) == 1 ) then
-          do i = 1, numberOfSpecies
-            if ( couplingS(i) == 1 ) then 
-              spi = i
-              exit
-            end if
-          end do
-          do i = spi+1, numberOfSpecies
-            if ( couplingS(i) == 1 ) spj = i
-          end do
+          !! two orbital different, same species
+          case (2)
+            do i = 1, numberOfSpecies
+              if ( couplingS(i) == 2 ) spi = i
+            end do
 
-          diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
-          diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj), orbB(spj), occA(spj), occB(spj), factorB )
-          CIenergy = CIenergy + CISCI_calculateEnergyTwoDiff( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  ) * factorA * factorB * eigenVectors%values(bb,1)
+            diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
+            CIenergy = CIenergy + CISCI_calculateEnergyTwoSame( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  ) * factorA * eigenVectors%values(bb,1)
+          !! two orbital different, different species
+          case (1)
+            do i = 1, numberOfSpecies
+              if ( couplingS(i) == 1 ) then 
+                spi = i
+                exit
+              end if
+            end do
+            do i = spi+1, numberOfSpecies
+              if ( couplingS(i) == 1 ) spj = i
+            end do
 
-        endif
+            diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
+            diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj)%values, orbB(spj)%values, occA(spj)%values, occB(spj)%values, factorB )
+            CIenergy = CIenergy + CISCI_calculateEnergyTwoDiff( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  ) * factorA * factorB * eigenVectors%values(bb,1)
+          end select ! maxval(couplingS)  
+        end select ! sum(couplingS) 
  
       end do bloop !b
 
@@ -2312,7 +2288,8 @@ contains
     enddo
 
     n_permu = max(above,below)
-    factor = (-1)**n_permu
+    factor = 1
+    if (mod(n_permu, 2) /= 0) factor = -1
 
   end function CISCI_canonicalOrderFactor 
 
@@ -2320,13 +2297,12 @@ contains
   function CISCI_getDiffOrbitals ( spi, orbA, orbB, occA, occB, factor ) result (diffOrb) 
     implicit none
     integer, intent(in) :: spi
-    type(Ivector), intent(in) :: orbA, orbB, occA, occB
+    integer, intent(in) :: orbA(:), orbB(:), occA(:), occB(:)
     integer, intent(out) :: factor
     integer :: diffOrb(4), diffPos(4)
     integer :: pi, z
     integer :: phase_exponent
     integer :: n_occ
-    logical :: maskA(size(orbA%values)), maskB(size(orbB%values))
 
     n_occ = CIcore_instance%numberOfOccupiedOrbitals%values(spi)
 
@@ -2335,9 +2311,9 @@ contains
     z = 0
     ! different orbital in A
     do pi = 1, n_occ
-      if ( orbB%values(occA%values(pi) ) == 0  ) then
+      if ( orbB(occA(pi) ) == 0  ) then
         z = z + 1
-        diffOrb(z) = occA%values(pi)
+        diffOrb(z) = occA(pi)
         diffPos(z) = pi
       endif  
     enddo
@@ -2345,9 +2321,9 @@ contains
     z = 2
     ! different orbital in B
     do pi = 1, n_occ
-      if ( orbA%values(occB%values(pi) ) == 0  ) then
+      if ( orbA(occB(pi) ) == 0  ) then
         z = z + 1
-        diffOrb(z) = occB%values(pi)
+        diffOrb(z) = occB(pi)
         diffPos(z) = pi
       endif  
     enddo
@@ -2593,6 +2569,8 @@ contains
       do spi = 1, numberOfSpecies 
 
         oia = 0
+        !! build the orbital from the index using the bit mapping
+        !!call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,b), orbB(spi)%values )
         orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:, a) 
 
         occA(spi)%values(:) = 0
@@ -2603,6 +2581,7 @@ contains
             occA(spi)%values(oia) = pi
           end if
         enddo
+        !!occB(spi)%values(:) = pack( CISCI_instance%canonicalOrder(spi)%values, orbB(spi)%values(:) == 1 )
 
         if ( orbA(spi)%values(1) == -1 ) occA(spi)%values(:) = -1
 

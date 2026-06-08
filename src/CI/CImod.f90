@@ -1364,7 +1364,7 @@ contains
                     if ( couplingS(i) == 1 ) spi = i
                 end do
 
-                diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi), orbB(spi), occA(spi), occB(spi), factorA )
+                diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
 
                 auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) = auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) + &
                                                                 factorA * & 
