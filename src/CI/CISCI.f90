@@ -20,8 +20,9 @@ module CISCI_
     type (ivector8) :: index_amplitudeCore
     !! arrays for storing CI configurations, species, orbitals, vector size
     type (IMatrix1), allocatable :: confCore(:)
-    integer(1), allocatable :: confAmplitudeCore(:,:)
-    type (IMatrix1), allocatable :: saved_confTarget(:)
+    integer(1), allocatable :: confAmplitudeCore_orb(:,:)
+    type (IMatrix1), allocatable :: confTarget_orb(:)
+    type (IMatrix), allocatable :: confTarget_occ(:)
     !! storing the CI diagonal matrix elements for Jadamilu preconditioner
     !! eigenvalues per SCI iteration
     type (Vector), allocatable :: eigenValues(:) ! eigenvalues per SCI iteration
@@ -38,7 +39,9 @@ module CISCI_
     real(8) :: PT2energy
     !! auxiliary variables to map orbitals from vector to array location
     integer :: combinedNumberOfOrbitals
+    integer :: combinedNumberOfOccupiedOrbitals
     integer, allocatable :: combinedOrbitalsPositions(:,:) ! lower and upper position, species
+    integer, allocatable :: combinedOccupiedOrbitalsPositions(:,:) ! lower and upper position, species
     !! auxiliary array to store the position of the target space for each omp thread 
     integer(8), allocatable :: omp_targetInterval(:,:) ! lower and upper position, n_threads
     integer(8), allocatable :: omp_target_iterator_m(:) ! n_threads
@@ -72,9 +75,13 @@ contains
     totalSize = 0_8
     do spi = 1, CIcore_instance%numberOfSpecies 
       totalSize = totalSize + &
-                  ( CISCI_instance%buffer_amplitudeCoreSize * ( 8 + 8 + 1*CIcore_instance%numberOfOrbitals%values(spi) )  + & ! data type for coeff, index, conf
-                  CISCI_instance%coreSpaceSize * ( 8 + 1*CIcore_instance%numberOfOrbitals%values(spi)) + & ! coeff, conf
-                  CISCI_instance%targetSpaceSize_max * ( 8 + 8 + 2*8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) )  !! coeff, diagonal, eigenvectors, conf
+                  ( CISCI_instance%buffer_amplitudeCoreSize * &
+                                  ( 8 + 8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) & ! data type for coeff, index, conf_orb, conf_occ
+                  + CISCI_instance%coreSpaceSize * &
+                                  ( 8 + 1*CIcore_instance%numberOfOrbitals%values(spi)) & ! coeff, conf
+                  + CISCI_instance%targetSpaceSize_max * &
+                                  ( 8 + 8 + 2*8 + 1*CIcore_instance%numberOfOrbitals%values(spi)  ) )  !! coeff, diagonal, eigenvectors, conf
+
       do spj = spi, CIcore_instance%numberOfSpecies 
         totalSize = totalSize + &
                     size(CIcore_instance%fourCenterIntegrals( spi, spj )%values,1) * 8
@@ -149,8 +156,18 @@ contains
       m = m + CIcore_instance%numberOfOrbitals%values(spi)
     enddo 
 
+    CISCI_instance%combinedNumberOfOccupiedOrbitals = sum(CIcore_instance%numberOfOccupiedOrbitals%values(:))
+    allocate ( CISCI_instance%combinedOccupiedOrbitalsPositions(2,numberOfSpecies) )
+    m = 0
+    do spi = 1, numberOfSpecies
+      CISCI_instance%combinedOccupiedOrbitalsPositions(1,spi) = m + 1
+      CISCI_instance%combinedOccupiedOrbitalsPositions(2,spi) = m + CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+      m = m + CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+    print *, CISCI_instance%combinedOccupiedOrbitalsPositions(:,spi) 
+    enddo 
+
     !! auxiliary arrays to store the position of the target space position for each omp thread within the big arrays
-    !! last batch (nproc + 1) is for collecting the results
+    !! last batch (nproc + 1) is just dummy index when calling to sort the whole buffer
     allocate ( CISCI_instance%omp_targetInterval(2, CIcore_instance%nproc + 1 ) ) !fixed
     allocate ( CISCI_instance%omp_target_iterator_m( CIcore_instance%nproc + 1) ) !variable
 
@@ -163,17 +180,20 @@ contains
 
     !! arrays for storing CI configurations, species, orbitals, vector size
     allocate ( CISCI_instance%confCore ( numberOfSpecies ) ) 
-    allocate ( CISCI_instance%saved_confTarget ( numberOfSpecies ) ) 
+    allocate ( CISCI_instance%confTarget_orb ( numberOfSpecies ) ) 
+    allocate ( CISCI_instance%confTarget_occ ( numberOfSpecies ) ) 
     do spi = 1, numberOfSpecies 
       call Matrix_constructorInteger1 ( CISCI_instance%confCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%coreSpaceSize,8), -1_1 )
-      call Matrix_constructorInteger1 ( CISCI_instance%saved_confTarget(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1) !! this will be reallocated
+      call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1) !! this will be reallocated
+      call Matrix_constructorInteger ( CISCI_instance%confTarget_occ(spi), int(CIcore_instance%numberOfOccupiedOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_4) !! this will be reallocated
     enddo
-    allocate ( CISCI_instance%confAmplitudeCore (  CISCI_instance%combinedNumberOfOrbitals, CISCI_instance%buffer_amplitudeCoreSize ) ) 
+    allocate ( CISCI_instance%confAmplitudeCore_orb (  CISCI_instance%combinedNumberOfOrbitals, CISCI_instance%buffer_amplitudeCoreSize ) ) 
+    CISCI_instance%confAmplitudeCore_orb = -1_1
 
     !! this was replaced by a "vectorized" array to avoid using arrays of types inside a recursive function
     !!do spi = 1, numberOfSpecies
-    !!allocate ( CISCI_instance%confAmplitudeCore ( numberOfSpecies ) )
-      !!call Matrix_constructorInteger1 ( CISCI_instance%confAmplitudeCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%buffer_amplitudeCoreSize,8), -1_1) 
+    !!allocate ( CISCI_instance%confAmplitudeCore_orb ( numberOfSpecies ) )
+      !!call Matrix_constructorInteger1 ( CISCI_instance%confAmplitudeCore_orb(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%buffer_amplitudeCoreSize,8), -1_1) 
     !!enddo
 
     !! store the orbitals for each target configurations, to avoid recomputing them
@@ -199,7 +219,7 @@ contains
     allocate ( CISCI_instance%targetSpaceSize_iter ( 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS ) )
 
     !! initialize buffer arrays: diagonalTarger, omp_targetInterval, omp_target_iterator_m
-    !!                           index_amplitudeCore, buffer_amplitudeCore, confAmplitudeCore
+    !!                           index_amplitudeCore, buffer_amplitudeCore, confAmplitudeCore_orb
     call CISCI_resetBuffer()
 
     !! initialize sorting subroutines
@@ -275,7 +295,7 @@ contains
       endif
 
       !! merge core space with the top amplitude to form a new target space, and save them in saved_conf with coefficients in eigenvectors
-      call CISCI_mergeCoreAndTarget( CISCI_instance%saved_confTarget, eigenVectors )
+      call CISCI_mergeCoreAndTarget( CISCI_instance%confTarget_orb, eigenVectors )
 
       !! computing the diagonal in the target space, jadamilu requires the diagonal in advance
       call CISCI_buildDiagonal ( )
@@ -335,7 +355,7 @@ contains
       do i = 1,  CISCI_instance%coreSpaceSize
         ii = CISCI_instance%index_amplitudeCore%values(i)
         do spi = 1, numberOfSpecies
-          CISCI_instance%confCore(spi)%values(:,i) = CISCI_instance%saved_confTarget(spi)%values(:,ii) 
+          CISCI_instance%confCore(spi)%values(:,i) = CISCI_instance%confTarget_orb(spi)%values(:,ii) 
         enddo
       enddo
 
@@ -373,7 +393,8 @@ contains
 
       !! reallocate due to increased target size
       do spi = 1, CIcore_instance%numberOfSpecies
-        call Matrix_constructorInteger1 ( CISCI_instance%saved_confTarget(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
+        call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
+        call Matrix_constructorInteger ( CISCI_instance%confTarget_occ(spi), int(CIcore_instance%numberOfOccupiedOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_4)
       enddo
 
       !! reset iterators for next iter
@@ -413,23 +434,23 @@ contains
         CISCI_instance%buffer_amplitudeCore%values(m1:m2) = huge(0.0_8) !! big number to ensure this conf won't be discarded after sorting
         do spi = 1, numberOfSpecies
           do m = 1, m2 - m1 + 1
-            CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), m + m1 - 1)  = CISCI_instance%saved_confTarget(spi)%values(:,m)
+            CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), m + m1 - 1)  = CISCI_instance%confTarget_orb(spi)%values(:,m)
           enddo
         enddo
       enddo
 
       !! recompute amplitudes, but now from target space not core, in this way all connected conf are saved in buffer
       if ( CIcore_instance%level == "CISD-" ) then
-        call CISCI_core_amplitudes_cisd (  eigenVectors%values(:,1), CISCI_instance%saved_ConfTarget, CISCI_instance%targetSpaceSize, currentEnergy )
+        call CISCI_core_amplitudes_cisd (  eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
       endif
       if ( CIcore_instance%level == "FCI" ) then
-        call CISCI_core_amplitudes ( eigenVectors%values(:,1), CISCI_instance%saved_ConfTarget, CISCI_instance%targetSpaceSize, currentEnergy )
+        call CISCI_core_amplitudes ( eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
       endif
 
       !! recalculate n conf to prevent the code breaking in case the targetSpace is not fully filled
       numberOfConfigurations = 0
       do a = 1, CISCI_instance%targetSpaceSize
-        if (CISCI_instance%confAmplitudeCore(1,a) == -1_1  ) exit
+        if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1  ) exit
         numberOfConfigurations = numberOfConfigurations + 1
       enddo
 
@@ -477,8 +498,8 @@ contains
 
     !! restart configurations for next run
     do spi = 1, CIcore_instance%numberOfSpecies
-      CISCI_instance%confAmplitudeCore = -1_1
-      !CISCI_instance%saved_confTarget(spi)%values = -1_1
+      CISCI_instance%confAmplitudeCore_orb = -1_1
+      !CISCI_instance%confTarget_orb(spi)%values = -1_1
     enddo 
 
 
@@ -1311,12 +1332,15 @@ contains
     !! transforming from decimal to binary once
     !!do aa = 1, nonzero
     !!  do spi = 1, numberOfSpecies
-    !!    !call CISCI_decimalToBinary ( CISCI_instance%saved_confTarget%values(spi,aa), CISCI_instance%targetOrb(spi,aa)%values )
-    !!    CISCI_instance%targetOrb(spi,aa)%values = CISCI_instance%saved_confTarget(spi)%values(:,aa)
+    !!    !call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,aa), CISCI_instance%targetOrb(spi,aa)%values )
+    !!    CISCI_instance%targetOrb(spi,aa)%values = CISCI_instance%confTarget_orb(spi)%values(:,aa)
     !!  enddo
     !!enddo
 
 !$    timeA= omp_get_wtime()
+
+    !! generate occupied orbital representation
+    call CISCI_orb2occ()
 
     !$omp parallel &
     !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, diffOrbi, diffOrbj, spj, factorA, factorB )
@@ -1348,17 +1372,18 @@ contains
         oia = 0 
 
         !! build the orbital from the index using the bit-masking
-        !!call CISCI_decimalToBinary ( CISCI_instance%saved_confTarget%values(spi,a), orbA(spi)%values )
+        !!call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,a), orbA(spi)%values )
         !!orbA(spi)%values = CISCI_instance%targetOrb(spi,a)%values
-        orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,a)
+        orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,a)
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-          if ( orbA(spi)%values(pi) == 1 ) then
-            oia = oia + 1
-            occA(spi)%values(oia) = pi
-          end if
-        enddo
+        !do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        !  if ( orbA(spi)%values(pi) == 1 ) then
+        !    oia = oia + 1
+        !    occA(spi)%values(oia) = pi
+        !  end if
+        !enddo
+        occA(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:, a) 
 
       enddo
 
@@ -1370,9 +1395,10 @@ contains
         do spi = 1, numberOfSpecies 
 
           !! build the orbital from the index using the bit mapping
-          !! call CISCI_decimalToBinary ( CISCI_instance%saved_confTarget%values(spi,b), orbB(spi)%values )
+          !! call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,b), orbB(spi)%values )
           !! orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values
-          orbB(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,b)
+          orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,b)
+          occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:,b) 
 
         enddo
 
@@ -1385,16 +1411,16 @@ contains
       
         !! if any species differs in more than 2 orb, skip
         if ( sum(couplingS) <= 2 ) then
-          do spi = 1, numberOfSpecies 
-            oib = 0 
-            !! build auxiliary vectors of occupied and virtuals orbitals
-            do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-              if ( orbB(spi)%values(pi) == 1 ) then
-                oib = oib + 1
-                occB(spi)%values(oib) = pi
-              end if
-            enddo
-          enddo
+          !do spi = 1, numberOfSpecies 
+          !  oib = 0 
+          !  !! build auxiliary vectors of occupied and virtuals orbitals
+          !  do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          !    if ( orbB(spi)%values(pi) == 1 ) then
+          !      oib = oib + 1
+          !      occB(spi)%values(oib) = pi
+          !    end if
+          !  enddo
+          !enddo
         else 
           cycle 
         endif
@@ -1527,6 +1553,9 @@ contains
 
 !$    timeA= omp_get_wtime()
 
+    !! generate occupied orbital representation
+    call CISCI_orb2occ()
+
     !$omp parallel &
     !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, ii, diffOrbi, diffOrbj, spj, factorA, factorB ) 
     allocate ( occA ( numberOfSpecies ) )
@@ -1554,17 +1583,18 @@ contains
         oia = 0 
 
         !! build the orbital from the index using the bit-masking
-        !!call CISCI_decimalToBinary ( CISCI_instance%saved_confTarget%values(spi,a), orbA(spi)%values )
+        !!call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,a), orbA(spi)%values )
         !!orbA(spi)%values = CISCI_instance%targetOrb(spi,a)%values
-        orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,a)
+        orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,a)
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-          if ( orbA(spi)%values(pi) == 1 ) then
-            oia = oia + 1
-            occA(spi)%values(oia) = pi
-          end if
-        enddo
+        !do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        !  if ( orbA(spi)%values(pi) == 1 ) then
+        !    oia = oia + 1
+        !    occA(spi)%values(oia) = pi
+        !  end if
+        !enddo
+        occA(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:, a) 
 
       enddo
 
@@ -1577,9 +1607,10 @@ contains
         do spi = 1, numberOfSpecies 
 
           !! build the orbital from the index using the bit mapping
-          !! call CISCI_decimalToBinary ( CISCI_instance%saved_confTarget%values(spi,b), orbB(spi)%values )
+          !! call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,b), orbB(spi)%values )
           !! orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values
-          orbB(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,b)
+          orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,b)
+          occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:,b) 
 
         enddo
 
@@ -1592,16 +1623,16 @@ contains
       
         !! if any species differs in more than 2 orb, skip
         if ( sum(couplingS) <= 2 ) then
-          do spi = 1, numberOfSpecies 
-            oib = 0 
-            !! build auxiliary vectors of occupied and virtuals orbitals
-            do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-              if ( orbB(spi)%values(pi) == 1 ) then
-                oib = oib + 1
-                occB(spi)%values(oib) = pi
-              end if
-            enddo
-          enddo
+          !do spi = 1, numberOfSpecies 
+          !  oib = 0 
+          !  !! build auxiliary vectors of occupied and virtuals orbitals
+          !  do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          !    if ( orbB(spi)%values(pi) == 1 ) then
+          !      oib = oib + 1
+          !      occB(spi)%values(oib) = pi
+          !    end if
+          !  enddo
+          !enddo
         else 
           cycle 
         endif
@@ -1708,7 +1739,7 @@ contains
 
       !a = CISCI_instance%index_amplitudeCore%values(aa)
       a = aa
-      if ( CISCI_instance%saved_confTarget(1)%values(1,a) == -1_1 ) exit
+      if ( CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
 
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1716,9 +1747,9 @@ contains
         occA(spi)%values = 0
         oia = 0 
         !! build the orbital from the index using the bit mapping
-        !call CISCI_decimalToBinary ( CISCI_instance%saved_confTarget%values(spi,a), orbA(spi)%values )
-        orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,a)
-        !!call CISCI_decimalToBinary ( CISCI_instance%confAmplitudeCore%values(spi,a), orbA(spi)%values )
+        !call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,a), orbA(spi)%values )
+        orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,a)
+        !!call CISCI_decimalToBinary ( CISCI_instance%confAmplitudeCore_orb%values(spi,a), orbA(spi)%values )
 
         !! build auxiliary vectors of occupied and virtuals orbitals
         do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
@@ -1957,14 +1988,14 @@ contains
     nonzeroTarget = 0
     do aa = 1, CISCI_instance%targetSpaceSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-10 ) exit
+      if (CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
       nonzeroTarget = nonzeroTarget + 1
     enddo
 
     nonzero = 0
     do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-      if (CISCI_instance%confAmplitudeCore(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-10 ) exit
+      if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(aa)) <= 1E-10 ) exit
       nonzero = nonzero + 1
     enddo
 
@@ -1979,6 +2010,9 @@ contains
     endif
 
 !$  timeA = omp_get_wtime()
+
+    !! generate occupied orbital representation
+    call CISCI_orb2occ()
 
     !$omp parallel &
     !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, ii, &
@@ -2003,7 +2037,7 @@ contains
     
     !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
     !$omp do schedule (static)
-    aloop: do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + 1 + nonzero
+    aloop: do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + nonzero
 
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
       !a = aa ! if index_amplitude is sorted
@@ -2014,18 +2048,18 @@ contains
         oia = 0 
 
         !! build the orbital from the index using the bit mapping
-        !!call CISCI_decimalToBinary ( CISCI_instance%saved_confTarget%values(spi,a), orbA(spi)%values )
-        orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
+        !!call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,a), orbA(spi)%values )
+        orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        !$omp simd
+        !!$omp simd
         do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
           if ( orbA(spi)%values(pi) == 1 ) then
             oia = oia + 1
             occA(spi)%values(oia) = pi
           end if
         enddo
-        !$omp end simd
+        !!$omp end simd
 
         !! from binary to occupied orbital representation (vectorized)
         !!occA(spi)%values(:) = pack( CISCI_instance%canonicalOrder(spi)%values, orbA(spi)%values(:) == 1 )
@@ -2044,22 +2078,24 @@ contains
           oib = 0 
 
           !! build the orbital from the index using the bit mapping
-          !call CISCI_decimalToBinary ( CISCI_instance%saved_confTarget%values(spi,b), orbB(spi)%values )
-          orbB(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:,b)
+          !call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,b), orbB(spi)%values )
+          orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,b)
 
           !! build auxiliary vectors of occupied and virtuals orbitals
-          !$omp simd
-          do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-            if ( orbB(spi)%values(pi) == 1 ) then
-              oib = oib + 1
-              occB(spi)%values(oib) = pi
-            end if
-          enddo
-          !$omp end simd
+          !!$omp simd
+          !do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          !  if ( orbB(spi)%values(pi) == 1 ) then
+          !    oib = oib + 1
+          !    occB(spi)%values(oib) = pi
+          !  end if
+          !enddo
+          !!$omp end simd
 
           !! from binary to occupied orbital representation (vectorized)
           !!$omp simd
           !occB(spi)%values(:) = pack( CISCI_instance%canonicalOrder(spi)%values, orbB(spi)%values(:) == 1 )
+
+          occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:, b) 
 
         enddo
 
@@ -2186,7 +2222,7 @@ contains
       ! getting configuration A
       do spi = 1, numberOfSpecies 
         !! build the orbital from the index using the bit mapping
-        orbA(spi)%values(:) = CISCI_instance%saved_confTarget(spi)%values(:, a) 
+        orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:, a) 
 
         CIlevel(spi) = CIcore_instance%numberOfOccupiedOrbitals%values(spi) - sum( orbA(spi)%values * orbRef(spi)%values ) 
       enddo
@@ -2346,7 +2382,7 @@ contains
 
     CISCI_instance%buffer_amplitudeCore%values(m) = amplitude
     do spi = 1, numberOfSpecies
-      CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), m)  = orbB(spi)%values(:)
+      CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), m)  = orbB(spi)%values(:)
     enddo
 
     !! sort the array when it's full
@@ -2386,7 +2422,7 @@ contains
       m2 = CISCI_instance%omp_targetInterval(2, n ) 
       m2b = CISCI_instance%omp_targetInterval(2, n )  !! to avoid zeros
       do i = m1, CISCI_instance%omp_targetInterval(2, n ) 
-        if (  CISCI_instance%confAmplitudeCore(1,i) == -1_1 ) then
+        if (  CISCI_instance%confAmplitudeCore_orb(1,i) == -1_1 ) then
           m2b = i-1
           exit
         endif
@@ -2394,7 +2430,7 @@ contains
     endif 
 
     !! Sort according to the index of CI configurations per species in order to find duplicates ( N log( N ) )
-    call CISort_quicksort_matrix(  CISCI_instance%confAmplitudeCore(:,m1:m2), &
+    call CISort_quicksort_matrix(  CISCI_instance%confAmplitudeCore_orb(:,m1:m2), &
                                      CISCI_instance%index_amplitudeCore%values(m1:m2), & 
                                      1_8, m2b - m1 + 1, n )
 
@@ -2405,7 +2441,7 @@ contains
 
     !! merge duplicated configurations (sum amplitudes)
     call CISort_mergeDuplicates ( CISCI_instance%buffer_amplitudeCore%values(m1:m2), &
-                                           CISCI_instance%confAmplitudeCore(:,m1:m2), &
+                                           CISCI_instance%confAmplitudeCore_orb(:,m1:m2), &
                                            CISCI_instance%index_amplitudeCore%values(m1:m2), &
                                            m2 - m1 + 1 )
 
@@ -2424,7 +2460,7 @@ contains
                                      1_8, m2b - m1 + 1 )
     
     !! organize configurations according to the sorted amplitudes
-    call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore(:,m1:m2), &
+    call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore_orb(:,m1:m2), &
                                   CISCI_instance%index_amplitudeCore%values(m1:m2), &
                                   m2 - m1 + 1, n )
 
@@ -2452,7 +2488,7 @@ contains
       !! discard the last two quarters of tmp_ampltitude for next run, if not keep it fot PT2 corr
       !CISCI_instance%buffer_amplitudeCore%values( halfm + 1 : m2 ) = 0.0_8
       !do spi = 1, CIcore_instance%numberOfSpecies 
-      !  CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), &
+      !  CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), &
       !                                   halfm + 1 : m2) = -1_1
       ! 
       !enddo
@@ -2460,9 +2496,9 @@ contains
 
   end subroutine CISCI_sortAmplitude
 
-  subroutine CISCI_mergeCoreAndTarget( saved_confTarget, eigenVectors )
+  subroutine CISCI_mergeCoreAndTarget( confTarget_orb, eigenVectors )
     implicit none
-    type (IMatrix1), intent(inout) :: saved_confTarget(:)
+    type (IMatrix1), intent(inout) :: confTarget_orb(:)
     type (matrix), intent(inout) :: eigenVectors
     integer :: spi
     integer(8) :: i, j, m
@@ -2478,7 +2514,7 @@ contains
       if ( CISCI_instance%confCore(1)%values(1,j) == -1_1 ) exit
       m = m + 1
       do spi = 1, CIcore_instance%numberOfSpecies 
-        saved_confTarget(spi)%values(:,m) = CISCI_instance%confCore(spi)%values(:,j)
+        confTarget_orb(spi)%values(:,m) = CISCI_instance%confCore(spi)%values(:,j)
       enddo
       eigenVectors%values(m,1) = CISCI_instance%coefficientCore%values(j)
     enddo
@@ -2487,7 +2523,7 @@ contains
 
     !! run over top amplitudes to add to the new target space
     targetSpace: do i = 1, CISCI_instance%targetSpaceSize
-      if ( CISCI_instance%confAmplitudeCore(1, i) == -1 ) exit targetSpace
+      if ( CISCI_instance%confAmplitudeCore_orb(1, i) == -1 ) exit targetSpace
       !! but check if the conf is already included in the core space (previously added)
       is_equal = .false.
       coreSpace : do j = 1, CISCI_instance%coreSpaceSize
@@ -2499,7 +2535,7 @@ contains
 
           do orb = 1, CIcore_instance%numberOfOrbitals%values(spi)
             auxorb = auxorb + 1
-            if (  CISCI_instance%confCore(spi)%values(orb,j) == CISCI_instance%confAmplitudeCore(auxorb, i) ) then
+            if (  CISCI_instance%confCore(spi)%values(orb,j) == CISCI_instance%confAmplitudeCore_orb(auxorb, i) ) then
               is_equal = .true.
             else
               is_equal = .false.
@@ -2518,7 +2554,7 @@ contains
         if ( m > CISCI_instance%targetSpaceSize ) exit targetSpace ! the targetSpace is full
 
         do spi = 1, CIcore_instance%numberOfSpecies 
-          saved_confTarget(spi)%values(:,m) = CISCI_instance%confAmplitudeCore(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), i) 
+          confTarget_orb(spi)%values(:,m) = CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), i) 
         enddo
         eigenVectors%values(m,1) = CISCI_instance%buffer_amplitudeCore%values(i)
 
@@ -2530,5 +2566,54 @@ contains
 !$  write(*,"(A,ES10.2,A4)") "** TOTAL Elapsed Time for merging core and new amplitudes : ", timeB - timeA ," (s)"
 
   end subroutine CISCI_mergeCoreAndTarget
+
+  !! Generate the occupied configuration representation from the orbital configuration (1 or 0)
+  subroutine CISCI_orb2occ()
+    implicit none
+    integer :: spi, numberOfSpecies
+    integer :: pi, oia
+    integer :: a, aa
+    type (ivector), allocatable :: occA(:)
+    type (ivector), allocatable :: orbA(:)
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+
+    allocate ( occA ( numberOfSpecies ) )
+    allocate ( orbA ( numberOfSpecies ) )
+
+    do spi = 1, numberOfSpecies
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+    end do
+
+    do a = 1, CISCI_instance%targetSpaceSize
+
+      if (CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
+
+      do spi = 1, numberOfSpecies 
+
+        oia = 0
+        orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:, a) 
+
+        occA(spi)%values(:) = 0
+        !! build auxiliary vectors of occupied and virtuals orbitals
+        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          if ( orbA(spi)%values(pi) == 1 ) then
+            oia = oia + 1
+            occA(spi)%values(oia) = pi
+          end if
+        enddo
+
+        if ( orbA(spi)%values(1) == -1 ) occA(spi)%values(:) = -1
+
+        CISCI_instance%confTarget_occ(spi)%values(:, a) = occA(spi)%values(:) 
+
+      enddo ! spi, numberOfSpecies
+    enddo ! a, buffer_amplitudeCoreSize
+
+    deallocate ( occA )
+    deallocate ( orbA )
+
+  end subroutine CISCI_orb2occ
 
 end module CISCI_
