@@ -208,6 +208,8 @@ contains
 
 !    !! storing the CI diagonal matrix elements for Jadamilu preconditioner
 !    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
+    call Vector_constructor ( CISCI_instance%diagonalCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
+
 
     !! eigenvalues per SCI iteration
     allocate ( CISCI_instance%eigenValues ( 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS ) )
@@ -287,19 +289,22 @@ contains
 
       CISCI_instance%targetSpaceSize_iter(k) = CISCI_instance%targetSpaceSize
 
+      !! computing the diagonal in the core space, for fast computation of core amplitudes
+      call CISCI_buildDiagonal ( CISCI_instance%diagonalCore, CISCI_instance%confCore, CISCI_instance%coreSpaceSize )
+
       !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
       if ( CIcore_instance%level == "CISD-" .or. .not. finalStep ) then
         call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
       endif
       if ( CIcore_instance%level == "FCI" .and. finalStep ) then
-        call CISCI_core_amplitudes ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
+        call CISCI_core_amplitudes ( CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
       endif
 
       !! merge core space with the top amplitude to form a new target space, and save them in saved_conf with coefficients in eigenvectors
       call CISCI_mergeCoreAndTarget( CISCI_instance%confTarget_orb, eigenVectors )
 
       !! computing the diagonal in the target space, jadamilu requires the diagonal in advance
-      call CISCI_buildDiagonal ( )
+      call CISCI_buildDiagonal ( CISCI_instance%diagonalTarget, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
 
       !! eigenvalue guess
       CISCI_instance%eigenValues(k)%values(1) = currentEnergy
@@ -445,7 +450,7 @@ contains
         call CISCI_core_amplitudes_cisd (  eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
       endif
       if ( CIcore_instance%level == "FCI" ) then
-        call CISCI_core_amplitudes ( eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
+        call CISCI_core_amplitudes ( CISCI_instance%diagonalTarget, eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
       endif
 
       !! recalculate n conf to prevent the code breaking in case the targetSpace is not fully filled
@@ -613,12 +618,13 @@ contains
   end subroutine CISCI_initialConfigurations
 
   !! compute the estimated amplitude to form the target space from the core space
-  subroutine CISCI_core_amplitudes ( coefficientCore, confCore, SCICoreSpaceSize, oldEnergy )
+  subroutine CISCI_core_amplitudes ( diagonal, coefficientCore, confCore, SCICoreSpaceSize, oldEnergy )
 
     implicit none
-    integer(8) SCICoreSpaceSize
-    real(8) coefficientCore ( SCICoreSpaceSize )
-    type(IMatrix1) :: confCore(:)
+    type(Vector), intent(in) :: diagonal
+    real(8), intent(in) :: coefficientCore ( SCICoreSpaceSize )
+    type(IMatrix1), intent(in) :: confCore(:)
+    integer(8), intent(in) :: SCICoreSpaceSize
     real(8) :: CIEnergy
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj
     integer(4) :: nproc, n, nn
@@ -745,7 +751,11 @@ contains
               CIenergy = CIenergy * coefficientCore(a) 
 
               ! alternative approximation
-              diagEnergy = CISCI_calculateEnergyZero( occB )
+              !diagEnergy = CISCI_calculateEnergyZero( occB )
+              diagEnergy = diagonal%values(a)
+              diagEnergY = diagEnergy - CISCI_calculateEnergyOne( spi, occA, occA, oi1, oi1 )
+              diagEnergY = diagEnergy + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
+
               CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
 
               !! append the amplitude 
@@ -780,7 +790,17 @@ contains
 
                   CIenergy = CIenergy * coefficientCore(a)
                   ! alternative approximation
-                  diagEnergy = CISCI_calculateEnergyZero( occB )
+                  !diagEnergy = CISCI_calculateEnergyZero( occB )
+
+                  diagEnergy = diagonal%values(a)
+                  diagEnergy = diagEnergy - CISCI_calculateEnergyOne( spi, occA, occA, oi1, oi1 )
+                  diagEnergy = diagEnergy + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
+                  diagEnergy = diagEnergy - CISCI_calculateEnergyOne( spi, occA, occA, oi2, oi2 )
+                  diagEnergy = diagEnergy + CISCI_calculateEnergyOne( spi, occB, occB, vi2, vi2 )
+                  diagEnergy = diagEnergy - CISCI_calculateEnergyTwoSame( spi, occA, occA, oi1, oi2, oi1, oi2 )
+                  diagEnergy = diagEnergy + CISCI_calculateEnergyTwoSame( spi, occB, occB, vi1, vi2, vi1, vi2 )
+
+
                   CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
 
                   !! append the amplitude 
@@ -824,7 +844,16 @@ contains
 
                     CIenergy = CIenergy * coefficientCore(a) 
                     ! alternative approximation
-                    diagEnergy = CISCI_calculateEnergyZero( occB )
+                    !diagEnergy = CISCI_calculateEnergyZero( occB )
+
+                    diagEnergy = diagonal%values(a)
+                    diagEnergy = diagEnergy - CISCI_calculateEnergyOne( spi, occA, occA, oi1, oi1 )
+                    diagEnergy = diagEnergy + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
+                    diagEnergy = diagEnergy - CISCI_calculateEnergyOne( spj, occA, occA, oj2, oj2 )
+                    diagEnergy = diagEnergy + CISCI_calculateEnergyOne( spj, occB, occB, vj2, vj2 )
+                    diagEnergy = diagEnergy - CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, oi1, oj2 )
+                    diagEnergy = diagEnergy + CISCI_calculateEnergyTwoDiff( spi, spj, vi1, vj2, vi1, vj2 )
+
                     CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
 
                     !! append the amplitude 
@@ -1677,8 +1706,11 @@ contains
   end subroutine CISCI_buildHamiltonian
 
 
-  subroutine CISCI_buildDiagonal ( )
+  subroutine CISCI_buildDiagonal ( diagonal, configurations_orb, spaceSize )
     implicit none
+    type(Vector), intent(inout) :: diagonal 
+    type (IMatrix1), allocatable, intent(in) :: configurations_orb(:)
+    integer(8), intent(in) :: spaceSize
     integer(8) :: a,b,aa,bb
     integer :: i, ii, jj, n, spi, spj
     integer :: numberOfSpecies
@@ -1703,11 +1735,11 @@ contains
 
 !$  timeA= omp_get_wtime()
 
-    do aa = 1, CISCI_instance%targetSpaceSize 
+    do aa = 1, spaceSize 
 
       !a = CISCI_instance%index_amplitudeCore%values(aa)
       a = aa
-      if ( CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
+      if ( configurations_orb(1)%values(1,a) == -1_1 ) exit
 
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1716,7 +1748,7 @@ contains
         oia = 0 
         !! build the orbital from the index using the bit mapping
         !call CISCI_decimalToBinary ( CISCI_instance%confTarget_orb%values(spi,a), orbA(spi)%values )
-        orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,a)
+        orbA(spi)%values(:) = configurations_orb(spi)%values(:,a)
         !!call CISCI_decimalToBinary ( CISCI_instance%confAmplitudeCore_orb%values(spi,a), orbA(spi)%values )
 
         !! build auxiliary vectors of occupied and virtuals orbitals
@@ -1729,7 +1761,7 @@ contains
 
       enddo
 
-      CISCI_instance%diagonalTarget%values(aa) = CISCI_calculateEnergyZero( occA )
+      diagonal%values(aa) = CISCI_calculateEnergyZero( occA )
 
     end do !a 
 
