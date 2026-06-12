@@ -2459,12 +2459,11 @@ contains
 
       !! check if there are any zeros in the first half
       do i = m1, halfm +  1
-        if ( CISCI_instance%buffer_amplitudeCore%values(i) == 0.0_8 ) then
+        if ( CISCI_instance%confAmplitudeCore_orb(1,i) == -1_1 ) then
           auxm = i - 1
           exit
         endif
       enddo
-      auxm = auxm  ! change from relative to absolute position
 
       !! discard the last two quarters of tmp_ampltitude for next run, if not keep it fot PT2 corr
       !CISCI_instance%buffer_amplitudeCore%values( halfm + 1 : m2 ) = 0.0_8
