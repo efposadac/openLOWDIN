@@ -96,39 +96,39 @@ contains
         totalSize = totalSize + CISCI_instance%targetSpaceSize_max * CONTROL_instance%CI_MADSPACE
     end select 
 
-    write(6,*) "-----------------------------------------------------------------------"
+    write (6,*) "-----------------------------------------------------------------------"
     write (6,"(T2,A62)") "          SELECTED CONFIGURATION INTERACTION (SCI):          " 
     write (6,"(T2,A62)") "                 Adaptive Sampling CI (ASCI)                 " 
     write (6,"(T2,A62)") "                   Deterministic Algorithm                   " 
     write (6,"(T2,A62)") "                  Based on 10.1063/1.4955109                 "
     write (6,"(T2,A62)") "                        J. Charry                            "
-    write(6,*) "-----------------------------------------------------------------------"
-    write(6,*) ""
-    write(6,*) "  Diagonalizer for target space hamiltonian : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
-    write(6,*) "-----------------------------------------------------------------------"
-    write(6,*) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
-    write(6,*) "a software code for computing selected eigenvalues of "
-    write(6,*) "large sparse symmetric matrices, "
-    write(6,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007." 
-    write(6,*) "-----------------------------------------------------------------------"
-    write(6,*) ""
-    write(6,*) " Modified sorting algorithm from CENCALC quicksort code "
-    write(6,*) "-----------------------------------------------------------------------"
-    write(6,*) " Code available at https://github.com/dimassuarez/cencalc_quicksort  "
-    write(6,*) " E. Suárez, N. Díaz, J. Méndez and D. Suárez. "
-    write(6,*) " CENCALC: A Computational Tool for Conformational Entropy Calculations"
-    write(6,*) " from Molecular Simulations."
-    write(6,*) " J. Comput. Chem. 54, 2031. DOI: 10.1002/jcc.23350 "
-    write(6,*) "-----------------------------------------------------------------------"
-    write(6,*) ""
-    write (6,"(T2,A,F14.3,A3 )") "Estimated memory needed : ", float( totalSize )/(1024**2) , " MB"
-    write (6,"(T2,A,F14.3,A3 )") "                          ", float( totalSize )/(1024**3) , " GB"
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) ""
+    write (6,*) "  Diagonalizer for target space hamiltonian : ", trim(String_getUppercase((CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) "M. BOLLHÖFER AND Y. NOTAY, JADAMILU:"
+    write (6,*) "a software code for computing selected eigenvalues of "
+    write (6,*) "large sparse symmetric matrices, "
+    write (6,*) "Computer Physics Communications, vol. 177, pp. 951-964, 2007."
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) ""
+    write (6,*) " Modified sorting algorithm from CENCALC quicksort code "
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) " Code available at https://github.com/dimassuarez/cencalc_quicksort  "
+    write (6,*) " E. Suárez, N. Díaz, J. Méndez and D. Suárez. "
+    write (6,*) " CENCALC: A Computational Tool for Conformational Entropy Calculations"
+    write (6,*) " from Molecular Simulations."
+    write (6,*) " J. Comput. Chem. 54, 2031. DOI: 10.1002/jcc.23350 "
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) ""
+    write (6,"(T2,A,F14.3,A3 )") "Estimated memory needed : ", real( totalSize )/(1024**2) , " MB"
+    write (6,"(T2,A,F14.3,A3 )") "                          ", real( totalSize )/(1024**3) , " GB"
     write (6,"(T2,A,I8 )") "Length of core (search) space                          :",  CISCI_instance%coreSpaceSize
     write (6,"(T2,A,I8 )") "Length of target (Full-CI subset) space per OMP thread :",  CISCI_instance%targetSpaceSize_max / CIcore_instance%nproc
     write (6,"(T2,A,I8 )") "Length of buffer (auxiliary sort) space per OMP thread :",  CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
     write (6,"(T2,A,I8 )") "Length of total target space                           :",  CISCI_instance%targetSpaceSize_max
     write (6,"(T2,A,I8 )") "Length of total buffer space                           :",  CISCI_instance%buffer_amplitudeCoreSize 
-    write(6,*) "-----------------------------------------------------------------------"
+    write (6,*) "-----------------------------------------------------------------------"
     
   end subroutine CISCI_show
 
@@ -164,7 +164,6 @@ contains
       CISCI_instance%combinedOccupiedOrbitalsPositions(1,spi) = m + 1
       CISCI_instance%combinedOccupiedOrbitalsPositions(2,spi) = m + CIcore_instance%numberOfOccupiedOrbitals%values(spi)
       m = m + CIcore_instance%numberOfOccupiedOrbitals%values(spi)
-    print *, CISCI_instance%combinedOccupiedOrbitalsPositions(:,spi) 
     enddo 
 
     !! auxiliary arrays to store the position of the target space position for each omp thread within the big arrays
@@ -206,10 +205,9 @@ contains
     !!  enddo
     !!enddo
 
-!    !! storing the CI diagonal matrix elements for Jadamilu preconditioner
-!    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
+    !! storing the CI diagonal matrix elements for Jadamilu preconditioner (moved to reset buffers)
+    !! call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
     call Vector_constructor ( CISCI_instance%diagonalCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
-
 
     !! eigenvalues per SCI iteration
     allocate ( CISCI_instance%eigenValues ( 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS ) )
@@ -273,7 +271,7 @@ contains
       write (6,*)    ""
       write (6,"(T2,A29 )")    "Starting SCI macro iterations "
       write (6,*)    ""
-      call CISCI_initialConfigurations(  CISCI_instance%coefficientCore, CISCI_instance%confCore )
+      call CISCI_initialConfigurations( CISCI_instance%coefficientCore, CISCI_instance%confCore )
     endif
 
     if ( .not. initialStep ) then
@@ -445,6 +443,9 @@ contains
         enddo
       enddo
 
+      !! computing the diagonal in the target space, for fast computation of core amplitudes
+      call CISCI_buildDiagonal ( CISCI_instance%diagonalTarget, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
+
       !! recompute amplitudes, but now from target space not core, in this way all connected conf are saved in buffer
       if ( CIcore_instance%level == "CISD-" ) then
         call CISCI_core_amplitudes_cisd (  eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
@@ -547,8 +548,8 @@ contains
       enddo
 
       confCore(spi)%values(:,m) = orbA(spi)%values(:)
-      !call CISCI_binaryToDecimal ( orbA(spi)%values, indexConf )
-      !confCore(spi)%values(spi,m) = indexConf
+      !!call CISCI_binaryToDecimal ( orbA(spi)%values, indexConf )
+      !!confCore(spi)%values(spi,m) = indexConf
       
     enddo
 
@@ -602,8 +603,7 @@ contains
 
         endif ! E+
       enddo singles
-    endif
-    !endif ! CISD-
+    endif !endif unbound
 
     do spi = 1, numberOfSpecies 
       call Vector_destructorInteger ( occA(spi) ) 
@@ -643,9 +643,9 @@ contains
     type (ivector), allocatable :: orbA(:), orbB(:)
     integer, allocatable :: CIlevel(:)
     real(8) :: tmpconfCoreConfB
-    integer :: pi, qi, ri, si, pj, qj, rj, sj
-    integer :: oia, oja, via, vja, aaa
-    integer :: oi1, vi1, oi2, vi2, oj2, vj2
+    integer(8) :: pi, qi, ri, si, pj, qj, rj, sj
+    integer(8) :: oia, oja, via, vja, aaa
+    integer(8) :: oi1, vi1, oi2, vi2, oj2, vj2
     integer :: factor1, factor2, factor2j
     integer :: nonzero
 
@@ -692,8 +692,8 @@ contains
       ! getting configuration A
       do spi = 1, numberOfSpecies 
 
-        oia = 0 
-        via = 0
+        oia = 0_8
+        via = 0_8
 
         !! build the orbital from the index using the bit mapping
         !call CISCI_decimalToBinary ( confCore%values(spi,a), orbA(spi)%values )
@@ -701,11 +701,11 @@ contains
 
         !! build auxiliary vectors of occupied and virtuals orbitals
         do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-          if ( orbA(spi)%values(pi) == 1 ) then
-            oia = oia + 1
+          if ( orbA(spi)%values(pi) == 1_8 ) then
+            oia = oia + 1_8
             occA(spi)%values(oia) = pi
-          else if ( orbA(spi)%values(pi) == 0 ) then
-            via = via + 1
+          else if ( orbA(spi)%values(pi) == 0_8 ) then
+            via = via + 1_8
             virA(spi)%values(via) = pi
           end if
         enddo
@@ -725,13 +725,13 @@ contains
         !! calculate the sign factor for canonical order of the configuration
         factor1 = CISCI_canonicalOrderFactor( spi, orbA(spi), occA(spi) )
 
-        do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+        do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
           oi1 = occA(spi)%values(pi)  
-          orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1 
+          orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1_8
 
           do qi = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) !! occ or core???
             vi1 = virA(spi)%values(qi)
-            orbB(spi)%values(vi1) = orbB(spi)%values(vi1) + 1
+            orbB(spi)%values(vi1) = orbB(spi)%values(vi1) + 1_8
             occB(spi)%values(pi) = vi1
 
             !! get spingle sustitutions energy
@@ -765,15 +765,15 @@ contains
             !tmpconfCoreConfB = confCoreConfB(spi) !! save the indexconfB to use later in double inter, because double intra will overwritten it 
 
             !! building all double intraspecies sustitutions from configuration A
-            do ri = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+            do ri = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
               oi2 = occA(spi)%values(ri)  
               if ( oi1 <= oi2 ) cycle 
-              orbB(spi)%values(oi2) = orbB(spi)%values(oi2) - 1 
-              do si = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+              orbB(spi)%values(oi2) = orbB(spi)%values(oi2) - 1_8
+              do si = 1_8, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
                 vi2 = virA(spi)%values(si)
                 if ( vi1 <= vi2 ) cycle 
-                orbB(spi)%values(vi2) = orbB(spi)%values(vi2) + 1
-                occB(spi)%values(ri) = vi2 
+                orbB(spi)%values(vi2) = orbB(spi)%values(vi2) + 1_8
+                occB(spi)%values(ri) = vi2
 
                 !! get double intraspecies sustitutions energy
                 CIenergy = CISCI_calculateEnergyTwoSame( spi, occA, occB, oi1, oi2, vi1,  vi2 )
@@ -809,9 +809,9 @@ contains
                 endif
 
                 occB(spi)%values(ri) = occA(spi)%values(ri)  
-                orbB(spi)%values(vi2) = orbB(spi)%values(vi2) -1  ! reset orbital 
+                orbB(spi)%values(vi2) = orbB(spi)%values(vi2) - 1_8  ! reset orbital 
               enddo
-              orbB(spi)%values(oi2) = orbB(spi)%values(oi2) + 1 ! reset orbital
+              orbB(spi)%values(oi2) = orbB(spi)%values(oi2) + 1_8 ! reset orbital
             enddo
 
             CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
@@ -819,14 +819,13 @@ contains
             !! building all double interspecies sustitutions from configuration A. maybe build this as a superloop?
             !! get double interspecies sustitutions energy
             do spj = spi + 1, numberOfSpecies 
-              !if ( spj == spi ) cycle 
-              do rj = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1, CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+              do rj = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spj)
                 oj2 = occA(spj)%values(rj)  
-                orbB(spj)%values(oj2) = orbB(spj)%values(oj2) - 1 
-                do sj = 1, CIcore_instance%numberOfOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+                orbB(spj)%values(oj2) = orbB(spj)%values(oj2) - 1_8
+                do sj = 1_8, CIcore_instance%numberOfOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
                   vj2 = virA(spj)%values(sj)
-                  orbB(spj)%values(vj2) = orbB(spj)%values(vj2) + 1
-                  occB(spj)%values(rj) = vj2 
+                  orbB(spj)%values(vj2) = orbB(spj)%values(vj2) + 1_8
+                  occB(spj)%values(rj) = vj2
 
                   !! get double interspecies sustitutions energy
                   CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, vi1, vj2 )
@@ -862,22 +861,22 @@ contains
 
                   !! reset the confB
                   occB(spj)%values(rj) = occA(spj)%values(rj)  
-                  orbB(spj)%values(vj2) = orbB(spj)%values(vj2) -1 
-                enddo ! sj
-                orbB(spj)%values(oj2) = orbB(spj)%values(oj2) + 1
-                CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
+                  orbB(spj)%values(vj2) = orbB(spj)%values(vj2) - 1_8
+                  enddo ! sj
+                orbB(spj)%values(oj2) = orbB(spj)%values(oj2) + 1_8
+                CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj) + 1_8:) )
               enddo ! rj
 
-              CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
+              CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj) + 1_8:) )
             enddo !spj
 
             !! reset the confB
             occB(spi)%values(pi) = occA(spi)%values(pi)  
-            orbB(spi)%values(vi1) = orbB(spi)%values(vi1) -1 
+            orbB(spi)%values(vi1) = orbB(spi)%values(vi1) - 1_8
           enddo !qi
-          orbB(spi)%values(oi1) = orbB(spi)%values(oi1) + 1
-        enddo !pi
-       CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
+          orbB(spi)%values(oi1) = orbB(spi)%values(oi1) + 1_8
+          enddo !pi
+       CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi) + 1_8:) )
 
       enddo !spi
       
@@ -939,9 +938,9 @@ contains
     type (ivector), allocatable :: orbA(:), orbB(:)
     integer, allocatable :: CIlevel(:)
     real(8) :: tmpconfCoreConfB
-    integer :: pi, qi, ri, si, pj, qj, rj, sj
-    integer :: oia, oja, via, vja, aaa
-    integer :: oi1, vi1, oi2, vi2, oj2, vj2
+    integer(8) :: pi, qi, ri, si, pj, qj, rj, sj
+    integer(8) :: oia, oja, via, vja, aaa
+    integer(8) :: oi1, vi1, oi2, vi2, oj2, vj2
     integer :: factor1, factor2, factor2j
     integer :: nonzero
 
@@ -1340,8 +1339,8 @@ contains
     real(8) :: CIenergy
     integer(1) :: coupling
     integer(1), allocatable :: couplingS(:)
-    integer :: diffOrbi(4)
-    integer :: diffOrbj(4)
+    integer(8) :: diffOrbi(4)
+    integer(8) :: diffOrbj(4)
     integer :: pi
     integer :: oia, oib
     type (ivector), allocatable :: occA(:), occB(:)
@@ -1538,8 +1537,8 @@ contains
     integer(1) :: coupling
     integer(1), allocatable :: couplingS(:)
     integer :: nproc
-    integer :: diffOrbi(4)
-    integer :: diffOrbj(4)
+    integer(8) :: diffOrbi(4)
+    integer(8) :: diffOrbj(4)
     integer :: pi
     integer :: oia, oib
     type (ivector), allocatable :: occA(:), occB(:)
@@ -1782,11 +1781,11 @@ contains
   function CISCI_calculateEnergyOne( si, occA, occB, a, b ) result ( CIenergy )
     implicit none
     type(ivector), intent(in) :: occA(:), occB(:)
-    integer, intent(in) :: a, b
+    integer(8), intent(in) :: a, b
     integer, intent(in) :: si
     integer :: sj
     integer(8) :: ab, ll, abll, albl, auxab
-    integer :: l, la
+    integer(8) :: l, la
     real(8) :: CIenergy
 
     CIenergy = 0.0_8
@@ -1802,27 +1801,27 @@ contains
         ll = CIcore_instance%twoIndexArray(si)%values( l,l ) 
         abll = CIcore_instance%fourIndexArray(si)%values( ab, ll )
   
-        CIenergy = CIenergy + CIcore_instance%fourCenterIntegrals(si,si)%values( abll, 1)
+        CIenergy = CIenergy + CIcore_instance%fourCenterIntegrals(si,si)%values( abll, 1_8)
   
         albl = CIcore_instance%fourIndexArray(si)%values( &
                                CIcore_instance%twoIndexArray(si)%values( a,l ), &
                                CIcore_instance%twoIndexArray(si)%values( l,b ) ) 
   
-        CIenergy = CIenergy + MolecularSystem_instance%species(si)%kappa*CIcore_instance%fourCenterIntegrals(si,si)%values(albl, 1)
+        CIenergy = CIenergy + MolecularSystem_instance%species(si)%kappa*CIcore_instance%fourCenterIntegrals(si,si)%values(albl, 1_8)
   
       end do
   
       do sj = 1, si - 1 !! avoid ii, same species
 
-        auxab = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * ( ab - 1)
+        auxab = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * ( ab - 1_8 )
 
-        do la =1,  CIcore_instance%occupationNumber( sj ) 
+        do la = 1_8,  CIcore_instance%occupationNumber( sj ) 
 
           l = occA(sj)%values(la) ! or b, both are the same
 
-          abll = auxab  + CIcore_instance%twoIndexArray(sj)%values( l, l) 
+          abll = auxab + CIcore_instance%twoIndexArray(sj)%values( l, l) 
 
-          CIenergy = CIenergy + CIcore_instance%fourCenterIntegrals( si, sj )%values(abll, 1) 
+          CIenergy = CIenergy + CIcore_instance%fourCenterIntegrals( si, sj )%values(abll, 1_8)
 
         end do
 
@@ -1830,15 +1829,15 @@ contains
 
       do sj = si + 1, MolecularSystem_instance%numberOfQuantumSpecies !! avoid ii, same species
 
-        auxab = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * ( ab - 1)
+        auxab = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * ( ab - 1_8)
 
-        do la = 1,  CIcore_instance%occupationNumber( sj )
+        do la = 1_8,  CIcore_instance%occupationNumber( sj )
 
           l = occA(sj)%values(la) ! or b, both are the same
 
           abll = auxab  + CIcore_instance%twoIndexArray(sj)%values( l, l) 
 
-          CIenergy = CIenergy + CIcore_instance%fourCenterIntegrals( si, sj )%values(abll, 1) 
+          CIenergy = CIenergy + CIcore_instance%fourCenterIntegrals( si, sj )%values(abll, 1_8)
 
         end do
 
@@ -1849,7 +1848,7 @@ contains
   function CISCI_calculateEnergyTwoSame( si, occA, occB, ai, aj, bi, bj ) result ( CIenergy )
     implicit none
     type(ivector), intent(in) :: occA(:), occB(:)
-    integer, intent(in) :: ai, aj, bi, bj
+    integer(8), intent(in) :: ai, aj, bi, bj
     integer, intent(in) :: si
     integer(8) :: aibi_ajbj, aibj_ajbi
     real(8) :: CIenergy
@@ -1860,20 +1859,20 @@ contains
                     CIcore_instance%twoIndexArray(si)%values( ai, bi ), &
                     CIcore_instance%twoIndexArray(si)%values( aj, bj ) )
   
-    CIenergy = CIcore_instance%fourCenterIntegrals(si,si)%values( aibi_ajbj, 1)
+    CIenergy = CIcore_instance%fourCenterIntegrals(si,si)%values( aibi_ajbj, 1_8)
 
     aibj_ajbi = CIcore_instance%fourIndexArray(si)%values( &
                     CIcore_instance%twoIndexArray(si)%values( ai, bj ), &
                     CIcore_instance%twoIndexArray(si)%values( aj, bi ) )
  
     CIenergy = CIenergy + MolecularSystem_instance%species(si)%kappa * & 
-                          CIcore_instance%fourCenterIntegrals(si,si)%values( aibj_ajbi, 1)
+                          CIcore_instance%fourCenterIntegrals(si,si)%values( aibj_ajbi, 1_8)
   
   end function CISCI_calculateEnergyTwoSame
 
   function CISCI_calculateEnergyTwoDiff( si, sj, ai, aj, bi, bj ) result ( CIenergy )
     implicit none
-    integer, intent(in) :: ai, aj, bi, bj
+    integer(8), intent(in) :: ai, aj, bi, bj
     integer, intent(in) :: si, sj
     integer(8) :: aibi,  aux_aibi, ajbj
     real(8) :: CIenergy
@@ -1881,10 +1880,10 @@ contains
     CIenergy = 0.0_8
 
     aibi = CIcore_instance%twoIndexArray(si)%values( ai, bi )
-    aux_aibi = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * ( aibi - 1 ) 
+    aux_aibi = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * ( aibi - 1_8 ) 
 
     ajbj = CIcore_instance%twoIndexArray(sj)%values( aj, bj )
-    CIenergy = CIcore_instance%fourCenterIntegrals( si, sj )%values( aux_aibi +  ajbj, 1)
+    CIenergy = CIcore_instance%fourCenterIntegrals( si, sj )%values( aux_aibi +  ajbj, 1_8)
 
   end function CISCI_calculateEnergyTwoDiff
 
@@ -1893,14 +1892,14 @@ contains
 
     type(ivector), intent(in) :: occA(:)
     integer :: si,sj
-    integer :: ki,li,lj,k,l,kk,ll,kkll,kllk
+    integer(8) :: ki,li,lj,k,l,kk,ll,kkll,kllk
     integer(8) :: auxIndex1, auxIndex2, auxIndex
     real(8) :: CIenergy
 
     CIenergy = 0.0_8
 
     do si = 1, MolecularSystem_instance%numberOfQuantumSpecies
-      do ki =1, CIcore_instance%occupationNumber( si )  !! 1 is from a and 2 from b
+      do ki = 1_8, CIcore_instance%occupationNumber( si )  !! 1 is from a and 2 from b
 
         k = occA( si )%values( ki )
 
@@ -1910,7 +1909,7 @@ contains
         !Two particles, same specie
         kk = CIcore_instance%twoIndexArray( si )%values( k, k)
 
-        do li = ki + 1, CIcore_instance%occupationNumber( si )  !! 1 is from a and 2 from b
+        do li = ki + 1_8, CIcore_instance%occupationNumber( si )  !! 1 is from a and 2 from b
 
           l = occA( si )%values( li )
           ll = CIcore_instance%twoIndexArray( si )%values( l,l )
@@ -1918,7 +1917,7 @@ contains
 
           !Coulomb
           CIenergy = CIenergy + &
-              CIcore_instance%fourCenterIntegrals( si, si )%values( kkll, 1)
+              CIcore_instance%fourCenterIntegrals( si, si )%values( kkll, 1_8)
 
           !Exchange, depends on spin
 
@@ -1927,20 +1926,20 @@ contains
                         CIcore_instance%twoIndexArray( si )%values(l,k) )
 
           CIenergy = CIenergy + &
-                  MolecularSystem_instance%species( si )%kappa*CIcore_instance%fourCenterIntegrals( si, si )%values( kllk, 1)
+                  MolecularSystem_instance%species( si )%kappa*CIcore_instance%fourCenterIntegrals( si, si )%values( kllk, 1_8)
         end do
 
         !!Two particles, different species
         do sj = si + 1, MolecularSystem_instance%numberOfQuantumSpecies
 
-          do lj = 1, CIcore_instance%occupationNumber( sj ) !! 1 is from a and 2 from b
+          do lj = 1_8, CIcore_instance%occupationNumber( sj ) !! 1 is from a and 2 from b
             l = occA( sj )%values(lj)
 
             ll = CIcore_instance%twoIndexArray( sj )%values(l,l)
-            kkll = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * (kk - 1 ) + ll
+            kkll = CIcore_instance%numberOfSpatialOrbitals2%values( sj ) * (kk - 1_8 ) + ll
 
             CIenergy = CIenergy + &
-            CIcore_instance%fourCenterIntegrals( si, sj )%values( kkll, 1)
+            CIcore_instance%fourCenterIntegrals( si, sj )%values( kkll, 1_8)
 
           end do
 
@@ -1978,8 +1977,8 @@ contains
     real(8) :: diagonal, denominator
     real(8) :: energyIncrement, energyIncrement_corrected, energyCorrection_errorCrumbs, energyCorrection_aux ! For Kahan summ
     integer(1) :: coupling
-    integer :: diffOrbi(4)
-    integer :: diffOrbj(4)
+    integer(8) :: diffOrbi(4)
+    integer(8) :: diffOrbj(4)
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 

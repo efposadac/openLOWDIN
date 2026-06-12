@@ -25,6 +25,6 @@ CONTROL
 	CISCITargetSpace = 800 
 	CISCIBufferFactor = 32 
 	CISCITargetGrowthFactor = 1
-	CISCITargetSteps = 5
+	CISCITargetGrowthSteps = 5
 END CONTROL
 

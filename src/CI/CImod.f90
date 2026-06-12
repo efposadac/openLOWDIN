@@ -557,10 +557,10 @@ contains
       call Matrix_constructorInteger8(CIcore_instance%twoIndexArray(i), &
                           int( numberOfContractions,8), int( numberOfContractions,8) , 0_8 )
 
-      c = 0
+      c = 0_8
       do a=1,numberOfContractions
         do b = a, numberOfContractions
-          c = c + 1
+          c = c + 1_8
           CIcore_instance%twoIndexArray(i)%values(a,b) = c !IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
           CIcore_instance%twoIndexArray(i)%values(b,a) = CIcore_instance%twoIndexArray(i)%values(a,b)
         end do 
@@ -568,14 +568,14 @@ contains
 
       !! auxilary 4-index array
       ssize1 = MolecularSystem_getTotalNumberOfContractions( i )
-      ssize1 = ( ssize1 * ( ssize1 + 1 ) ) / 2
+      ssize1 = ( ssize1 * ( ssize1 + 1_8 ) ) / 2_8
 
       call Matrix_constructorInteger8(CIcore_instance%fourIndexArray(i), &
                           int( ssize1,8), int( ssize1,8) , 0_8 )
-      c = 0
+      c = 0_8
       do a = 1, ssize1
         do b = a, ssize1
-          c = c + 1
+          c = c + 1_8
           CIcore_instance%fourIndexArray(i)%values(a,b) = c! IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )
           CIcore_instance%fourIndexArray(i)%values(b,a) = &
                CIcore_instance%fourIndexArray(i)%values(a,b)
