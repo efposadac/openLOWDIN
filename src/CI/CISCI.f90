@@ -337,12 +337,28 @@ contains
       !! if the correlation energy is positive, then don't use the guess
       if (  CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
 
+
+      finalk = k
+
+      !! convergence criteria. Exit here avoiding matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
+      if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .and. k > 2 ) then
+        write (6,"(T2,A30)") "Reached SCI Energy Convergence of 1E-5 "
+        exit
+      end if
+
+      !! don't grow anymore
+      if ( k == 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS ) then
+        write (6,"(T2,A30)") "Reached Max number of steps "
+        exit
+      end if
+
       !! preparation for next iter
 
       !! reset auxindex arrary, for later use in sorting target coeff. global absolute index
       do i = 1, CISCI_instance%buffer_amplitudeCoreSize
         CISCI_instance%index_amplitudeCore%values( i ) = i
       enddo
+
 
       !! getting the core absolute largest coefficients
       call CISort_quicksort_vector(  eigenVectors%values(:,1), &
