@@ -247,7 +247,9 @@ contains
     real(8), intent(in) :: initialEnergy 
     logical, intent(in):: initialStep, finalStep
     real(8) :: currentEnergy 
-    integer(8) :: a, aa, i, j, ii, jj, m, m1, m2
+    integer(8) :: a, aa, i, j, ii, jj
+    integer(8) :: o1, o2
+    integer(8) :: m, m1, m2
     integer :: k, finalk ! macro SCI iteration
     integer :: nproc, n
     real(8) :: timeA(20), timeB(20)
@@ -429,7 +431,8 @@ contains
       !! reset iterators
       call CISCI_resetBuffer()
 
-      !! add the final target configurations at the beginning of the array. in such way, only the non-duplicated connected configurations will be added
+      m = 1
+      !! add the final target configurations at the beginning of the buffer array. in such way, only the non-duplicated connected configurations will be added
       do n = 1, CIcore_instance%nproc
         m1 = CISCI_instance%omp_targetInterval(1, n ) !! position to add 
         m2 = m1 + CISCI_instance%targetSpaceSize / CIcore_instance%nproc - 1 !! number of conf added
@@ -437,10 +440,14 @@ contains
         CISCI_instance%omp_target_iterator_m(n) = m2
         CISCI_instance%buffer_amplitudeCore%values(m1:m2) = huge(0.0_8) !! big number to ensure this conf won't be discarded after sorting
         do spi = 1, numberOfSpecies
-          do m = 1, m2 - m1 + 1
-            CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), m + m1 - 1)  = CISCI_instance%confTarget_orb(spi)%values(:,m)
-          enddo
+
+          o1 = CISCI_instance%combinedOrbitalsPositions(1,spi) 
+          o2 = CISCI_instance%combinedOrbitalsPositions(2,spi)
+
+          CISCI_instance%confAmplitudeCore_orb( o1:o2, m1:m2 ) = CISCI_instance%confTarget_orb(spi)%values(:, m: m + m2 - m1 )
         enddo
+        !! m is the position in confTarget (contiguous), m1 and m2 position in buffer array
+        m = m + m2 - m1 + 1
       enddo
 
       !! computing the diagonal in the target space, for fast computation of core amplitudes
