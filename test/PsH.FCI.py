@@ -17,7 +17,7 @@ def setReferenceValues():
 "Natural Orb 1 e+ 4" : [0.163628,1E-4],
 "Natural Orb 1 e+ 5" : [0.617836,1E-4],
 "Natural Orb 1 e+ 6" : [0.303937,1E-4]
-}                       
+}
     return refValues
 
 def getTestValues(testValues,testName):
@@ -30,8 +30,8 @@ def getTestValues(testValues,testName):
     testValues["Natural Occ 1 e+ 1"] = test.getNaturalOrbOcc(testName,"E+",1)
     orbital = test.getNaturalOrb(testName,"E+",1)
     for j in range(1,6+1):
-        testValues["Natural Orb 1 e+ "+str(j)] = orbital[j-1] 
-    return 
+        testValues["Natural Orb 1 e+ "+str(j)] = orbital[j-1]
+    return
 
 if __name__ == '__main__':
     testName = sys.argv[0][:-3]

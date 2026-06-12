@@ -337,6 +337,29 @@ contains
       !! if the correlation energy is positive, then don't use the guess
       if (  CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
 
+      !! reset auxindex arrary, for later use in sorting target coeff. global absolute index
+      do i = 1, CISCI_instance%buffer_amplitudeCoreSize
+        CISCI_instance%index_amplitudeCore%values( i ) = i
+      enddo
+
+      !! copy confTarget_orb to confTarget_occ ( same order)
+      call CISCI_orb2occ()
+
+      !! getting the core absolute largest coefficients
+      call CISort_quicksort_vector(  eigenVectors%values(:,1), &
+                                     CISCI_instance%index_amplitudeCore%values(1:CISCI_instance%targetSpaceSize), & 
+                                     1_8,  int(CISCI_instance%targetSpaceSize,8)  )
+    
+      !! just some diagnostics, average of last 5 coefficients
+      CISCI_instance%minCoeff(k) = sum(eigenVectors%values(CISCI_instance%targetSpaceSize-5:CISCI_instance%targetSpaceSize,1) ) / 5.0
+
+      !! copy confTarget_occ to confTarget_orb (sorted by index_amplitude)
+      call CISCI_occ2orb()
+
+      !! copy confTarget_orb to confTarget_occ ( now sortered)
+      call CISCI_orb2occ()
+
+!$  timeB(k) = omp_get_wtime()
 
       finalk = k
 
@@ -354,48 +377,17 @@ contains
 
       !! preparation for next iter
 
-      !! reset auxindex arrary, for later use in sorting target coeff. global absolute index
-      do i = 1, CISCI_instance%buffer_amplitudeCoreSize
-        CISCI_instance%index_amplitudeCore%values( i ) = i
-      enddo
-
-
-      !! getting the core absolute largest coefficients
-      call CISort_quicksort_vector(  eigenVectors%values(:,1), &
-                                     CISCI_instance%index_amplitudeCore%values(1:CISCI_instance%targetSpaceSize), & 
-                                     1_8,  int(CISCI_instance%targetSpaceSize,8)  )
-    
-      !! just some diagnostics, average of last 5 coefficients
-      CISCI_instance%minCoeff(k) = sum(eigenVectors%values(CISCI_instance%targetSpaceSize-5:CISCI_instance%targetSpaceSize,1) ) / 5.0
-
-      !! storing only the largest coefficients, and rearraing the next eigenvector guess 
+      !! storing only the largest coefficients, and rearraing the next eigenvector guess
       do i = 1,  CISCI_instance%coreSpaceSize
         CISCI_instance%coefficientCore%values(i) = eigenVectors%values(i,1)
       enddo
 
       !! storing the top sorted target conf into the core conf space
       do i = 1,  CISCI_instance%coreSpaceSize
-        ii = CISCI_instance%index_amplitudeCore%values(i)
         do spi = 1, numberOfSpecies
-          CISCI_instance%confCore(spi)%values(:,i) = CISCI_instance%confTarget_orb(spi)%values(:,ii) 
+          CISCI_instance%confCore(spi)%values(:,i) = CISCI_instance%confTarget_orb(spi)%values(:,i)
         enddo
       enddo
-
-!$  timeB(k) = omp_get_wtime()
-
-      finalk = k
-
-      !! convergence criteria. Exit here avoiding matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
-      if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .and. k > 2 ) then
-        write (6,"(T2,A30)") "Reached SCI Energy Convergence of 1E-5 "
-        exit
-      end if
-
-      !! don't grow anymore
-      if ( k == 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS ) then
-        write (6,"(T2,A30)") "Reached Max number of steps "
-        exit
-      end if
 
       !! set target space, either grow or refine
       if ( k <= CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS ) then
@@ -2466,6 +2458,7 @@ contains
     !! organize configurations according to the sorted amplitudes
     call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore_orb(:,m1:m2), &
                                   CISCI_instance%index_amplitudeCore%values(m1:m2), &
+                                  CISort_instance%combinedNumberOfOrbitals, &
                                   m2 - m1 + 1, n )
 
     !! reset auxindex arrary, relative positions
@@ -2632,5 +2625,33 @@ contains
     deallocate ( orbA )
 
   end subroutine CISCI_orb2occ
+
+  !! Generate the orbital configuration representation from the occupied orbitals
+  subroutine CISCI_occ2orb()
+    implicit none
+    integer :: spi, numberOfSpecies
+    integer :: pi
+    integer :: a, aa
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
+
+    do spi = 1, numberOfSpecies
+      CISCI_instance%confTarget_orb(spi)%values = -1_1
+    enddo
+
+    do a = 1,  CISCI_instance%targetSpaceSize
+
+      if (CISCI_instance%confTarget_occ(1)%values(1,a) == -1_1 ) exit
+
+      aa = CISCI_instance%index_amplitudeCore%values(a)
+      do spi = 1, numberOfSpecies
+        CISCI_instance%confTarget_orb(spi)%values(:,a) = 0_1
+        do pi = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+          CISCI_instance%confTarget_orb(spi)%values( CISCI_instance%confTarget_occ(spi)%values(pi,aa), a ) = 1_1
+        enddo
+      enddo
+    enddo
+
+  end subroutine CISCI_occ2orb
 
 end module CISCI_

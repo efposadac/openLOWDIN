@@ -11,7 +11,7 @@ module CISort_
     integer(1), allocatable :: tmp_Vector (:,:) ! species, n threads
     integer(1), allocatable :: pivot (:,:) ! species, orbs
     integer :: numberOfSpecies
-    integer :: combinedNumberOfOrbitals
+    integer(8) :: combinedNumberOfOrbitals
   end type CISort
 
   type(CISort) :: CISort_instance
@@ -30,7 +30,7 @@ contains
     nproc = CIcore_instance%nproc 
 
     !! auxiliary variables to map orbitals from vector to array location
-    CISort_instance%combinedNumberOfOrbitals = sum(CIcore_instance%numberOfOrbitals%values(:))
+    CISort_instance%combinedNumberOfOrbitals = int(sum(CIcore_instance%numberOfOrbitals%values(:)),8)
   
     allocate ( CISort_instance%tmp_Vector(  CISort_instance%combinedNumberOfOrbitals, nproc + 1 ) )
     allocate ( CISort_instance%pivot( CISort_instance%combinedNumberOfOrbitals, nproc + 1 ) )
@@ -464,32 +464,33 @@ contains
   !! Algorithm taken from Zecong Hu
   !! https://stackoverflow.com/questions/60917343/
 
-  subroutine CISort_sortArrayByIndex( matrix, auxindex_array, vectorSize, n  )
+  subroutine CISort_sortArrayByIndex( matrix, auxindex_array, dim1, dim2, n  )
     implicit none
     integer(1), intent(inout) :: matrix(:,:)
     integer(8), intent(inout) :: auxindex_array(:)
-    integer(8) :: vectorSize
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: dim2
     integer, intent(in) :: n
     !real(8), allocatable :: temp(:)
     integer :: i, x, y
 
-    CISort_instance%tmp_Vector(:,n) = -1_1
+    CISort_instance%tmp_Vector(1:dim1,n) = -1_1
 
-    do i = 1, vectorSize
+    do i = 1, dim2
       if ( auxindex_array(i) == -1 ) cycle 
 
-        CISort_instance%tmp_Vector(:,n) = matrix(:,i)
+        CISort_instance%tmp_Vector(1:dim1,n) = matrix(1:dim1,i)
         x = i
         y = auxindex_array(i) 
 
       do while ( y /= i )
         auxindex_array(x) = -1
-        matrix(:,x) = matrix(:,y) 
+        matrix(1:dim1,x) = matrix(1:dim1,y) 
         x = y
         y = auxindex_array(x)
       enddo 
 
-      matrix(:,x) = CISort_instance%tmp_Vector(:,n) 
+      matrix(1:dim1,x) = CISort_instance%tmp_Vector(1:dim1,n) 
       auxindex_array(x) = -1
 
     enddo

@@ -7,14 +7,14 @@ import lowdinTestFunctions as test
 def setReferenceValues():
     refValues = {
 "HF energy" : [-0.666783062050,1E-8],
-"E_SCI+PT2" : [-0.743331591036,5E-6],
-}                       
-    return refValues
+"E_SCI+PT2" : [-0.743335409139,5E-6],
+}
+return refValues
 
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
     testValues["E_SCI+PT2"] = test.getSCIPT2Energy(testName)
-    return 
+    return
 
 if __name__ == '__main__':
     testName = sys.argv[0][:-3]
