@@ -627,7 +627,7 @@ contains
       end do
     end do
 
-    ! do state=1, min(CONTROL_instance%NUMBER_OF_CI_STATES,this%numberOfDisplacedSystems)
+    ! do state=1, min(CONTROL_instance%CI_NUMBER_OF_STATES,this%numberOfDisplacedSystems)
     ! end do
 
     ! do state=1, CONTROL_instance%CI_STATES_TO_PRINT

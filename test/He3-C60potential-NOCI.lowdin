@@ -18,7 +18,7 @@ CONTROL
 	rotationalScanGrid=50
 	configurationMinPPDistance=3.7
 	configurationMaxPPDistance=3.8
-	numberOfCIstates=10
+	CInumberOfStates=10
 END CONTROL
 
 EXTERPOTENTIAL

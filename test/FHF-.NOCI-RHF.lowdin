@@ -22,7 +22,7 @@ CONTROL
 	translationScanGrid=3 3 3
 	translationStep=0.1
 	integralStorage="MEMORY"
-	numberOfCIstates=10
+	CInumberOfStates=10
 	totalEnergyTolerance=1E-12
 	integralThreshold = 1E-16
 END CONTROL

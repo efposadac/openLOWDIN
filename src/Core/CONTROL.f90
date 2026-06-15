@@ -187,8 +187,8 @@ module CONTROL_
     !! CI
     !!
     character(20) :: CONFIGURATION_INTERACTION_LEVEL
-    character(20) :: SELECTIVE_CONFIGURATION_INTERACTION_METHOD
-    integer :: NUMBER_OF_CI_STATES
+    character(20) :: CI_SELECTIVE_METHOD
+    integer :: CI_NUMBER_OF_STATES
     character(20) :: CI_DIAGONALIZATION_METHOD
     character(20) :: CI_PRINT_EIGENVECTORS_FORMAT
     character(20) :: CI_DIAGONAL_DRESSED_SHIFT
@@ -544,8 +544,8 @@ module CONTROL_
   !! CISD - FCI
   !!
   character(20) :: LowdinParameters_configurationInteractionLevel
-  character(20) :: LowdinParameters_selectiveConfigurationInteractionMethod
-  integer :: LowdinParameters_numberOfCIStates
+  character(20) :: LowdinParameters_CIselectiveMethod
+  integer :: LowdinParameters_CInumberOfStates
   character(20) :: LowdinParameters_CIdiagonalizationMethod
   character(20) :: LowdinParameters_CIPrintEigenVectorsFormat
   character(20) :: LowdinParameters_CIdiagonalDressedShift
@@ -887,8 +887,8 @@ module CONTROL_
     !! CISD - FCI
     !!
     LowdinParameters_configurationInteractionLevel, &
-    LowdinParameters_selectiveConfigurationInteractionMethod, &
-    LowdinParameters_numberOfCIStates, &
+    LowdinParameters_CIselectiveMethod, &
+    LowdinParameters_CInumberOfStates, &
     LowdinParameters_CIdiagonalizationMethod, &
     LowdinParameters_CIdiagonalDressedShift, &
     LowdinParameters_CIactiveSpace, &
@@ -1252,8 +1252,8 @@ contains
     !! CISD - FCI
     !!
     LowdinParameters_configurationInteractionLevel = "NONE"
-    LowdinParameters_selectiveConfigurationInteractionMethod = "NONE"
-    LowdinParameters_numberOfCIStates = 1
+    LowdinParameters_CIselectiveMethod = "NONE"
+    LowdinParameters_CInumberOfStates = 1
     LowdinParameters_CIdiagonalizationMethod = "DSYEVR"
     LowdinParameters_CIdiagonalDressedShift = "NONE"
     LowdinParameters_CIactiveSpace = 0 !! Full
@@ -1603,8 +1603,8 @@ contains
     !! CISD - FCI
     !!
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "NONE"
-    CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD = "NONE"
-    CONTROL_instance%NUMBER_OF_CI_STATES = 1
+    CONTROL_instance%CI_SELECTIVE_METHOD = "NONE"
+    CONTROL_instance%CI_NUMBER_OF_STATES = 1
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = "DSYEVR"
     CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT = "NONE"
     CONTROL_instance%CI_ACTIVE_SPACE = 0 !! Full
@@ -2004,14 +2004,14 @@ contains
     !! CISD - FCI
     !!
     CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = LowdinParameters_configurationInteractionLevel
-    CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD = LowdinParameters_selectiveConfigurationInteractionMethod 
-    CONTROL_instance%NUMBER_OF_CI_STATES = LowdinParameters_numberOfCIStates
+    CONTROL_instance%CI_SELECTIVE_METHOD = LowdinParameters_CIselectiveMethod 
+    CONTROL_instance%CI_NUMBER_OF_STATES = LowdinParameters_CInumberOfStates
     CONTROL_instance%CI_DIAGONALIZATION_METHOD = LowdinParameters_CIdiagonalizationMethod
     CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT = LowdinParameters_CIdiagonalDressedShift
     CONTROL_instance%CI_ACTIVE_SPACE = LowdinParameters_CIactiveSpace
     CONTROL_instance%CI_STATES_TO_PRINT = LowdinParameters_CIstatesToPrint
-    if (CONTROL_instance%CI_STATES_TO_PRINT .gt. CONTROL_instance%NUMBER_OF_CI_STATES) &
-      CONTROL_instance%NUMBER_OF_CI_STATES = CONTROL_instance%CI_STATES_TO_PRINT
+    if (CONTROL_instance%CI_STATES_TO_PRINT .gt. CONTROL_instance%CI_NUMBER_OF_STATES) &
+      CONTROL_instance%CI_NUMBER_OF_STATES = CONTROL_instance%CI_STATES_TO_PRINT
     CONTROL_instance%CI_MAX_NCV = LowdinParameters_CImaxNCV
     CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX = LowdinParameters_CIsizeOfGuessMatrix
     CONTROL_instance%CI_STACK_SIZE = LowdinParameters_CIstackSize
@@ -2387,8 +2387,8 @@ contains
     !! CISD - FCI
     !!
     LowdinParameters_configurationInteractionLevel = CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
-    LowdinParameters_selectiveConfigurationInteractionMethod = CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD 
-    LowdinParameters_numberOfCIStates = CONTROL_instance%NUMBER_OF_CI_STATES
+    LowdinParameters_CIselectiveMethod = CONTROL_instance%CI_SELECTIVE_METHOD 
+    LowdinParameters_CInumberOfStates = CONTROL_instance%CI_NUMBER_OF_STATES
     LowdinParameters_CIdiagonalizationMethod = CONTROL_instance%CI_DIAGONALIZATION_METHOD
     LowdinParameters_CIdiagonalDressedShift = CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
     LowdinParameters_CIactiveSpace = CONTROL_instance%CI_ACTIVE_SPACE
@@ -2666,11 +2666,11 @@ contains
 
     end if
 
-    if(CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD /= "NONE" ) then
+    if(CONTROL_instance%CI_SELECTIVE_METHOD /= "NONE" ) then
 
       if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "NONE" ) CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "FCI" 
       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
-      write (*,"(T10,A,A)") "SELECTIVE CONFIGURATION INTERACTION NETHOD:  ", CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD
+      write (*,"(T10,A,A)") "SELECTIVE CONFIGURATION INTERACTION NETHOD:  ", CONTROL_instance%CI_SELECTIVE_METHOD
     endif
 
     !!***************************************************************************

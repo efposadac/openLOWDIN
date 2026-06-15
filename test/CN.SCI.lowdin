@@ -16,8 +16,8 @@ END TASKS
 
 CONTROL
 	readCoefficients=F
-	selectiveConfigurationInteractionMethod = "ASCI"
-	numberOfCIstates=1	
+	CIselectiveMethod = "ASCI"
+	CInumberOfStates=1	
 	CINaturalOrbitals=T
 	CIStatesToPrint = 1
 	CIdiagonalizationMethod = "JADAMILU"

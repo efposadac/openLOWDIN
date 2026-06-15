@@ -34,7 +34,7 @@ CONTROL
 	totalEnergyTolerance=1E-12
 	integralThreshold = 1E-16
 	integralsTransformationMethod = "C"
-	numberOfCIstates=1
+	CInumberOfStates=1
 	CIdiagonalizationMethod = "JADAMILU"
 END CONTROL
 INPUT_CI

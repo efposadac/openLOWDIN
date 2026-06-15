@@ -115,7 +115,7 @@ contains
        call Vector_constructor(orbital_occupations, int(orderOfMatrix,8), 0.0_8 )
 
        open(unit = wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-       do state = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+       do state = 1, CONTROL_instance%CI_NUMBER_OF_STATES
            write(auxstring,*) state
            arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
            orbitals = Matrix_getFromFile(unit= wfnUnit, rows= int(orderOfMatrix,8), &

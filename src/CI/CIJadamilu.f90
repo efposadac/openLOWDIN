@@ -298,19 +298,19 @@ contains
         X(j) = eigenVectors%values(j, 1)
       end do
 
-      do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
         EIGS(i) = eigenValues%values(i)
       end do
     else
       jj = 0
-      do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
         jj = (i - 1)*n
         do j = 1, CONTROL_instance%CI_SIZE_OF_GUESS_MATRIX
           X(jj + CIcore_instance%auxIndexCIMatrix%values(j)) = CIcore_instance%initialEigenVectors%values(j, i)
         end do
       end do
 
-      do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
         EIGS(i) = CIcore_instance%initialEigenValues%values(i)
       end do
     end if
@@ -321,7 +321,7 @@ contains
     gap = 0
     SHIFT = EIGS(1)
 
-    do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+    do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
       write (6, "(T2,A5,I4,2X,A10,F20.10,2X,A11,F20.10)") "State", i, "Eigenvalue", eigs(i), "Eigenvector", x((i - 1)*n + i)
     end do
 

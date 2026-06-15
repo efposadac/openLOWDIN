@@ -81,7 +81,7 @@ contains
       print *, "Please set rotationalScanGridAroundZ=N in the input and restart the calculation"
     end if
 
-    nstates = min(CONTROL_instance%NUMBER_OF_CI_STATES, this%numberOfDisplacedSystems)
+    nstates = min(CONTROL_instance%CI_NUMBER_OF_STATES, this%numberOfDisplacedSystems)
     if (nstates .lt. 2) nstates = 2
     npoints = this%numberOfIndividualTransformations
 

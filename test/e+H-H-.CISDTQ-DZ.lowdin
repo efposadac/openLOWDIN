@@ -24,7 +24,7 @@ TASKS
 	!configurationInteractionLevel ="CIS","CISD","CISDT","CISDTQ","FCI"
 END TASKS
 
-!Compute only the "numberOfCIstates" states. Here we select the ground and the first excited state
+!Compute only the "CInumberOfStates" states. Here we select the ground and the first excited state
 !Compute the density matrix for "CIstatesToPrint" states, for density outputs
 !Generate the natural orbitals, for visualization in molden files
 !The Davidson diagonalization implemented in JADAMILU is the recomended method.
@@ -34,7 +34,7 @@ END TASKS
 !Strict SCF convergence improves the quality of the CI results (not required for the FCI)
 
 CONTROL
-	numberOfCIstates=2
+	CInumberOfStates=2
 	CIStatesToPrint=2
 	CINaturalOrbitals=T
 	CIdiagonalizationMethod = "JADAMILU"

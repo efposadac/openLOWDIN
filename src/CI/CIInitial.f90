@@ -56,20 +56,20 @@ contains
     call CIInitial_calculateInitialCIMatrix()
 
     !! diagonalize the initial matrix
-    call Vector_constructor(CIcore_instance%initialEigenValues, int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), 0.0_8)
+    call Vector_constructor(CIcore_instance%initialEigenValues, int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
 
     call Matrix_constructor(CIcore_instance%initialEigenVectors, &
                             int(initialCIMatrixSize, 8), &
-                            int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), 0.0_8)
+                            int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
 
     call Matrix_eigen_select(CIcore_instance%initialHamiltonianMatrix, &
                              CIcore_instance%initialEigenValues, &
-                             1, int(CONTROL_instance%NUMBER_OF_CI_STATES, 4), &
+                             1, int(CONTROL_instance%CI_NUMBER_OF_STATES, 4), &
                              eigenVectors=CIcore_instance%initialEigenVectors, &
                              flags=int(SYMMETRIC, 4))
 
     write (*, *) "Initial eigenValues"
-    do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+    do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
       write (*, *) i, CIcore_instance%initialEigenValues%values(i)
     end do
 

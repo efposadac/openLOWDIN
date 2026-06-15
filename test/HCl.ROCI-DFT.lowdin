@@ -14,7 +14,7 @@ CONTROL
 	computeROCIformula=.T.
 	rotationAroundZMaxAngle=35
 	rotationAroundZStep=5
-	numberOfCIStates=5
+	CInumberOfStates=5
 	totalEnergyTolerance=1E-12
 	integralThreshold = 1E-16
 	configurationOverlapThreshold=1E-10

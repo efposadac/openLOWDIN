@@ -1361,7 +1361,7 @@ contains
     write (*, "(A)") " EIGENVALUES AND EIGENVECTORS: "
     write (*, "(A)") "========================================="
     write (*, "(A)") ""
-    do state = 1, min(CONTROL_instance%NUMBER_OF_CI_STATES, this%numberOfDisplacedSystems)
+    do state = 1, min(CONTROL_instance%CI_NUMBER_OF_STATES, this%numberOfDisplacedSystems)
       write (*, "(A)") ""
       write (*, "(T9,A17,I3,A10, F25.12)") "STATE: ", state, " ENERGY = ", this%statesEigenvalues%values(state)
       write (*, "(A38)") "Components: "

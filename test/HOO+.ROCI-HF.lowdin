@@ -16,7 +16,7 @@ CONTROL
 	computeROCIformula=.T.
 	rotationAroundZMaxAngle=40
 	rotationAroundZStep=5
-	numberOfCIStates=5
+	CInumberOfStates=5
         integralStorage="MEMORY"
 	readCoefficients=.F.
 END CONTROL

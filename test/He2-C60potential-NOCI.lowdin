@@ -20,7 +20,7 @@ CONTROL
 	integralThreshold = 1E-16
 	scfGlobalMaxIterations=2000
 	configurationMinPPDistance=3.7
-	numberOfCIstates=110
+	CInumberOfStates=110
 END CONTROL
 
 EXTERPOTENTIAL

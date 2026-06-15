@@ -562,7 +562,7 @@ contains
       if ( existFile) then
 
         open(unit = wfnUnit, file=trim(wfnFile), status="old", form="formatted")
-        do state = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+        do state = 1, CONTROL_instance%CI_NUMBER_OF_STATES
           write(auxstring,*) state
           arguments(1) = "NATURALORBITALS"//trim(adjustl(auxstring)) 
           wfObject%waveFunctionCoefficients = Matrix_getFromFile(unit= wfnUnit, rows = int(numberOfContractions,8), columns= int(numberOfContractions,8), &

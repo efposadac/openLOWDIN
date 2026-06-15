@@ -208,7 +208,7 @@ contains
     call CIOrder_estimate_FCI_numberOfConf()
 
     !! -------------------------------- Standard CI -------------------------------------
-    if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
+    if ( CONTROL_instance%CI_SELECTIVE_METHOD == "NONE" ) then
 
 
       write (*,*) "Building Strings..."
@@ -237,7 +237,7 @@ contains
 
       case ("JADAMILU")
         call Vector_constructor(CIcore_instance%eigenValues, &
-                                int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), 0.0_8)
+                                int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
       case ("DSYEVX")
         call Vector_constructor(CIcore_instance%eigenValues, &
                                 int(CIcore_instance%numberOfConfigurations, 8), 0.0_8)
@@ -254,7 +254,7 @@ contains
       !! allocating eigenVector array
       call Matrix_constructor (CIcore_instance%eigenVectors, &
            int(CIcore_instance%numberOfConfigurations,8), &
-           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+           int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
 
       if ( CONTROL_instance%CI_LOAD_EIGENVECTOR ) then 
         call CImod_loadEigenVector (CIcore_instance%eigenvalues, &
@@ -288,11 +288,11 @@ contains
 
             write (6,*) ""
             write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-            float(CIcore_instance%numberOfConfigurations*( 2 + (3*ms + CONTROL_instance%NUMBER_OF_CI_STATES + 1) + 4*ms*ms)*8)/(1024**3) , " GB"
+            float(CIcore_instance%numberOfConfigurations*( 2 + (3*ms + CONTROL_instance%CI_NUMBER_OF_STATES + 1) + 4*ms*ms)*8)/(1024**3) , " GB"
             write (6,*) ""
   
             call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
-               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
+               int(CONTROL_instance%CI_NUMBER_OF_STATES,8), &
                                               CIcore_instance%eigenValues, &
                CIcore_instance%eigenVectors, timeA, timeB)
   
@@ -315,7 +315,7 @@ contains
             end do
   
             call Matrix_eigen_select(CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
-               int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
+               int(1), int(CONTROL_instance%CI_NUMBER_OF_STATES), &  
                eigenVectors = CIcore_instance%eigenVectors, &
                flags = int(SYMMETRIC,4))
   
@@ -332,7 +332,7 @@ contains
             end do
   
             call Matrix_eigen_dsyevr(CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
-                                     1_4, int(CONTROL_instance%NUMBER_OF_CI_STATES, 4), &
+                                     1_4, int(CONTROL_instance%CI_NUMBER_OF_STATES, 4), &
                    eigenVectors = CIcore_instance%eigenVectors, &
                    flags = SYMMETRIC)
   
@@ -376,7 +376,7 @@ contains
         case ("JADAMILU")
   
           call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
-               int(CONTROL_instance%NUMBER_OF_CI_STATES,8), &
+               int(CONTROL_instance%CI_NUMBER_OF_STATES,8), &
                                             CIcore_instance%eigenValues, &
                CIcore_instance%eigenVectors, timeA, timeB )
   
@@ -390,7 +390,7 @@ contains
           !$ write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
     
           call Matrix_eigen_select(CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
-                 int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
+                 int(1), int(CONTROL_instance%CI_NUMBER_OF_STATES), &  
                  eigenVectors = CIcore_instance%eigenVectors, &
                  flags = int(SYMMETRIC,4))
   
@@ -400,7 +400,7 @@ contains
             !$ write(*,"(A,E10.3,A4)") "** TOTAL Elapsed Time for building Hamiltonian Matrix : ", timeB - timeA ," (s)"
     
           call Matrix_eigen_dsyevr(CIcore_instance%hamiltonianMatrix, CIcore_instance%eigenValues, &
-                                   1_4, int(CONTROL_instance%NUMBER_OF_CI_STATES, 4), &
+                                   1_4, int(CONTROL_instance%CI_NUMBER_OF_STATES, 4), &
                eigenVectors = CIcore_instance%eigenVectors, &
                flags = SYMMETRIC)
   
@@ -409,7 +409,7 @@ contains
        endif !! standard CI methods 
   
     !! -------------------------------- SCI -------------------------------------
-    else !if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "SCI" ) then
+    else !if ( CONTROL_instance%CI_SELECTIVE_METHOD == "SCI" ) then
 
 
       call CISCI_show()
@@ -418,12 +418,12 @@ contains
       call CISCI_constructor( CIcore_instance%numberOfConfigurations )
 
       call Vector_constructor(CIcore_instance%eigenValues, &
-                                int(CONTROL_instance%NUMBER_OF_CI_STATES, 8), 0.0_8)
+                                int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
 
       !! initial size, CISCI_run will increase it
       call Matrix_constructor (CIcore_instance%eigenVectors, &
            int(CIcore_instance%numberOfConfigurations,8), &
-           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+           int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
 
       if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
@@ -766,7 +766,7 @@ contains
       write (6,"(T8,A30, I8)") "NUMBER OF CONFIGURATIONS = ", CIcore_instance%numberOfConfigurations
       write (6,"(T4,A34, F25.12)") "HF ENERGY = ", HartreeFock_instance%totalEnergy
       write (6,"(T4,A34, F25.12)") "GROUND STATE CORRELATION ENERGY = ", CIcorrection
-      do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
         write (6, "(T18,A7,I3,A10, F25.12)") "STATE: ", i, " ENERGY = ", CIcore_instance%eigenValues%values(i)
       end do
       write(*,"(A)") ""
@@ -787,7 +787,7 @@ contains
            CIcorrection + davidsonCorrection
       endif
 
-      if (  CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD /= "NONE" ) then
+      if (  CONTROL_instance%CI_SELECTIVE_METHOD /= "NONE" ) then
 
         write(*,"(A)") ""
         write (6,"(T2,A34)") "EPSTEIN-NESBET PT2 CORRECTION:"
@@ -842,7 +842,7 @@ contains
     write (*, "(T1,A,ES8.1)") "Printing coefficients larger than:", CONTROL_instance%CI_PRINT_THRESHOLD 
     write (*,*) ""
 
-    if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
+    if ( CONTROL_instance%CI_SELECTIVE_METHOD == "NONE" ) then
 
       allocate ( CIcore_instance%allIndexConf( numberOfSpecies, numberOfConfigurations ) )
       allocate ( indexConf ( numberOfSpecies ) )
@@ -867,7 +867,7 @@ contains
 
       if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
  
-        do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+        do c = 1, CONTROL_instance%CI_NUMBER_OF_STATES
           write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
           write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
           write (*,*) ""
@@ -890,7 +890,7 @@ contains
   
       else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
   
-        do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+        do c = 1, CONTROL_instance%CI_NUMBER_OF_STATES
           write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
           write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
           write (*,*) ""
@@ -920,7 +920,7 @@ contains
 
       if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "ORBITALS" ) then
   
-        do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+        do c = 1, CONTROL_instance%CI_NUMBER_OF_STATES
           write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
           write (*, "(T1,A)") "Conf, orbital occupation per species, coefficient"
           write (*,*) ""
@@ -942,7 +942,7 @@ contains
   
       else if ( CONTROL_instance%CI_PRINT_EIGENVECTORS_FORMAT == "OCCUPIED" ) then
 
-        do c = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+        do c = 1, CONTROL_instance%CI_NUMBER_OF_STATES
           write (*, "(T1,A,I4,A,F25.12)") "State: ", c, " Energy: ", CIcore_instance%eigenValues%values(c) 
           write (*, "(T1,A)") "Conf, occupied orbitals per species, coefficient"
           write (*,*) ""
@@ -1023,7 +1023,7 @@ contains
   
       numberOfConfigurations = CIcore_instance%numberOfConfigurations 
   
-      if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
+      if ( CONTROL_instance%CI_SELECTIVE_METHOD == "NONE" ) then
         allocate (stringAinB ( numberOfSpecies ))
   
         do i = 1, numberOfSpecies 
@@ -1148,7 +1148,7 @@ contains
       !! Building the CI reduced density matrix in the molecular orbital representation in parallel
       do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
-        if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
+        if ( CONTROL_instance%CI_SELECTIVE_METHOD == "NONE" ) then
           !$omp parallel & 
           !$omp& firstprivate (stringAinB,indexConfA,indexConfB, jj) &
           !$omp& private(i,j, species, s, numberOfOccupiedOrbitals, k, coupling, orbital, orbitalA, orbitalB, AA, BB, a, b, factor, n, cilevelA, ss, ssize, cilevel, ci, u, uu, bj),&
@@ -1585,7 +1585,7 @@ contains
 
       end do
 
-      if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
+      if ( CONTROL_instance%CI_SELECTIVE_METHOD == "NONE" ) then
         deallocate ( jj )
         deallocate ( indexConfB )
         deallocate ( indexConfA )

@@ -212,7 +212,7 @@ contains
 
     close(wfnUnit)
 
-    if ( CONTROL_instance%SELECTIVE_CONFIGURATION_INTERACTION_METHOD == "NONE" ) then
+    if ( CONTROL_instance%CI_SELECTIVE_METHOD == "NONE" ) then
       if  ( allocated (CIcore_instance%strings ) ) &
       deallocate ( CIcore_instance%strings )
       allocate ( CIcore_instance%strings ( numberOfSpecies ) )
@@ -392,7 +392,7 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
 
       open(unit = wfnUnit, file=trim(wfnFile), status="old", form="formatted")
 
-      do state = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+      do state = 1, CONTROL_instance%CI_NUMBER_OF_STATES
         write(auxstring,*) state
         arguments(1) = "OCCUPATIONS"//trim(adjustl(auxstring)) 
         call Vector_getFromFile(unit= wfnUnit, elementsNum = canonicalNumberOfOrbitals, &

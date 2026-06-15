@@ -16,7 +16,7 @@ END TASKS
 CONTROL
 	integralStorage="MEMORY"
 	rotationalScanGrid=302
-	numberOfCIstates=20
+	CInumberOfStates=20
 END CONTROL
 
 

@@ -213,7 +213,7 @@ contains
     allocate ( CISCI_instance%eigenValues ( 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS ) )
     allocate ( CISCI_instance%minCoeff ( 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS ) )
     do k = 1, 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS +  CONTROL_instance%CI_SCI_REFINEMENT_STEPS
-      call Vector_constructor ( CISCI_instance%eigenValues(k), int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8) !! store the eigenvalues per macro iterations
+      call Vector_constructor ( CISCI_instance%eigenValues(k), int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8) !! store the eigenvalues per macro iterations
     enddo
 
     !! target space size per iteration
@@ -320,7 +320,7 @@ contains
         call Matrix_constructor ( hamiltonianMatrix, int(CISCI_instance%targetSpaceSize,8), int(CISCI_instance%targetSpaceSize,8), 0.0_8 )
         call CISCI_buildHamiltonian ( hamiltonianMatrix )
         call Matrix_eigen_select ( hamiltonianMatrix, CISCI_instance%eigenValues(k), &
-                 int(1), int(CONTROL_instance%NUMBER_OF_CI_STATES), &  
+                 int(1), int(CONTROL_instance%CI_NUMBER_OF_STATES), &  
                  eigenVectors =eigenVectors, &
                  flags = int(SYMMETRIC,4))
 
@@ -400,7 +400,7 @@ contains
       !! growing eigenvector size
       call Matrix_constructor (eigenVectors, &
            int(CISCI_instance%targetSpaceSize, 8), &
-           int(CONTROL_instance%NUMBER_OF_CI_STATES,8), 0.0_8)
+           int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
 
       !! updating new reference
       currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
@@ -1287,7 +1287,7 @@ contains
       NINIT = 0 !    no initial approximate eigenvectors
     endif
 
-    do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+    do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
       EIGS(i) = eigenValues%values(i)
     end do
 
@@ -1296,7 +1296,7 @@ contains
     GAP = 0
     SHIFT = 0
 
-    do i = 1, CONTROL_instance%NUMBER_OF_CI_STATES
+    do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
       write(6,"(T2,A5,I4,2X,A10,F20.10,2X,A17,F10.6,A5,F10.6)") "State", i, "Eigenvalue", EIGS( i ), "Eigenvector. Max:", X((i-1)*N + i), "Min:", X(i*N )
     end do
 
