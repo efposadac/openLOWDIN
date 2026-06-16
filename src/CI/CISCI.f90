@@ -48,7 +48,11 @@ module CISCI_
     !! In case of bit-masking representation
     !!store the orbitals for each target configurations, to avoid recomputing them 
     !!type (IVector), allocatable :: targetOrb(:,:) ! species, num of target configurations % num. of orbitals
-    type (ivector), allocatable :: canonicalOrder(:)
+    type(ivector), allocatable :: canonicalOrder(:)
+    !! heat bath sorted two particles contributions
+    type(Matrix), allocatable :: heatBathDoubleExcitations(:,:)
+    type(IMatrix8), allocatable :: heatBathDoubleExcitations_index(:,:)
+    type(IMatrix8), allocatable :: heatBathDoubleExcitations_size(:,:)
 
   end type CISCI
 
@@ -235,6 +239,12 @@ contains
         CISCI_instance%canonicalOrder(spi)%values(pi) = pi
       enddo
     enddo
+
+    if ( CONTROL_instance%CI_SELECTIVE_METHOD == "HBCI" ) then
+      call CISCI_heatbathIntegralSorting( CISCI_instance%heatBathDoubleExcitations, CISCI_instance%heatBathDoubleExcitations_index, &
+                                          CISCI_instance%heatBathDoubleExcitations_size )
+      stop
+    endif
 
   end subroutine CISCI_constructor
  
@@ -2653,5 +2663,255 @@ contains
     enddo
 
   end subroutine CISCI_occ2orb
+
+  !! Sort the two particles contributions according to HeatBath CI method
+  !! Section II.A of 10.1021/acs.jctc.6b00407
+  subroutine CISCI_heatbathIntegralSorting( heatBathDoubleExcitations, heatBathDoubleExcitations_index, &
+    heatBathDoubleExcitations_size )
+    implicit none
+    type(Matrix), allocatable, intent(out) :: heatBathDoubleExcitations(:,:)
+    type(IMatrix8), allocatable, intent(out) :: heatBathDoubleExcitations_index(:,:)
+    type(IMatrix8), allocatable, intent(out) :: heatBathDoubleExcitations_size(:,:)
+    integer :: spi, spj, numberOfSpecies
+    integer(8) :: pi, qi, ri, si
+    integer(8) :: pj, qj, rj, sj
+    integer(8) :: pq, rs, pr, ps, rq, qs, pqrs, psrq, prqs
+    integer(8) :: size_ii, size_ij
+    real(8) :: kappa
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
+
+    !! matrix allocation and initialization
+    allocate ( heatBathDoubleExcitations(numberOfSpecies,numberOfSpecies))
+    do spi = 1, numberOfSpecies
+
+      !! triangular with diagonal terms
+      size_ii = ( CIcore_instance%numberOfOrbitals%values(spi) * ( CIcore_instance%numberOfOrbitals%values(spi) + 1_8)) / 2.0
+      call Matrix_constructor ( heatBathDoubleExcitations(spi,spi), &
+                                size_ii, size_ii, 0.0_8 &
+                              )
+      do spj = spi + 1, numberOfSpecies
+        !! full
+        size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+        call Matrix_constructor ( heatBathDoubleExcitations(spj,spi), &
+                                  size_ij, size_ij, 0.0_8 &
+                                )
+      enddo !spj
+    enddo !spi
+
+    allocate ( heatBathDoubleExcitations_index(numberOfSpecies,numberOfSpecies))
+    do spi = 1, numberOfSpecies
+      !! triangular with diagonal terms
+      size_ii = ( CIcore_instance%numberOfOrbitals%values(spi) * ( CIcore_instance%numberOfOrbitals%values(spi) + 1_8)) / 2.0
+      call Matrix_constructorInteger8 ( heatBathDoubleExcitations_index(spi,spi), &
+                                        size_ii, size_ii, 0_8 &
+                                      )
+      do spj = spi + 1, numberOfSpecies
+        !! full
+        size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+        call Matrix_constructorInteger8 ( heatBathDoubleExcitations_index(spj,spi), &
+                                          size_ij, size_ij, 0_8 &
+                                        )
+      enddo !spj
+    enddo !spi
+
+    allocate ( heatBathDoubleExcitations_size(numberOfSpecies,numberOfSpecies))
+    do spi = 1, numberOfSpecies
+      !! triangular with diagonal terms
+      size_ii = ( CIcore_instance%numberOfOrbitals%values(spi) * ( CIcore_instance%numberOfOrbitals%values(spi) + 1_8)) / 2.0
+      call Matrix_constructorInteger8 ( heatBathDoubleExcitations_size(spi,spi), &
+                                        size_ii, 2_8, 0_8 &
+                                      ) ! Max size for SCI and PT heatbath thresholds
+      do spj = spi + 1, numberOfSpecies
+        !! full
+        size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+        call Matrix_constructorInteger8 ( heatBathDoubleExcitations_size(spj,spi), &
+                                          size_ij, 2_8, 0_8 &
+                                        )  ! Max size for SCI and PT heatbath thresholds
+      enddo !spj
+    enddo !spi
+
+    !! index initialization (same species), including diag terms
+    do spi = 1, numberOfSpecies
+      do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+        do qi = pi, CIcore_instance%numberOfOrbitals%values(spi)
+          pq = CIcore_instance%twoIndexArray(spi)%values(qi,pi)
+          do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+            do si = ri, CIcore_instance%numberOfOrbitals%values(spi)
+              rs = CIcore_instance%twoIndexArray(spi)%values(si,ri)
+              !! missing condition for rs > pq? nope
+              heatBathDoubleExcitations_index(spi,spi)%values(rs,pq) = rs
+            enddo !si
+          enddo !ri
+        enddo !qi
+      enddo !pi
+    enddo !spi
+
+    !! getting contributions to double excitaions (same species), excluding diagonal terms (pp -> rr)
+    do spi = 1, numberOfSpecies
+
+      size_ii = ( CIcore_instance%numberOfOrbitals%values(spi) * ( CIcore_instance%numberOfOrbitals%values(spi) + 1_8)) / 2.0
+
+      kappa = MolecularSystem_instance%species(spi)%kappa
+      do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+        do qi = pi + 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+
+          pq = CIcore_instance%twoIndexArray(spi)%values(qi,pi)
+          do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+            do si = ri + 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+
+              rs = CIcore_instance%twoIndexArray(spi)%values(si,ri)
+
+              ps = CIcore_instance%twoIndexArray(spi)%values(si,pi)
+              rq = CIcore_instance%twoIndexArray(spi)%values(qi,ri)
+
+              pqrs = CIcore_instance%fourIndexArray(spi)%values(rs,pq)
+              psrq = CIcore_instance%fourIndexArray(spi)%values(rq,ps)
+
+              heatBathDoubleExcitations(spi,spi)%values(rs,pq) = CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs, 1_8)
+              heatBathDoubleExcitations(spi,spi)%values(rs,pq) = heatBathDoubleExcitations(spi,spi)%values(rs,pq) + kappa * &
+              CIcore_instance%fourCenterIntegrals(spi,spi)%values(psrq, 1_8)
+
+              !print *, ri, si, rs, heatBathDoubleExcitations(spi,spi)%values(rs,pq)
+
+            enddo !si
+          enddo !ri
+
+          !! removing self excitation term (pq -> pq)
+          heatBathDoubleExcitations(spi,spi)%values(pq,pq) = 0.0_8
+
+          !print *, "========"
+
+          !! sort for all rs
+          call CISort_quicksort_vector( heatBathDoubleExcitations(spi,spi)%values(:,pq), &
+                                        heatBathDoubleExcitations_index(spi,spi)%values(:,pq), &
+                                        1_8, size_ii &
+                                      )
+
+          !do rs = 1_8, size_ii
+          !  print *, rs, heatBathDoubleExcitations_index(spi,spi)%values(rs,pq), &
+          !  heatBathDoubleExcitations(spi,spi)%values(rs,pq), "|", &
+          !  IndexMap_vectorToMatrix( heatBathDoubleExcitations_index(spi,spi)%values(rs,pq), CIcore_instance%numberOfOrbitals%values(spi))
+          !enddo
+
+          !! finding the size of elements above SCI variational threshold
+          do rs = 1_8, size_ii
+            if ( abs(heatBathDoubleExcitations(spi,spi)%values(rs,pq)) <= CONTROL_instance%CI_HEATH_BATH_THRESHOLD(1) ) then
+              heatBathDoubleExcitations_size(spi,spi)%values(pq,1) = rs - 1_8
+              exit
+            endif
+          enddo
+
+          !! finding the size of elements above PT2 threshold
+          do rs = heatBathDoubleExcitations_size(spi,spi)%values(pq,1) + 1_8, size_ii
+            if ( abs(heatBathDoubleExcitations(spi,spi)%values(rs,pq)) <= CONTROL_instance%CI_HEATH_BATH_THRESHOLD(2) ) then
+              heatBathDoubleExcitations_size(spi,spi)%values(pq,2) = rs - 1_8
+              exit
+            endif
+          enddo
+
+          !print *, "min pos", heatBathDoubleExcitations_size(spi,spi)%values(pq,1), heatBathDoubleExcitations_size(spi,spi)%values(pq,2)
+
+        enddo !qi
+      enddo !pi
+    enddo !spi
+
+    !! index initialization (diff species)
+    do spi = 1, numberOfSpecies
+      do spj = spi + 1, numberOfSpecies
+        do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+          do qj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+
+            !!index for HBCI
+            pq = qj + CIcore_instance%numberOfOrbitals%values(spj) * ( pi - 1_8 )
+
+            do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+              do sj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+
+                !!index for HBCI
+                rs = sj + CIcore_instance%numberOfOrbitals%values(spj) * ( ri - 1_8 )
+                heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) = rs
+
+              enddo !sj
+            enddo !ri
+          enddo !qj
+        enddo !pi
+      enddo !spj
+    enddo !spi
+
+    !! getting contributions to double excitaions (diff species)
+    do spi = 1, numberOfSpecies
+      do spj = spi + 1, numberOfSpecies
+
+        size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+        do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+          do qj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+            !!index for HBCI
+            pq = qj + CIcore_instance%numberOfOrbitals%values(spj) * ( pi - 1_8 )
+            do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+              !! integral index
+              pr = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( CIcore_instance%twoIndexArray(spi)%values(ri,pi) - 1_8 ) !! aux index
+              do sj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+
+                !!index for HBCI
+                rs = sj + CIcore_instance%numberOfOrbitals%values(spj) * ( ri - 1_8 )
+
+                !! integral index
+                qs = CIcore_instance%twoIndexArray(spj)%values(sj,qj)
+                !! integral index
+                prqs = pr + qs
+
+                heatBathDoubleExcitations(spj,spi)%values(rs,pq) = CIcore_instance%fourCenterIntegrals(spi,spj)%values(prqs, 1_8)
+                !print *, spi, spj, ri, sj, rs, heatBathDoubleExcitations(spj,spi)%values(rs,pq)
+
+              enddo !sj
+            enddo !ri
+
+            !print *, "================"
+            !! removing self excitation term (pq -> pq)
+            heatBathDoubleExcitations(spj,spi)%values(pq,pq) = 0.0_8
+
+            !! sort for all rs
+            call CISort_quicksort_vector( heatBathDoubleExcitations(spj,spi)%values(:,pq), &
+                                          heatBathDoubleExcitations_index(spj,spi)%values(:,pq), &
+                                          1_8, size_ij &
+                                        )
+
+            !do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+            !  do sj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+
+            !    rs = sj + CIcore_instance%numberOfOrbitals%values(spj) * ( ri - 1_8 )
+            !    print *, spi, spj, ri, sj, rs, heatBathDoubleExcitations_index(spj,spi)%values(rs,pq), &
+            !    heatBathDoubleExcitations(spj,spi)%values(rs,pq), "|", &
+            !    ((heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8 ) / CIcore_instance%numberOfOrbitals%values(spj)) + 1_8, &
+            !    mod(heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8, CIcore_instance%numberOfOrbitals%values(spj)) + 1_8
+            !  enddo ! sj
+            !enddo ! ri
+
+            !! finding the size of elements above SCI variational threshold
+            do rs = 1_8, size_ij
+              if ( abs(heatBathDoubleExcitations(spj,spi)%values(rs,pq)) <= CONTROL_instance%CI_HEATH_BATH_THRESHOLD(1) ) then
+                heatBathDoubleExcitations_size(spj,spi)%values(pq,1) = rs - 1_8
+                exit
+              endif
+            enddo
+
+            !! finding the size of elements above PT2 threshold
+            do rs = heatBathDoubleExcitations_size(spj,spi)%values(pq,1) + 1_8, size_ij
+              if ( abs(heatBathDoubleExcitations(spj,spi)%values(rs,pq)) <= CONTROL_instance%CI_HEATH_BATH_THRESHOLD(2) ) then
+                heatBathDoubleExcitations_size(spj,spi)%values(pq,2) = rs - 1_8
+                exit
+              endif
+            enddo !rs
+
+            !print *, "min pos", heatBathDoubleExcitations_size(spj,spi)%values(pq,1), heatBathDoubleExcitations_size(spj,spi)%values(pq,2)
+
+          enddo ! qj
+        enddo ! pi
+
+      enddo ! spj
+    enddo !spi
+
+  end subroutine CISCI_heatbathIntegralSorting
 
 end module CISCI_

@@ -558,7 +558,7 @@ contains
                           int( numberOfContractions,8), int( numberOfContractions,8) , 0_8 )
 
       c = 0_8
-      do a=1,numberOfContractions
+      do a = 1, numberOfContractions
         do b = a, numberOfContractions
           c = c + 1_8
           CIcore_instance%twoIndexArray(i)%values(a,b) = c !IndexMap_tensorR2ToVectorC( a, b, numberOfContractions )

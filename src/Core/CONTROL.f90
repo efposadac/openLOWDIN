@@ -213,6 +213,7 @@ module CONTROL_
     integer :: CI_SCI_TARGET_GROWTH_FACTOR
     integer :: CI_SCI_TARGET_GROWTH_STEPS
     integer :: CI_SCI_REFINEMENT_STEPS
+    real(8) :: CI_HEATH_BATH_THRESHOLD(2) 
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -570,6 +571,7 @@ module CONTROL_
   integer :: LowdinParameters_CISCITargetGrowthFactor
   integer :: LowdinParameters_CISCITargetGrowthSteps
   integer :: LowdinParameters_CISCIRefinementSteps
+  real(8) :: LowdinParameters_CIHeatBathThreshold(2)
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -913,6 +915,7 @@ module CONTROL_
     LowdinParameters_CISCITargetGrowthFactor, &
     LowdinParameters_CISCITargetGrowthSteps, &
     LowdinParameters_CISCIRefinementSteps, &
+    LowdinParameters_CIHeatBathThreshold, &
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1276,7 +1279,8 @@ contains
     LowdinParameters_CISCITargetGrowthFactor = 2
     LowdinParameters_CISCITargetGrowthSteps = 5
     LowdinParameters_CISCIRefinementSteps = 2
-
+    LowdinParameters_CIHeatBathThreshold(1) = 1.0E-3
+    LowdinParameters_CIHeatBathThreshold(2) = 1.0E-6
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1629,7 +1633,8 @@ contains
     CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR = 2
     CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS = 5
     CONTROL_instance%CI_SCI_REFINEMENT_STEPS = 2
-
+    CONTROL_instance%CI_HEATH_BATH_THRESHOLD(1) = 1.0E-3
+    CONTROL_instance%CI_HEATH_BATH_THRESHOLD(2) = 1.0E-6
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2032,6 +2037,7 @@ contains
     CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR = LowdinParameters_CISCITargetGrowthFactor
     CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS = LowdinParameters_CISCITargetGrowthSteps
     CONTROL_instance%CI_SCI_REFINEMENT_STEPS = LowdinParameters_CISCIRefinementSteps
+    CONTROL_instance%CI_HEATH_BATH_THRESHOLD = LowdinParameters_CIHeatBathThreshold
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2409,7 +2415,7 @@ contains
     LowdinParameters_CISCITargetGrowthFactor = CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR
     LowdinParameters_CISCITargetGrowthSteps = CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS
     LowdinParameters_CISCIRefinementSteps = CONTROL_instance%CI_SCI_REFINEMENT_STEPS
-
+    LowdinParameters_CIHeatBathThreshold = CONTROL_instance%CI_HEATH_BATH_THRESHOLD 
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
