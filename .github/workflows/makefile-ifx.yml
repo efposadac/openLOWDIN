@@ -24,7 +24,7 @@ jobs:
         intel-oneapi-mkl-devel \
         intel-oneapi-compiler-dpcpp-cpp \
         intel-oneapi-compiler-fortran \
-        intel-oneapi-openmp-devel
+        intel-oneapi-openmp
         source /opt/intel/oneapi/setvars.sh 
         # Define ENV Variables
         export WORKDIR=$PWD/dependencies
