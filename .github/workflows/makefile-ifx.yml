@@ -88,7 +88,7 @@ jobs:
         mv 'erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0' erkaleStaticForLowdin.tgz
         tar xzvf erkaleStaticForLowdin.tgz
         # Configure Lowdin
-        ./configure -f "ifx" -o 2 -p $WORKDIR/bin -s /tmp
+        ./configure -f "ifx" -o 2 -p $WORKDIR/bin -s /tmp -l "-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core"
         # Build Lowdin
         make -j 4
         # Install Lowdin
