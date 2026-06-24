@@ -410,7 +410,7 @@ contains
     symmetricTmp = .false.
     if (present(symmetric)) symmetricTmp = symmetric
 
-    call itime(timeArray) ! Get the current time
+    call date_and_time(values=timeArray) ! Get the current time
     !! i = rand ( timeArray(1)+timeArray(2)+timeArray(3) )
 
     allocate (this%values(rows, cols))
@@ -1369,7 +1369,7 @@ contains
       call Matrix_constructor(nullSpace, int(dim, 8), int(dim, 8), 0.0_8)
       call Matrix_constructor(singular, int(dim, 8), int(dim, 8), 0.0_8)
 
-      call Matrix_svd(this, range, nullSpace, singular)
+      call Matrix_svd(this, range, nullSpace, singular, "O", "S")
 
       determinant = 1.0
       do i = 1, dim
@@ -1711,6 +1711,11 @@ contains
           lengthWorkSpace, &
           infoProcess)
 
+          !! cleaning small values
+          where ( abs(eigenVectors%values) <= 1E-12 )
+            eigenVectors%values = 0.0_8
+          end where
+
       else
         !! Crea la matriz que almacenara los vectores propios
         call Matrix_copyConstructor(eigenVectorsTmp, this)
@@ -1851,40 +1856,42 @@ contains
 !! For further information, visit http://www.netlib.org/lapack/double/dsyevx.f
 !! @warning Implemented only to compute eigenvalues.
 
-  subroutine Matrix_eigen_select(this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method)
+  subroutine Matrix_eigen_select(this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags)
     implicit none
-    type(Matrix), intent(in) :: this
+    type(Matrix), intent(inout) :: this
     type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
     integer(4), intent(in) :: smallestEigenValue, largestEigenValue !! The indices (in ascending order)
     !! of the eigenvalues to be computed. Start at 1
     integer(4), intent(in), optional :: flags
-    integer(4), intent(in), optional :: dm
-    real(8), intent(in), optional :: m(:, :)
-    integer(4), intent(in), optional :: method
+    type(Vector) :: diagonal !! to restore the matrix after diagonalization
     integer(4) :: lengthWorkSpace
     integer(4) :: matrixSize
     integer(4) :: infoProcess
     real(8), allocatable :: workSpace(:)
     type(Matrix) :: eigenVectorsTmp
-    integer(4) :: i
+    integer(4) :: i, j
     real(8) :: vl, vu !! If RANGE='V', the lower and upper bounds of the interval to be searched for eigenvalues.
     real(8) :: abstol
     integer(4) :: m_dsyevx !! The total number of eigenvalues found.
-    integer(4), allocatable :: iFail(:), iwork(:)
+    integer(4), allocatable :: ifail(:), iwork(:)
 
     !!Negative ABSTOL means using the default value
     abstol = -1.0
 
     matrixSize = size(this%values, DIM=1)
-    if (allocated(iFail)) deallocate (iFail)
-    allocate (iFail(matrixSize))
+
+    !! copy diagonal
+    call Vector_constructor ( diagonal, int(matrixSize,8), 0.0_8 )
+    do i = 1, matrixSize
+      diagonal%values(i) = this%values(i,i)
+    enddo
+
+    if (allocated(ifail)) deallocate (ifail)
+    allocate (ifail(matrixSize))
 
     if (allocated(iwork)) deallocate (iwork)
     allocate (iwork(5*matrixSize))
-
-    !call omp_set_num_threads(omp_get_max_threads())
-    !call omp_set_num_threads (OMP_GET_NUM_THREADS())
 
     if (flags == SYMMETRIC) then
 
@@ -1895,17 +1902,6 @@ contains
       allocate (workSpace(lengthWorkSpace))
 
       if (present(eigenVectors)) then
-
-        if (present(dm)) then
-          eigenvectors%values = m
-        else
-
-          eigenVectors%values = this%values
-
-        end if
-
-        !! Crea la matriz que almacenara los vectores propios
-        !! call Matrix_copyConstructor( eigenVectorsTmp, this )
 
         lengthWorkSpace = -1
         !! calculates the optimal size of the WORK array
@@ -1956,8 +1952,8 @@ contains
 
       else !! only eigenvalues
 
-        !! Crea la matriz que almacenara los vectores propios
-        call Matrix_copyConstructor(eigenVectorsTmp, this)
+        !! Create a tmp array
+        call Matrix_Constructor(eigenVectorsTmp, 1_8, int(largestEigenValue - smallestEigenValue, 8 ), 0.0_8 )
 
         lengthWorkSpace = -1
         !! calculates the optimal size of the WORK array
@@ -2024,31 +2020,39 @@ contains
         end if
       end do
 
-      !! libera memoria separada para vector de trabajo
-      deallocate (workSpace)
+      !! restore the matrix
+      do i = 1, matrixSize
+        this%values(i,i) = diagonal%values(i)
+        do j = i + 1, matrixSize
+          this%values(i,j) = this%values(j,i)
+        enddo
+      enddo
 
     end if
 
+    !! deallocate work memory
+    deallocate (workSpace)
+    deallocate (ifail)
+    deallocate (iwork)
+
   end subroutine Matrix_eigen_select
 
-  subroutine Matrix_eigen_dsyevr(this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags, m, dm, method)
+  subroutine Matrix_eigen_dsyevr(this, eigenValues, smallestEigenValue, largestEigenValue, eigenVectors, flags)
     implicit none
-    type(Matrix), intent(in) :: this
+    type(Matrix), intent(inout) :: this
     !type(Vector8), intent(inout) :: eigenValues
     type(Vector), intent(inout) :: eigenValues
     type(Matrix), intent(inout), optional :: eigenVectors
     integer(4), intent(in) :: smallestEigenValue, largestEigenValue !! The indices (in ascending order)
     !! of the eigenvalues to be computed. Start at 1
     integer, intent(in), optional :: flags
-    integer, intent(in), optional :: dm
-    real(8), intent(in), optional :: m(:, :)
-    integer, intent(in), optional :: method
+    type(Vector) :: diagonal !! to restore the matrix after diagonalization
     integer :: lengthWorkSpace, lengthiwork
     integer :: matrixSize
     integer :: infoProcess
     real(8), allocatable :: workSpace(:)
     type(Matrix) :: eigenVectorsTmp
-    integer :: i
+    integer :: i, j
     real(8) :: vl, vu !! If RANGE='V', the lower and upper bounds of the interval to be searched for eigenvalues.
     real(8) :: abstol
     integer :: m_dsyevr !! The total number of eigenvalues found.
@@ -2066,13 +2070,19 @@ contains
     call ieee_set_halting_mode(ieee_overflow, .false.)
 
     !!Negative ABSTOL means using the default value
-    abstol = 0.0_8
+    abstol = -1.0_8
 
     vl = 0.0_8
     vu = 0.0_8
 
     matrixSize = size(this%values, DIM=1)
     m_dsyevr = matrixSize
+
+    !! copy diagonal
+    call Vector_constructor ( diagonal, int(matrixSize,8), 0.0_8 )
+    do i = 1, matrixSize
+      diagonal%values(i) = this%values(i,i)
+    enddo
 
     if (allocated(isuppz)) deallocate (isuppz)
     allocate (isuppz(2*m_dsyevr))
@@ -2100,14 +2110,6 @@ contains
     if (flags == SYMMETRIC) then
 
       if (present(eigenVectors)) then
-
-        if (present(dm)) then
-          eigenvectors%values = m
-        else
-
-          eigenVectors%values = this%values
-
-        end if
 
         !! calculates the optimal size of the WORK array
         call dsyevr( &
@@ -2144,7 +2146,7 @@ contains
         !! Calcula valores propios de la matriz de entrada
         call dsyevr( &
           COMPUTE_EIGENVALUES_AND_EIGENVECTORS, &
-          ALL_EIGENVALUES, &
+          rangeMode, &
           UPPER_TRIANGLE_IS_STORED, &
           matrixSize, &
           this%values, &
@@ -2161,10 +2163,16 @@ contains
           iwork, &
           lengthiwork, &
           infoProcess)
+
+        !! cleaning small values
+        where ( abs(eigenVectors%values) <= 1E-12 )
+          eigenVectors%values = 0.0_8
+        end where
+
       else ! no eigenvectors
 
-        !! Crea la matriz que almacenara los vectores propios
-        call Matrix_copyConstructor(eigenVectorsTmp, this)
+        !! Create a tmp array
+        call Matrix_Constructor(eigenVectorsTmp, 1_8, int(largestEigenValue - smallestEigenValue, 8 ), 0.0_8 )
 
         lengthWorkSpace = -1
         lengthiwork = -1
@@ -2242,12 +2250,22 @@ contains
         end if
       end do
 
+      !! restore the matrix
+      do i = 1, matrixSize
+        this%values(i,i) = diagonal%values(i)
+        do j = i + 1, matrixSize
+          this%values(i,j) = this%values(j,i)
+        enddo
+      enddo
+
     end if
 
     !! deallocate work memory
     deallocate (workSpace)
     deallocate (isuppz)
     deallocate (iwork)
+
+    call Vector_destructor ( diagonal )
 
     !!RESTORE IEEE settings
     call ieee_set_halting_mode(ieee_divide_by_zero, halt_zero)
@@ -2259,12 +2277,14 @@ contains
 
   !>
   !! @brief  Calcula la descomposicion en valores simples de la matriz especificada
-  subroutine Matrix_svd(this, basisOfRange, basisOfNullSpace, singularValues)
+  subroutine Matrix_svd(this, basisOfRange, basisOfNullSpace, singularValues, jobU, jobVT)
     implicit none
     type(Matrix), intent(in) :: this
     type(Matrix), intent(inout) :: basisOfRange
     type(Matrix), intent(inout) :: basisOfNullSpace
     type(Matrix), intent(inout) :: singularValues
+    character(1), intent(in) :: jobU
+    character(1), intent(in) :: jobVT
 
     real(8), allocatable :: singularValuesVector(:)
     real(8), allocatable :: workSpace(:)
@@ -2287,21 +2307,42 @@ contains
     !! Crea el vector de trabajo
     allocate (workSpace(lengthWorkSpace))
     allocate (singularValuesVector(min(numberOfRows, numberOfColumns)))
+    lengthWorkSpace = -1 
 
     call dgesvd( &
-      'O', &
-      'S', &
-      numberOfRows, &
-      numberOfColumns, &
-      basisOfRange%values, &
-      numberOfRows, &
-      singularValuesVector, &
-      dummy, &
-      1, &
-      basisOfNullSpace%values, &
-      min(numberOfColumns, numberOfRows), &
-      workSpace, &
-      lengthWorkSpace, &
+      jobU, & ! O
+      jobVT, & !S
+      numberOfRows, & ! M
+      numberOfColumns, & ! N
+      basisOfRange%values, & ! A (MxN)
+      numberOfRows, & ! LDA, Leading dimension A
+      singularValuesVector, & ! S, Sigma, singular values of A
+      dummy, & ! U (
+      1, & ! LDU
+      basisOfNullSpace%values, & ! Vt
+      min(numberOfColumns, numberOfRows), & ! LDVt
+      workSpace, & ! Work 
+      lengthWorkSpace, & ! Lwork
+      infoProcess)
+
+    lengthWorkSpace = int(workSpace(1))
+    deallocate (workSpace)
+    allocate (workSpace(lengthWorkSpace))
+
+    call dgesvd( &
+      jobU, & ! O
+      jobVT, & !S
+      numberOfRows, & ! M
+      numberOfColumns, & ! N
+      basisOfRange%values, & ! A (MxN)
+      numberOfRows, & ! LDA, Leading dimension A
+      singularValuesVector, & ! S, Sigma, singular values of A
+      dummy, & ! U (
+      1, & ! LDU
+      basisOfNullSpace%values, & ! Vt
+      min(numberOfColumns, numberOfRows), & ! LDVt
+      workSpace, & ! Work 
+      lengthWorkSpace, & ! Lwork
       infoProcess)
 
     singularValues%values = 0.0_8
@@ -2704,7 +2745,7 @@ contains
     call Matrix_constructor(U, int(dim, 8), int(dim, 8), 0.0_8)
     call Matrix_constructor(VT, int(dim, 8), int(dim, 8), 0.0_8)
     call Matrix_constructor(singular, int(dim, 8), int(dim, 8), 0.0_8)
-    call Matrix_svd(this, U, VT, singular)
+    call Matrix_svd(this, U, VT, singular, "O", "S")
 
     ! vectorsInverted = Matrix_inverse( range )
 

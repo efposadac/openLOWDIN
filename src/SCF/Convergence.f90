@@ -597,7 +597,7 @@ contains
         auxMatrix%values = this%diisEquationsSystem%values(1:this%currentSize + 1, 1:this%currentSize + 1)
 
         !! Diagonaliza la matiz por SVD de la forma A=UWV^T
-        call Matrix_svd(auxMatrix, leftMatrix, rightMatrix, singularValues)
+        call Matrix_svd(auxMatrix, leftMatrix, rightMatrix, singularValues, "O", "S")
 
         !! Invierte la matriz de valores singulares
         do i = 1, size(singularValues%values, dim=1)

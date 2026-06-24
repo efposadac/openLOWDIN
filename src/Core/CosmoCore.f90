@@ -47,9 +47,9 @@ contains
     character(len=60) :: cmd
 
     cmd = "gepol.x < gepol.inp > gepol.out"
-    call system(cmd)
+    call execute_command_line(cmd)
     ! cmd = "rm gepol.out"
-    call system(cmd)
+    call execute_command_line(cmd)
 
     ! write(*,*)"generada gepol surface"
 
@@ -69,12 +69,12 @@ contains
 
     ! cmd = "cat *.sup | grep '[^ ]' | wc -l > nlines.txt"
     cmd = "cat vectors.vec | grep '[^ ]' | wc -l > nlines.txt"
-    call system(cmd)
+    call execute_command_line(cmd)
     open (1, file='nlines.txt')
     read (1, *) n
     close (1)
     cmd = 'rm nlines.txt'
-    call system(cmd)
+    call execute_command_line(cmd)
     surface%sizeSurface = n
     return
     ! write(*,*)"superficie segmentos",n

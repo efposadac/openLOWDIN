@@ -26,6 +26,8 @@ usage(){
   echo "      This will keep the temporary files in the scratch directory after running the calculation"
   echo "   -s"
   echo "      This activate the singleton mode"
+  echo "   -S"
+  echo "      This will set the scratch folder"
   echo "   -h"
   echo "      This will print this same message"
   echo ""
@@ -45,7 +47,7 @@ singleton="F"
 version=".x"
 keepScratch="F"
 
-while getopts   "i:pt:sv:n:hwk" OPTNAME
+while getopts   "i:pt:sv:n:hwkS:" OPTNAME
   do
   case $OPTNAME in
     i)
@@ -67,6 +69,9 @@ while getopts   "i:pt:sv:n:hwk" OPTNAME
     s)
       singleton="T"
       ;;
+    S)	
+      setScratch=$OPTARG
+      ;;
     v)
       version="."$OPTARG".x"
       ;;
@@ -80,6 +85,11 @@ done
 #############################################
 # openLOWDIN singleton mode
 #############################################
+
+if [ -n "$setScratch" ]; then
+	export LOWDIN_SCRATCH=$setScratch
+fi
+echo $LOWDIN_SCRATCH
 
 if [ -e $LOWDIN_SCRATCH/lowdin.pid ]; then
 

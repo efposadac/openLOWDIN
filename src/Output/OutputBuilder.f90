@@ -2124,10 +2124,10 @@ contains
     write (10, "(A)") 'set ylabel "'//trim(y_title)//'"'
     write (10, "(A)") 'set format y "'//trim(auxYformat)//'"'
     if (auxNumOfGraphs > 1) then
-      write (10, "(A$)") 'plot '//trim(auxXRange)//trim(auxYRange)//' "'//trim(fileName)//'" using 1:2 w l title "" '
+      write (10, "(A)", advance='no') 'plot '//trim(auxXRange)//trim(auxYRange)//' "'//trim(fileName)//'" using 1:2 w l title "" '
       do i = 2, auxNumOfGraphs
         charNumOfGraph = String_convertIntegerToString(i + 1)
-        write (10, "(A$)") ', "'//trim(fileName)//'.dat"'//' using 1:'//trim(charNumOfGraph)//' w l  title "" '
+        write (10, "(A)", advance='no') ', "'//trim(fileName)//'.dat"'//' using 1:'//trim(charNumOfGraph)//' w l  title "" '
       end do
       write (10, "(A)") ""
     else
@@ -2137,7 +2137,7 @@ contains
     close (10)
 
     !status= system("gnuplot "//trim(fileName)//".gnp")
-    call system("gnuplot "//trim(fileName)//".gnp")
+    call execute_command_line("gnuplot "//trim(fileName)//".gnp")
 
   end subroutine OutputBuilder_make2DGnuplot
 
@@ -2211,7 +2211,7 @@ contains
     close (100)
 
     !status= system("gnuplot "//trim(fileName)//".gnp")
-    call system("gnuplot "//trim(fileName)//".gnp")
+    call execute_command_line("gnuplot "//trim(fileName)//".gnp")
 
   end subroutine OutputBuilder_make3DGnuplot
 

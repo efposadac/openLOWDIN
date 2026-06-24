@@ -60,7 +60,7 @@ contains
     integer :: speciesID, otherSpeciesID
     integer(8) :: numberOfContractions
     integer(8) :: numberOfContractionsOfOtherSpecie
-    integer :: occupation, otherOccupation
+    integer(8) :: occupation, otherOccupation
     character(10) :: nameOfSpecies, symbolOfSpecies
     character(10) :: nameOfOtherSpecies, symbolOfOtherSpecies
     type(Vector) :: eigenValues

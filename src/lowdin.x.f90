@@ -32,25 +32,48 @@ program lowdin_
   implicit none
 
   character(50) :: strAuxNumber
+  type(Stopwatch) :: global_stopwatch
 
   !! Time Control
-  call Stopwatch_constructor(lowdin_stopwatch)
-  call Stopwatch_start(lowdin_stopwatch)
+  call Stopwatch_constructor(global_stopwatch)
+  call Stopwatch_start(global_stopwatch)
+
+  write (6, *) "LOWDIN execution started at : ", trim(Stopwatch_getCurretData(global_stopwatch))
+  write (6, *) "---------------------------------------------------------------------------------"
+
+  !! Show logo
+  write (6, *) "                                                                                 "
+  write (6, *) "                  0000        00000      00000000000           000               " 
+  write (6, *) "                 0000000         000000  000                   000               " 
+  write (6, *) "                      000           000                 000    000               " 
+  write (6, *) "           00          000          000  000000000       0000  000               " 
+  write (6, *) "           000         000  000 00000    000          000  0000000               " 
+  write (6, *) "            000       000   000                       000    00000               " 
+  write (6, *) "             00000000000    000          00000000000  000      000               " 
+  write (6, *) "                                                                                 " 
+  write (6, *) "                                                                                 " 
+  write (6, *) "  00                0000     00             00  0000000       000           000  " 
+  write (6, *) "  00               0000000   000            00  00    00000   000           000  " 
+  write (6, *) "  00                    000   000   00   0000   00       000         000    000  " 
+  write (6, *) "  00         00          000   000  000  000              00  000     0000  000  " 
+  write (6, *) "  00         000         000    000  000000              000  000  000   000000  " 
+  write (6, *) "  00          0000     0000      00   0000              000   000  000     0000  " 
+  write (6, *) "  000000000     000000000         0    00       0000000000    000  000       00  " 
+  write (6, *) "                                                                                 "
+  write (6, *) "---------------------------------------------------------------------------------"
 
   !! Show credits
-  write (6, *) "LOWDIN execution started at : ", trim(Stopwatch_getCurretData(lowdin_stopwatch))
-  write (6, *) "---------------------------------------------------------------"
   write (6, *) ""
-  write (6, *) "***************************************************************"
-  write (6, *) "*                   LOWDIN 2.0  (May/2013)                    *"
-  write (6, *) "*                                                             *"
-  write (6, *) "*  R. FLORES-MORENO, E. F. POSADA, F. S. MONCADA, J.ROMERO,   *"
-  write (6, *) "*  J. CHARRY, M. DIAZ-TINOCO, S. A. GONZALEZ, N. F. AGUIRRE,  *"
-  write (6, *) "*  A. REYES                                                   *"
-  write (6, *) "*                                                             *"
-  write (6, *) "*  https://sites.google.com/site/lowdinproject/               *"
-  write (6, *) "*                                                             *"
-  write (6, *) "***************************************************************"
+  write (6, *) "---------------------------------------------------------------------------------"
+  write (6, *) "                          OPEN LOWDIN   (May/2026)                               "
+  write (6, *) "                                                                                 "
+  write (6, *) "            R. FLORES-MORENO, E. F. POSADA, F. S. MONCADA, J.ROMERO,             "
+  write (6, *) "            J. CHARRY, M. DIAZ-TINOCO, S. A. GONZALEZ, N. F. AGUIRRE,            "
+  write (6, *) "            A. REYES                                                             "
+  write (6, *) "                                                                                 "
+  write (6, *) "            https://github.com/efposadac/openLOWDIN/                             "
+  write (6, *) "                                                                                 "
+  write (6, *) "---------------------------------------------------------------------------------"
   write (6, *) ""
 
   !!***************************************************************************
@@ -145,18 +168,18 @@ program lowdin_
   call MolecularSystem_destroy()
 
   !!Shows time information
-  call Stopwatch_stop(lowdin_stopwatch)
+  call Stopwatch_stop(global_stopwatch)
   write (*, *)
-  write (*, "(A,F10.3,A4)") "  TOTAL CPU Time: ", lowdin_stopwatch%enlapsetTime, " (s)"
-  write (*, "(A,F10.3,A4)") " TOTAL Wall Time: ", lowdin_stopwatch%elapsetWTime, " (s)"
+  write (*, "(A,F10.3,A4)") "  TOTAL CPU Time: ", global_stopwatch%enlapsetTime, " (s)"
+  write (*, "(A,F10.3,A4)") " TOTAL Wall Time: ", global_stopwatch%elapsetWTime, " (s)"
   write (6, "(A16,i3,A1,i3,A1,i3,A1,i4,A2)") &
     "Elapsed Time: ", &
-    lowdin_stopwatch%endTime(5), "h", &
-    lowdin_stopwatch%endTime(6), "m", &
-    lowdin_stopwatch%endTime(7), "s", &
-    lowdin_stopwatch%endTime(8), "ms"
+    global_stopwatch%endTime(5), "h", &
+    global_stopwatch%endTime(6), "m", &
+    global_stopwatch%endTime(7), "s", &
+    global_stopwatch%endTime(8), "ms"
 
-  write (6, "(A, A)") "LOWDIN execution terminated normally at : ", trim(Stopwatch_getCurretData(lowdin_stopwatch))
-  call Stopwatch_destructor(lowdin_stopwatch)
+  write (6, "(A, A)") "LOWDIN execution terminated normally at : ", trim(Stopwatch_getCurretData(global_stopwatch))
+  call Stopwatch_destructor(global_stopwatch)
 
 end program lowdin_

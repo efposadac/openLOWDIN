@@ -8,13 +8,13 @@ def setReferenceValues():
     refValues = {
 "HF energy" : [-75.905888732170,1E-8],
 "Iterations" : [20,19],
-}                       
+}
     return refValues
 
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
     testValues["Iterations"] = test.getSCFiterations(testName)
-    return 
+    return
 
 if __name__ == '__main__':
     testName = sys.argv[0][:-3]

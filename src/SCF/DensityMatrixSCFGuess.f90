@@ -192,15 +192,15 @@ contains
     orderOfMatrix = size(hcore%values, DIM=1)
 
     if (.not. allocated(eigenVectors%values)) then
-      call Matrix_constructor(eigenVectors, orderOfMatrix, orderOfMatrix)
+      call Matrix_constructor(eigenVectors, orderOfMatrix, orderOfMatrix, 0.0_8)
     end if
 
-    call Matrix_constructor(hcoreTransformed, orderOfMatrix, orderOfMatrix)
-    call Vector_constructor(eigenValues, orderOfMatrix)
+    call Matrix_constructor(hcoreTransformed, orderOfMatrix, orderOfMatrix, 0.0_8)
+    call Vector_constructor(eigenValues, orderOfMatrix, 0.0_8)
 
     hcoreTransformed%values = matmul(matmul(transpose(transformation%values), hcore%values), transformation%values)
 
-    call Matrix_eigen(hcoreTransformed, eigenValues, eigenVectors, SYMMETRIC)
+    call Matrix_eigen_dsyevr(hcoreTransformed, eigenValues, 1_4, int(orderofMatrix,4), eigenVectors, SYMMETRIC)
 
     eigenVectors%values = matmul(transformation%values, eigenVectors%values)
 
