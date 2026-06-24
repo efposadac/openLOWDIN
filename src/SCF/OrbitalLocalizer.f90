@@ -129,7 +129,7 @@ contains
 
     close (30)
 
-    call system("erkale_fchkpt erkale.read >> erkale_fchkpt.log")
+    call execute_command_line("erkale_fchkpt erkale.read >> erkale_fchkpt.log")
 
     !! Localize orbitals
     open (unit=30, file="erkale.local", status="replace", form="formatted")
@@ -145,7 +145,7 @@ contains
 
     close (30)
 
-    call system("erkale_loc erkale.local")
+    call execute_command_line("erkale_loc erkale.local")
 
     !!Convert erkale chk files to lowdin fchk files
     open (unit=30, file="erkale.write", status="replace", form="formatted")
@@ -155,7 +155,7 @@ contains
 
     close (30)
 
-    call system("erkale_fchkpt erkale.write >> erkale_fchkpt.log")
+    call execute_command_line("erkale_fchkpt erkale.write >> erkale_fchkpt.log")
 
     !! Read orbital coefficients from fchk files
     call MolecularSystem_readFchk(trim(CONTROL_instance%INPUT_FILE)//trim(symbolOfSpecies)//".local.fchk", orbitalCoefficients, densityMatrix, nameOfSpecies)
@@ -1950,7 +1950,7 @@ contains
         if (Libint2Instance(speciesID)%isInstanced) call Libint2Interface_constructor(Libint2Instance(speciesID), MolecularSystem_instance, speciesID)
       end do
     else
-      call system("rm  *.ints")
+      call execute_command_line("rm  *.ints")
       do speciesID = 1, numberOfSpecies
         if (Libint2Instance(speciesID)%isInstanced) call Libint2Interface_destructor(Libint2Instance(speciesID))
       end do

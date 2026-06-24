@@ -89,7 +89,7 @@ contains
     output = trim(inputString)
     do i = ffrom, tto
       j = ichar(inputString(i:i))
-      if (j > 96) output(i:i) = char(XOR(j, 32))
+      if (j > 96) output(i:i) = char(IEOR(j, 32))
 
     end do
 

@@ -104,8 +104,8 @@ contains
     write (6, *) " J. Comput. Chem. 54, 2031. DOI: 10.1002/jcc.23350 "
     write (6, *) "-----------------------------------------------------------------------"
     write (6, *) ""
-    write (6, "(T2,A,F14.3,A3 )") "Estimated memory needed : ", float(totalSize)/(1024**2), " MB"
-    write (6, "(T2,A,F14.3,A3 )") "                          ", float(totalSize)/(1024**3), " GB"
+    write (6, "(T2,A,F14.3,A3 )") "Estimated memory needed : ", real(totalSize)/(1024**2), " MB"
+    write (6, "(T2,A,F14.3,A3 )") "                          ", real(totalSize)/(1024**3), " GB"
     write (6, "(T2,A,I8 )") "Length of core (search) space                          :", CISCI_instance%coreSpaceSize
     write (6, "(T2,A,I8 )") "Length of target (Full-CI subset) space per OMP thread :", CISCI_instance%targetSpaceSize/CIcore_instance%nproc
     write (6, "(T2,A,I8 )") "Length of buffer (auxiliary sort) space per OMP thread :", CISCI_instance%buffer_amplitudeCoreSize/CIcore_instance%nproc

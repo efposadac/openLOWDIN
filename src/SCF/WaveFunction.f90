@@ -125,8 +125,8 @@ contains
   !! @brief Define el constructor para la clase
   subroutine WaveFunction_constructor(these, nspecies, molsystem)
     implicit none
+    integer, intent(in) :: nspecies
     type(WaveFunction) :: these(nspecies)
-    integer :: nspecies
     type(MolecularSystem), optional, target :: molsystem
 
     integer :: speciesID, otherSpeciesID

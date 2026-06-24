@@ -222,7 +222,7 @@ contains
     !print scf grid information for comparison
     if (CONTROL_instance%PRINT_LEVEL .gt. 0) then
       do speciesID = 1, numberOfSpecies
-        write (*, "(A50 F15.8)") "Number of "//trim(MolecularSystem_getSymbolOfSpecies(speciesID, finalGrids(speciesID)%molSys))//" particles in the SCF grid: ", numberOfParticles(speciesID)
+        write (*, "(A50, F15.8)") "Number of "//trim(MolecularSystem_getSymbolOfSpecies(speciesID, finalGrids(speciesID)%molSys))//" particles in the SCF grid: ", numberOfParticles(speciesID)
       end do
       print *, ""
       write (*, "(A50, F15.8)") "Exchange-correlation energy with the SCF grid: ", sum(exchangeCorrelationEnergy%values)
@@ -260,7 +260,7 @@ contains
     !print scf grid information for comparison
     if (CONTROL_instance%PRINT_LEVEL .gt. 0) then
       do speciesID = 1, numberOfSpecies
-        write (*, "(A50 F15.8)") "Number of "//trim(MolecularSystem_getSymbolOfSpecies(speciesID, finalGrids(speciesID)%molSys))//" particles in the final grid: ", numberOfParticles(speciesID)
+        write (*, "(A50, F15.8)") "Number of "//trim(MolecularSystem_getSymbolOfSpecies(speciesID, finalGrids(speciesID)%molSys))//" particles in the final grid: ", numberOfParticles(speciesID)
       end do
       print *, ""
       write (*, "(A50, F15.8)") "Exchange-correlation energy with the final grid: ", sum(exchangeCorrelationEnergy%values)

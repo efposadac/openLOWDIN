@@ -287,7 +287,7 @@ contains
 
             write (6, *) ""
             write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-              float(CIcore_instance%numberOfConfigurations*(2 + (3*ms + CONTROL_instance%NUMBER_OF_CI_STATES + 1) + 4*ms*ms)*8)/(1024**3), " GB"
+              real(CIcore_instance%numberOfConfigurations*(2 + (3*ms + CONTROL_instance%NUMBER_OF_CI_STATES + 1) + 4*ms*ms)*8)/(1024**3), " GB"
             write (6, *) ""
 
             call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
@@ -303,7 +303,7 @@ contains
           case ("DSYEVX")
 
             write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-              float((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
+              real((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
             write (6, *) ""
 
             call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
@@ -321,7 +321,7 @@ contains
           case ("DSYEVR")
 
             write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-              float((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
+              real((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
             write (6, *) ""
 
             call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
