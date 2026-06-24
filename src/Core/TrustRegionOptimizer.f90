@@ -526,6 +526,7 @@ contains
     real(8) :: step
     real(8) :: FL, FU, FM, BU, BL, BULI
     logical :: flagA, flagB, flagC
+    logical :: computeStepSize
 
     allocate (auxMatrix(this%numberOfVariables, this%numberOfVariables))
     allocate (auxVector(this%numberOfVariables))
@@ -688,7 +689,7 @@ contains
 
        !! Acota el tamahno del paso
       this%minimumStepSize = max(abs(this%hessianeProjected%eigenValues(lowest))*epsilonTol, 10*epsilonTol)
-      this%maximumStepSize = 1000.0*max(1000.0, abs(this%hessianeProjected%eigenValues(lowest)))
+      this%maximumStepSize = 1000.0_8*max(1000.0_8, abs(this%hessianeProjected%eigenValues(lowest)))
 
       gradientThreshold = sqrt(this%minimumStepSize*abs(this%hessianeProjected%eigenValues(lowest)))
 
@@ -723,20 +724,18 @@ contains
     end do
 
     !! FALTA ADICINAR RESTRICCIONES  (A.2) AQUI
-
+    computeStepSize = .false.
     if (.not. this%hessianeProjected%isPositiveDefinited) then
 
-      if (auxEigenVal < 0.0 .and. auxVal >= 0.0) goto 100
+      if (auxEigenVal < 0.0 .and. auxVal >= 0.0) computeStepSize = .true.
 
     else
-      if (this%hessianeProjected%eigenValues(lowest) >= 0.0) goto 100
+      if (this%hessianeProjected%eigenValues(lowest) >= 0.0) computeStepSize = .true.
     end if
 
     do j = 1, this%numberOfVariables
       print *, "valor propio: ", j, this%hessianeProjected%eigenValues(j)
     end do
-
-    goto 200
 
     !!***************************************************************************
     !!   Calculo el tamanho del paso
@@ -744,57 +743,60 @@ contains
 
 100 step_search: do
 
-      this%step%values = 0.0
-      do i = 1, this%numberOfVariables
-        if (abs(this%lagrangeMultiplier) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
-            abs(this%hessianeProjected%eigenValues(i)) < 1.0D-6) then
-          auxVal = 0.0
-        else
-          if (abs(this%LagrangeMultiplier - this%hessianeProjected%eigenValues(i)) < 1.0D-6) then
+      if ( computeStepSize ) then
+
+        this%step%values = 0.0
+        do i = 1, this%numberOfVariables
+          if (abs(this%lagrangeMultiplier) < CONTROL_instance%DOUBLE_ZERO_THRESHOLD .and. &
+              abs(this%hessianeProjected%eigenValues(i)) < 1.0D-6) then
             auxVal = 0.0
           else
-            auxVal = this%gradientProjectedOnHessiane%values(i) &
-                     /(this%LagrangeMultiplier - this%hessianeProjected%eigenValues(i))
+            if (abs(this%LagrangeMultiplier - this%hessianeProjected%eigenValues(i)) < 1.0D-6) then
+              auxVal = 0.0
+            else
+              auxVal = this%gradientProjectedOnHessiane%values(i) &
+                       /(this%LagrangeMultiplier - this%hessianeProjected%eigenValues(i))
+            end if
           end if
-        end if
 
-        if (i == negativeLowest) then
-          if (abs(this%oldLagrangeMultiplier - auxEigenVal) < 1.0D-6) then
-            auxVal = 0.0
-          else
-            auxVal = this%gradientProjectedOnHessiane%values(negativeLowest) &
-                     /(this%oldLagrangeMultiplier - this%hessianeProjected%eigenValues(negativeLowest))
+          if (i == negativeLowest) then
+            if (abs(this%oldLagrangeMultiplier - auxEigenVal) < 1.0D-6) then
+              auxVal = 0.0
+            else
+              auxVal = this%gradientProjectedOnHessiane%values(negativeLowest) &
+                       /(this%oldLagrangeMultiplier - this%hessianeProjected%eigenValues(negativeLowest))
+            end if
           end if
-        end if
 
-        do j = 1, this%numberOfVariables
-          this%step%values(j) = this%step%values(j) + auxVal*this%hessianeProjected%eigenVectors(j, i)
+          do j = 1, this%numberOfVariables
+            this%step%values(j) = this%step%values(j) + auxVal*this%hessianeProjected%eigenVectors(j, i)
+          end do
+
         end do
 
-      end do
+        auxVal = sqrt(dot_product(this%step%values, this%step%values))
 
-      auxVal = sqrt(dot_product(this%step%values, this%step%values))
-
-      if (auxVal < (this%adaptativeMaximumTrustRadius + 1.0D-6)) then
-        this%xlambda = this%lagrangeMultiplier
-        this%oldXlambda = this%oldLagrangeMultiplier
-        this%trustRadius = auxVal
-        return
-      end if
-
-      if (abs(this%lagrangeMultiplier) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD &
-          .and. abs(this%oldLagrangeMultiplier) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
-
-        if (flagC) then
+        if (auxVal < (this%adaptativeMaximumTrustRadius + 1.0D-6)) then
           this%xlambda = this%lagrangeMultiplier
           this%oldXlambda = this%oldLagrangeMultiplier
           this%trustRadius = auxVal
           return
         end if
 
-      end if
+        if (abs(this%lagrangeMultiplier) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD &
+            .and. abs(this%oldLagrangeMultiplier) > CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
 
-200   this%lagrangeMultiplier = 0.0
+          if (flagC) then
+            this%xlambda = this%lagrangeMultiplier
+            this%oldXlambda = this%oldLagrangeMultiplier
+            this%trustRadius = auxVal
+            return
+          end if
+
+        end if
+      end if ! computeStepSize
+
+      this%lagrangeMultiplier = 0.0
       flagA = .false.
       flagB = .false.
       BULI = this%hessianeProjected%eigenValues(lowest)

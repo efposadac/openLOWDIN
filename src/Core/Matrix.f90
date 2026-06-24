@@ -410,7 +410,7 @@ contains
     symmetricTmp = .false.
     if (present(symmetric)) symmetricTmp = symmetric
 
-    call itime(timeArray) ! Get the current time
+    call date_and_time(values=timeArray) ! Get the current time
     !! i = rand ( timeArray(1)+timeArray(2)+timeArray(3) )
 
     allocate (this%values(rows, cols))
