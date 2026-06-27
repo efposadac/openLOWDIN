@@ -449,7 +449,8 @@ contains
       if ( is_equal ) then
 
         !! merge in the next element 
-        amplitudes(i+1) = amplitudes(i+1) + amplitudes(i)  
+        amplitudes(i+1) = amplitudes(i+1) + amplitudes(i)  ! ASCI
+        !amplitudes(i+1) = max(amplitudes(i+1), amplitudes(i)) ! HBCI
         !! clean the current element
         amplitudes(i) = 0.0_8
         indices(i) = 0_8

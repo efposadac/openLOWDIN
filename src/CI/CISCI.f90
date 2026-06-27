@@ -57,6 +57,8 @@ module CISCI_
   end type CISCI
 
   type(CISCI) :: CISCI_instance
+  integer, parameter :: VARIATIONAL = 1
+  integer, parameter :: PERTURBATIVE = 2
 
 contains
 
@@ -243,7 +245,6 @@ contains
     if ( CONTROL_instance%CI_SELECTIVE_METHOD == "HBCI" ) then
       call CISCI_heatbathIntegralSorting( CISCI_instance%heatBathDoubleExcitations, CISCI_instance%heatBathDoubleExcitations_index, &
                                           CISCI_instance%heatBathDoubleExcitations_size )
-      stop
     endif
 
   end subroutine CISCI_constructor
@@ -302,13 +303,21 @@ contains
       !! computing the diagonal in the core space, for fast computation of core amplitudes
       call CISCI_buildDiagonal ( CISCI_instance%diagonalCore, CISCI_instance%confCore, CISCI_instance%coreSpaceSize )
 
-      !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
-      if ( CIcore_instance%level == "CISD-" .or. .not. finalStep ) then
-        call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
-      endif
-      if ( CIcore_instance%level == "FCI" .and. finalStep ) then
-        call CISCI_core_amplitudes ( CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
-      endif
+      !! search and select
+      select case ( CONTROL_instance%CI_SELECTIVE_METHOD )
+
+      case ("ASCI")
+        !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
+        if ( CIcore_instance%level == "CISD-" .or. .not. finalStep ) then
+          call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
+        endif
+        if ( CIcore_instance%level == "FCI" .and. finalStep ) then
+          call CISCI_core_amplitudes ( CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentenergy )
+        endif
+      case ("HBCI")
+          call CISCI_heatBathGenerate (  CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values,&
+          CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentenergy, VARIATIONAL )
+      end select
 
       !! merge core space with the top amplitude to form a new target space, and save them in saved_conf with coefficients in eigenvectors
       call CISCI_mergeCoreAndTarget( CISCI_instance%confTarget_orb, eigenVectors )
@@ -471,13 +480,19 @@ contains
       !! computing the diagonal in the target space, for fast computation of core amplitudes
       call CISCI_buildDiagonal ( CISCI_instance%diagonalTarget, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
 
-      !! recompute amplitudes, but now from target space not core, in this way all connected conf are saved in buffer
-      if ( CIcore_instance%level == "CISD-" ) then
-        call CISCI_core_amplitudes_cisd (  eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
-      endif
-      if ( CIcore_instance%level == "FCI" ) then
-        call CISCI_core_amplitudes ( CISCI_instance%diagonalTarget, eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
-      endif
+      select case ( CONTROL_instance%CI_SELECTIVE_METHOD )
+        case ("ASCI")
+        !! recompute amplitudes, but now from target space not core, in this way all connected conf are saved in buffer
+        if ( CIcore_instance%level == "CISD-" ) then
+          call CISCI_core_amplitudes_cisd (  eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
+        endif
+        if ( CIcore_instance%level == "FCI" ) then
+          call CISCI_core_amplitudes ( CISCI_instance%diagonalTarget, eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
+        endif
+      case ("HBCI")
+          call CISCI_heatBathGenerate ( CISCI_instance%diagonalTarget, eigenVectors%values(:,1), CISCI_instance%confTarget_orb, &
+          CISCI_instance%targetSpaceSize, currentEnergy, PERTURBATIVE )
+      end select
 
       !! recalculate n conf to prevent the code breaking in case the targetSpace is not fully filled
       numberOfConfigurations = 0
@@ -648,6 +663,7 @@ contains
     real(8), intent(in) :: coefficientCore ( SCICoreSpaceSize )
     type(IMatrix1), intent(in) :: confCore(:)
     integer(8), intent(in) :: SCICoreSpaceSize
+    real(8), intent(in) :: oldEnergy
     real(8) :: CIEnergy
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj
     integer(4) :: nproc, n, nn
@@ -661,7 +677,6 @@ contains
     integer(8), allocatable :: indexConfA(:) !! ncore, species
     real(8) :: diagEnergy, diagEnergy_a
     real(8) :: diagEnergy_ao1, diagEnergy_ao1o2
-    real(8) :: oldEnergy
     real(8) :: shift
     type (ivector), allocatable :: occA(:), occB(:), virA(:), virB(:)
     type (ivector), allocatable :: orbA(:), orbB(:)
@@ -2156,7 +2171,7 @@ contains
       diagonal = CISCI_calculateEnergyZero( occA )
       denominator = 1 / ( refEnergy - diagonal ) 
       !! PT2 correction, normal way
-      !! energyCorrection = energyCorrection + ( CIenergy**2) * denominator
+      !!energyCorrection = energyCorrection + ( CIenergy**2) * denominator
       !! Kahan summation way
       energyIncrement = (CIenergy**2) * denominator
       energyIncrement_corrected = energyIncrement - energyCorrection_errorCrumbs
@@ -2584,6 +2599,10 @@ contains
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
+    do spi = 1, numberOfSpecies
+      CISCI_instance%confTarget_occ(spi)%values = -1_4
+    enddo
+
     allocate ( occA ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
 
@@ -2617,14 +2636,14 @@ contains
         occA(spi)%values(:) = 0
         !! build auxiliary vectors of occupied and virtuals orbitals
         do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
-          if ( orbA(spi)%values(pi) == 1 ) then
+          if ( orbA(spi)%values(pi) == 1_1 ) then
             oia = oia + 1
             occA(spi)%values(oia) = pi
           end if
         enddo
         !!occB(spi)%values(:) = pack( CISCI_instance%canonicalOrder(spi)%values, orbB(spi)%values(:) == 1 )
 
-        if ( orbA(spi)%values(1) == -1 ) occA(spi)%values(:) = -1
+        if ( orbA(spi)%values(1) == -1_1 ) occA(spi)%values(:) = -1_4
 
         CISCI_instance%confTarget_occ(spi)%values(:, a) = occA(spi)%values(:) 
 
@@ -2651,13 +2670,13 @@ contains
 
     do a = 1,  CISCI_instance%targetSpaceSize
 
-      if (CISCI_instance%confTarget_occ(1)%values(1,a) == -1_1 ) exit
-
       aa = CISCI_instance%index_amplitudeCore%values(a)
+      if (CISCI_instance%confTarget_occ(1)%values(1,aa) == -1_4 ) exit
+
       do spi = 1, numberOfSpecies
         CISCI_instance%confTarget_orb(spi)%values(:,a) = 0_1
         do pi = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
-          CISCI_instance%confTarget_orb(spi)%values( CISCI_instance%confTarget_occ(spi)%values(pi,aa), a ) = 1_1
+          CISCI_instance%confTarget_orb(spi)%values( CISCI_instance%confTarget_occ(spi)%values(pi,aa), a ) = 1_4
         enddo
       enddo
     enddo
@@ -2678,8 +2697,12 @@ contains
     integer(8) :: pq, rs, pr, ps, rq, qs, pqrs, psrq, prqs
     integer(8) :: size_ii, size_ij
     real(8) :: kappa
+    logical, allocatable :: occupied(:)
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
+
+    allocate ( occupied ( maxval(CIcore_instance%numberOfOrbitals%values(:) ) ) )
+    occupied = .False. 
 
     !! matrix allocation and initialization
     allocate ( heatBathDoubleExcitations(numberOfSpecies,numberOfSpecies))
@@ -2754,12 +2777,16 @@ contains
 
       kappa = MolecularSystem_instance%species(spi)%kappa
       do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+        occupied(pi) = .True.
+
         do qi = pi + 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+          occupied(qi) = .True.
 
           pq = CIcore_instance%twoIndexArray(spi)%values(qi,pi)
           do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+            if ( occupied(ri) ) cycle
             do si = ri + 1_8, CIcore_instance%numberOfOrbitals%values(spi)
-
+              if ( occupied(si) ) cycle
               rs = CIcore_instance%twoIndexArray(spi)%values(si,ri)
 
               ps = CIcore_instance%twoIndexArray(spi)%values(si,pi)
@@ -2777,7 +2804,7 @@ contains
             enddo !si
           enddo !ri
 
-          !! removing self excitation term (pq -> pq)
+          !! removing self excitation term (pq -> pq ) I think this will never happend with the above loops, but
           heatBathDoubleExcitations(spi,spi)%values(pq,pq) = 0.0_8
 
           !print *, "========"
@@ -2796,7 +2823,7 @@ contains
 
           !! finding the size of elements above SCI variational threshold
           do rs = 1_8, size_ii
-            if ( abs(heatBathDoubleExcitations(spi,spi)%values(rs,pq)) <= CONTROL_instance%CI_HEATH_BATH_THRESHOLD(1) ) then
+            if ( abs(heatBathDoubleExcitations(spi,spi)%values(rs,pq)) <= CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(1) ) then
               heatBathDoubleExcitations_size(spi,spi)%values(pq,1) = rs - 1_8
               exit
             endif
@@ -2804,7 +2831,7 @@ contains
 
           !! finding the size of elements above PT2 threshold
           do rs = heatBathDoubleExcitations_size(spi,spi)%values(pq,1) + 1_8, size_ii
-            if ( abs(heatBathDoubleExcitations(spi,spi)%values(rs,pq)) <= CONTROL_instance%CI_HEATH_BATH_THRESHOLD(2) ) then
+            if ( abs(heatBathDoubleExcitations(spi,spi)%values(rs,pq)) <= CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(2) ) then
               heatBathDoubleExcitations_size(spi,spi)%values(pq,2) = rs - 1_8
               exit
             endif
@@ -2812,7 +2839,9 @@ contains
 
           !print *, "min pos", heatBathDoubleExcitations_size(spi,spi)%values(pq,1), heatBathDoubleExcitations_size(spi,spi)%values(pq,2)
 
+          occupied(qi) = .False.
         enddo !qi
+        occupied(pi) = .False.
       enddo !pi
     enddo !spi
 
@@ -2848,10 +2877,10 @@ contains
           do qj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
             !!index for HBCI
             pq = qj + CIcore_instance%numberOfOrbitals%values(spj) * ( pi - 1_8 )
-            do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+            do ri = pi + 1_8, CIcore_instance%numberOfOrbitals%values(spi)
               !! integral index
               pr = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( CIcore_instance%twoIndexArray(spi)%values(ri,pi) - 1_8 ) !! aux index
-              do sj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+              do sj = qj + 1_8, CIcore_instance%numberOfOrbitals%values(spj)
 
                 !!index for HBCI
                 rs = sj + CIcore_instance%numberOfOrbitals%values(spj) * ( ri - 1_8 )
@@ -2890,7 +2919,7 @@ contains
 
             !! finding the size of elements above SCI variational threshold
             do rs = 1_8, size_ij
-              if ( abs(heatBathDoubleExcitations(spj,spi)%values(rs,pq)) <= CONTROL_instance%CI_HEATH_BATH_THRESHOLD(1) ) then
+              if ( abs(heatBathDoubleExcitations(spj,spi)%values(rs,pq)) <= CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(1) ) then
                 heatBathDoubleExcitations_size(spj,spi)%values(pq,1) = rs - 1_8
                 exit
               endif
@@ -2898,7 +2927,7 @@ contains
 
             !! finding the size of elements above PT2 threshold
             do rs = heatBathDoubleExcitations_size(spj,spi)%values(pq,1) + 1_8, size_ij
-              if ( abs(heatBathDoubleExcitations(spj,spi)%values(rs,pq)) <= CONTROL_instance%CI_HEATH_BATH_THRESHOLD(2) ) then
+              if ( abs(heatBathDoubleExcitations(spj,spi)%values(rs,pq)) <= CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(2) ) then
                 heatBathDoubleExcitations_size(spj,spi)%values(pq,2) = rs - 1_8
                 exit
               endif
@@ -2912,6 +2941,304 @@ contains
       enddo ! spj
     enddo !spi
 
+    deallocate ( occupied )
+
   end subroutine CISCI_heatbathIntegralSorting
+
+  !! generate the configurations to form the target space from the core space
+  subroutine CISCI_heatBathGenerate (  diagonal, coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, mode )
+
+    implicit none
+    type(Vector), intent(in) :: diagonal
+    real(8), intent(in) :: coefficientCore ( SCICoreSpaceSize )
+    type(IMatrix1), intent(in) :: confCore(:)
+    integer(8), intent(in) :: SCICoreSpaceSize
+    real(8), intent(in) :: oldEnergy
+    integer, intent(in) :: mode
+    real(8) :: CIEnergy
+    integer(8) :: i, j, ia, ib, ii, jj, iii, jjj
+    integer(4) :: nproc, n, nn
+    real(8) :: timeA, timeB
+    real(8) :: tol
+    integer(4) :: iter, size1, size2
+    integer :: ci
+    integer :: auxSize
+    integer(8) :: a,b,c, aa
+    integer :: spi, spj, numberOfSpecies
+    integer(8), allocatable :: indexConfA(:) !! ncore, species
+    real(8) :: diagEnergy, diagEnergy_a
+    real(8) :: diagEnergy_ao1, diagEnergy_ao1o2
+    real(8) :: shift
+    type (ivector), allocatable :: occA(:), occB(:), virA(:), virB(:)
+    type (ivector), allocatable :: orbA(:), orbB(:)
+    integer, allocatable :: CIlevel(:)
+    real(8) :: tmpconfCoreConfB
+    integer(8) :: pi, qi, ri, si, pj, qj, rj, sj
+    integer(8) :: pq, rs, rs_pair(2)
+    integer(8) :: oia, oja, via, vja, aaa
+    integer(8) :: oi1, vi1, oi2, vi2, oj2, vj2
+    integer(8) :: size_ii, size_ij
+    integer :: factor1, factor2, factor2j
+    integer :: nonzero
+
+!$  timeA = omp_get_wtime()
+    shift = 1E-8 !! to avoid divergence
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+
+    !! work only with non-zero conf
+    nonzero = 0
+    do a = 1, SCICoreSpaceSize  
+      if ( confCore(1)%values(1,a) == -1_1 .or. abs(coefficientCore(a)) <= 1E-10 ) exit
+      nonzero = nonzero + 1
+    enddo
+
+    !$omp parallel &
+    !$omp& private ( occA, occB, virA, virB, orbA, orbB, CIlevel) &
+    !$omp& private ( n, a, oia, via, pi, qi, ri, si, oi1, vi1, oi2, vi2, spi, spj, oj2, vj2, factor1, factor2, factor2j, &
+    !$omp&           CIenergy, diagEnergy, diagEnergy_a, diagEnergy_ao1, diagEnergy_ao1o2 ) 
+
+    !! allocating auxiliary arrays (omp) for working with conf and orbitals
+    allocate ( occA ( numberOfSpecies ) )
+    allocate ( occB ( numberOfSpecies ) )
+    allocate ( virA ( numberOfSpecies ) )
+    allocate ( virB ( numberOfSpecies ) )
+    allocate ( orbA ( numberOfSpecies ) )
+    allocate ( orbB ( numberOfSpecies ) )
+    allocate ( CIlevel ( numberOfSpecies ) )
+
+    do spi = 1, numberOfSpecies
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+    end do
+
+    n = omp_get_thread_num() + 1
+
+    !! loop to find all CI configurtions coupled to core space
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (static)
+    do a = 1, nonzero  
+
+      ! getting configuration A
+      do spi = 1, numberOfSpecies 
+
+        oia = 0_8
+        via = 0_8
+
+        !! build the orbital from the index using the bit mapping
+        !!call CISCI_decimalToBinary ( confCore%values(spi,a), orbA(spi)%values )
+        orbA(spi)%values(:) = confCore(spi)%values(:,a) 
+
+        !! build auxiliary vectors of occupied and virtuals orbitals
+        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          if ( orbA(spi)%values(pi) == 1_8 ) then
+            oia = oia + 1_8
+            occA(spi)%values(oia) = pi
+          else if ( orbA(spi)%values(pi) == 0_8 ) then
+            via = via + 1_8
+            virA(spi)%values(via) = pi
+          end if
+        enddo
+
+        !! copy to conf B, these are variable
+        orbB(spi)%values = orbA(spi)%values 
+        occB(spi)%values = occA(spi)%values 
+        virB(spi)%values = virA(spi)%values 
+
+      enddo
+      CIlevel = 0
+
+      !! building all single sustitutions from configuration A. 
+      !! here all configurations pairs are generated in maximum coincidence 
+      do spi = 1, numberOfSpecies 
+
+        !! calculate the sign factor for canonical order of the configuration
+        factor1 = CISCI_canonicalOrderFactor( spi, orbA(spi), occA(spi) )
+
+        do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+          oi1 = occA(spi)%values(pi)  
+          orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1_8
+
+          do qi = 1_8, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) !! occ or core???
+            vi1 = virA(spi)%values(qi)
+            orbB(spi)%values(vi1) = orbB(spi)%values(vi1) + 1_8
+            occB(spi)%values(pi) = vi1
+
+            CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
+
+            !! bit mapping from orbital to decimal num
+            !call CISCI_binaryToDecimal ( orbB(spi)%values, confCoreConfB(spi) )
+            !confCoreConfB(spi)%values = orbB(spi)%values ! save the indexconfB to use later in double inter, because double intra will overwritten it 
+
+            !! get spingle sustitutions energy, H_ab C_a
+            CIenergy = CISCI_calculateEnergyOne( spi, occA, occB, oi1, vi1  )
+
+            diagEnergy = CISCI_calculateEnergyZero( occB )
+            CIenergy = abs(CIenergy * coefficientCore(a) ) / ( diagEnergy - oldEnergy + shift)
+
+            !! calculate the sign factor for canonical order of the configuration
+            !factor2 = CISCI_canonicalOrderFactor( spi, orbB(spi), occB(spi) )
+            !CIenergy = abs(CIenergy * factor1 * factor2)
+
+            if ( CIenergy > CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(mode) ) then
+              !! append the amplitude 
+              call CISCI_appendAmplitude ( n, CIenergy, orbB )
+            endif
+            !! reset the confB
+            occB(spi)%values(pi) = occA(spi)%values(pi)  
+            orbB(spi)%values(vi1) = orbB(spi)%values(vi1) - 1_8
+          enddo !qi
+          orbB(spi)%values(oi1) = orbB(spi)%values(oi1) + 1_8
+        enddo !pi
+        CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi) + 1_8:) )
+
+        !! generate double excitations (same species)
+        do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+          oi1 = occA(spi)%values(pi)  
+          orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1_8
+
+          do qi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+            oi2 = occA(spi)%values(qi)  
+            if ( oi1 <= oi2 ) cycle !?
+            orbB(spi)%values(oi2) = orbB(spi)%values(oi2) - 1_8
+
+            pq = CIcore_instance%twoIndexArray(spi)%values(oi2,oi1)
+
+            !do rs = 1_8, CISCI_instance%heatBathDoubleExcitations_size(spi,spi)%values(pq,mode) 
+            do rs = 1_8, size_ii
+
+              CIenergy = CISCI_instance%heatBathDoubleExcitations(spi,spi)%values(rs,pq)
+              CIenergy = abs( CIenergy * coefficientCore(a) )
+
+
+              if ( CIenergy > CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(mode) ) then
+
+                !! get the different orbitals (excitation)
+                rs_pair = IndexMap_vectorToMatrix( CISCI_instance%heatBathDoubleExcitations_index(spi,spi)%values(rs,pq), CIcore_instance%numberOfOrbitals%values(spi))
+                vi1 = rs_pair(1)
+                vi2 = rs_pair(2)
+
+                if ( orbB(spi)%values(vi1) == 1_8 ) cycle ! already occupied
+                if ( orbB(spi)%values(vi2) == 1_8 ) cycle ! already occupied
+
+                !! generate the configuration
+                orbB(spi)%values(vi1) = 1_8
+                orbB(spi)%values(vi2) = 1_8
+
+                CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
+
+                occB(spi)%values(pi) = vi1
+                occB(spi)%values(qi) = vi2
+                diagEnergy = CISCI_calculateEnergyZero( occB )
+                CIenergy = abs(CIenergy * coefficientCore(a) ) / ( diagEnergy - oldEnergy + shift)
+                occB(spi)%values(pi) = occA(spi)%values(pi)  
+                occB(spi)%values(qi) = occA(spi)%values(qi)  
+
+                !! append the amplitude 
+                call CISCI_appendAmplitude ( n, CIenergy, orbB )
+
+                !! restore the configuration
+                orbB(spi)%values(vi1) = 0_8
+                orbB(spi)%values(vi2) = 0_8
+              endif !!
+            enddo !! rs
+            !! reset the confB
+            orbB(spi)%values(oi2) = orbB(spi)%values(oi2) + 1_8
+          enddo !qi
+          orbB(spi)%values(oi1) = orbB(spi)%values(oi1) + 1_8
+        enddo !pi
+
+        !! generate double excitations (diff species)
+        do spj = spi + 1, numberOfSpecies
+
+          size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+          do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+            oi1 = occA(spi)%values(pi)  
+            orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1_8
+            do qj = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+              oj2 = occA(spj)%values(qj)  
+              orbB(spj)%values(oj2) = orbB(spj)%values(oj2) - 1_8
+
+              pq = qj + CIcore_instance%numberOfOrbitals%values(spj) * ( pi - 1_8 )
+
+              do rs = 1_8, size_ij
+              !do rs = 1_8, CISCI_instance%heatBathDoubleExcitations_size(spj,spi)%values(pq,mode) 
+                CIenergy = CISCI_instance%heatBathDoubleExcitations(spj,spi)%values(rs,pq)
+                CIenergy = abs(CIenergy * coefficientCore(a) )
+
+                if ( CIenergy > CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(mode) ) then
+
+                  !! get the different orbitals (excitation)
+                  vi1 = ((CISCI_instance%heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8 ) / CIcore_instance%numberOfOrbitals%values(spj)) + 1_8
+                  vj2 = mod(CISCI_instance%heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8, CIcore_instance%numberOfOrbitals%values(spj)) + 1_8
+
+                  if ( orbB(spi)%values(vi1) == 1_8 ) cycle ! already occupied
+                  if ( orbB(spj)%values(vj2) == 1_8 ) cycle ! already occupied
+
+                  !! generate the configuration
+                  orbB(spi)%values(vi1) = 1_8
+                  orbB(spj)%values(vj2) = 1_8
+
+                  CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
+                  CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
+
+                  occB(spi)%values(pi) = vi1
+                  occB(spj)%values(qj) = vj2
+                  diagEnergy = CISCI_calculateEnergyZero( occB )
+                  CIenergy = abs(CIenergy * coefficientCore(a) ) / ( diagEnergy - oldEnergy + shift)
+                  occB(spi)%values(pi) = occA(spi)%values(pi)  
+                  occB(spj)%values(qj) = occA(spj)%values(qj)  
+
+                  !! append the amplitude 
+                  call CISCI_appendAmplitude ( n, CIenergy, orbB )
+
+                  !! restore the configuration
+                  orbB(spi)%values(vi1) = 0_8
+                  orbB(spj)%values(vj2) = 0_8
+                endif !!
+              enddo !! rs
+              !! reset the confB
+              orbB(spj)%values(oj2) = orbB(spj)%values(oj2) + 1_8
+            enddo !qj
+            orbB(spi)%values(oi1) = orbB(spi)%values(oi1) + 1_8
+          enddo !pi
+        enddo !spj
+      enddo !spi
+    enddo !enddo a
+    !$omp enddo 
+
+    do spi = 1, numberOfSpecies
+      call Vector_destructorInteger ( occA(spi) ) 
+      call Vector_destructorInteger ( occB(spi) )
+      call Vector_destructorInteger ( virA(spi) )  
+      call Vector_destructorInteger ( virB(spi) )  
+      call Vector_destructorInteger ( orbA(spi) ) 
+      call Vector_destructorInteger ( orbB(spi) ) 
+    end do
+
+    deallocate ( CIlevel )
+    deallocate ( occA  )
+    deallocate ( occB  )
+    deallocate ( virA  )
+    deallocate ( virB  )
+    deallocate ( orbA  )
+    deallocate ( orbB  )
+
+    !$omp end parallel
+
+    !! ------------------------------
+    !! the above code applies the denominator from eq 4 10.1063/1.4955109 on the fly for each configuration. Alternatively, it can be sort by heat-bath ranking first, then final sort by asci ranking
+
+    !! sort and reduce the target arrays among all OMP threads, final run
+    call CISCI_sortAmplitude( CIcore_instance%nproc + 1 ) 
+
+!$  timeB = omp_get_wtime()
+!$  write(*,"(A,ES10.2,A4)") "** TOTAL Elapsed Time for generating HB-SCI configurations: ", timeB - timeA ," (s)"
+
+  end subroutine CISCI_heatBathGenerate 
+
 
 end module CISCI_
