@@ -908,13 +908,14 @@ contains
     !function Configuration_setAtMaximumCoincidenceB(thisA, thisB, numberOfSpecies) result ( factor)
     implicit none
     !type(Configuration) :: thisA, thisB
+    integer, intent(in) :: m, n
     integer(2) :: thisA(m, n)
     integer(2), intent(in) :: thisB(:, :)
     integer :: factor
     integer, intent(in) :: numberOfSpecies
 
     integer :: numberOfOccupiedOrbitals
-    integer :: i, j, k, s, m, n
+    integer :: i, j, k, s
     !type(IVector), allocatable, intent(out) :: occupiedOrbitals(:,:) !! spescies, confA confB
     !integer, allocatable, intent(out) :: occupiedOrbitalsA(:,:),occupiedOrbitalsB(:,:) !! spescies, confA confB
     integer :: auxOcc

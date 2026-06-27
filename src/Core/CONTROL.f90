@@ -3024,7 +3024,7 @@ contains
     implicit none
     character(255):: directory
 
-    call getenv("LOWDIN_HOME", directory)
+    call get_environment_variable("LOWDIN_HOME", directory)
 
     directory = trim(directory)
 
@@ -3037,7 +3037,7 @@ contains
 
     character(255):: directory
 
-    call getenv("LOWDIN_DATA", directory)
+    call get_environment_variable("LOWDIN_DATA", directory)
 
     directory = trim(directory)
 
@@ -3049,7 +3049,7 @@ contains
     implicit none
     character(255):: output
 
-    call getenv("EXTERNAL_COMMAND", output)
+    call get_environment_variable("EXTERNAL_COMMAND", output)
 
     output = trim(output)
 
@@ -3061,7 +3061,7 @@ contains
     implicit none
     character(255):: output
 
-    call getenv("EXTERNAL_SOFTWARE_NAME", output)
+    call get_environment_variable("EXTERNAL_SOFTWARE_NAME", output)
 
     output = trim(output)
 

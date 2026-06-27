@@ -24,9 +24,9 @@ usage(){
     echo "   -s"
     echo "      Path for scratch"
     echo "   -f"
-    echo "      gfortran/ifort/ifx"
+    echo "      Fortran compiler: gfortran/ifort/ifx"
     echo "   -o"
-    echo "      Compiler Options: (1) regular,  (2) backtrace and debug,  (3) static (for intel fortran compiler only), (4) Full debug, (5) Highest optimization level"   
+    echo "      Compiler Options: [1] regular, [2] production level, [3] backtrace and debug, [4] full debug, [5] profiling, [6] static " 
     echo "   -l"
     echo "      Lapack libraries to be used"
     echo "   -d"
@@ -48,6 +48,7 @@ PREFIX="/usr/local"
 SCRATCH='/tmp'
 FC="gfortran"
 FLAGS="1"
+LAPACK_TYPE="1"
 CUDAFLAGS="no"
 INLINEOPT='F'
 SED=sed
@@ -88,6 +89,7 @@ do
             LAPACK_LIBS=$OPTARG
             #ALL_LIBS="$LAPACK_LIBS $LIBINT_LIBS $LIBXC_LIBS $STDCPP_LIBS $GSL_LIBS"
             INLINEOPT='T'
+	    INPUT_LAPACK_TYPE="0"
             ;;
         h)
             usage
@@ -117,6 +119,7 @@ else
         CU=`awk '{if($1 == "CU" ) {for(i=3;i<=NF;i++) print "%s ", $i}}' CONFIG`
         CUBAFLAGS=`awk '{if($1 == "CUBAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         CUDAFLAGS=`awk '{if($1 == "CUDAFLAGS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
+        LAPACK_TYPE=`awk '{if($1 == "LAPACK_TYPE" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         LAPACK_LIBS=`awk '{if($1 == "LAPACK_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         STDCPP_LIBS=`awk '{if($1 == "STDCPP_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
         GSL_LIBS=`awk '{if($1 == "GSL_LIBS" ) {for(i=3;i<=NF;i++) printf "%s ", $i}}' CONFIG`
@@ -152,7 +155,7 @@ if [ "$BINDIR" = "" ] ; then
 fi
 PREFIX=$BINDIR
 AUX_PREFIX="${PREFIX//\(/}" 
-AUX_PREFIX="${AUX_PREFIX//\)/}" 
+	AUX_PREFIX="${AUX_PREFIX//\)/}" 
 if [ ! -d $(bash -c "echo $AUX_PREFIX") ] ; then
     echo "WARNING! Folder $AUX_PREFIX does not exist"
 fi
@@ -319,10 +322,27 @@ fi
 #                   LIBRARIES CONFIGURATION
 ###############################################################################
 
-if [ "$FC" = "ifort" ] || [ "$FC" = "ifx" ] ; then
-    LAPACK_LIBS="-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core"
-else
+# Lapack
+if [[ $INLINEOPT == 'F' ]]; then
+    echo -e "7. Blas and Lapack libraries: \n [1] blas, lapack \n [2] mkl \n [3] openblas \n [4] flexiblas \n (current=$LAPACK_TYPE)"
+    read INPUT_LAPACK_TYPE
+fi
+if [ "$INPUT_LAPACK_TYPE" = "" ] ; then
+    INPUT_LAPACK_TYPE=$LAPACK_TYPE
+fi
+
+if [ "$INPUT_LAPACK_TYPE" = "0" ] ; then
+    LAPACK_TYPE="0" # user defined
+elif [ "$INPUT_LAPACK_TYPE" = "1" ] ; then
     LAPACK_LIBS="-lblas -llapack"
+elif [ "$INPUT_LAPACK_TYPE" = "2" ] ; then
+    LAPACK_LIBS="-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core"
+elif [ "$INPUT_LAPACK_TYPE" = "3" ] ; then
+    LAPACK_LIBS="-lopenblas"
+elif [ "$INPUT_LAPACK_TYPE" = "4" ] ; then
+    LAPACK_LIBS="-lflexiblas"
+else 
+    LAPACK_LIBS=""
 fi
 
 if [ "$CUDAFLAGS" = "yes" ] ; then
@@ -405,6 +425,7 @@ echo "CFLAGS = $CFLAGS"  >> CONFIG
 echo "CPPFLAGS = $CPPFLAGS"  >> CONFIG
 echo "CUBAFLAGS = $CUBAFFLAGS" >> CONFIG
 echo "CUDAFLAGS = $CUDAFLAGS" >> CONFIG
+echo "LAPACK_TYPE = $LAPACK_TYPE"  >> CONFIG
 echo "LAPACK_LIBS = $LAPACK_LIBS"  >> CONFIG
 echo "STDCPP_LIBS = $STDCPP_LIBS"  >> CONFIG
 echo "GSL_LIBS = $GSL_LIBS"  >> CONFIG

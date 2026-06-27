@@ -3091,7 +3091,7 @@ contains
           residual = abs(newOmega - lastOmega)
 
           !print *,"Iteration ",ni,"New Omega ",newOmega,"Residual ",residual
-          write (*, "(T5,I2,A5,E12.5E2,A5,E12.5E2)"), ni, "     ", newOmega, "     ", residual
+          write (*, "(T5,I2,A5,E12.5E2,A5,E12.5E2)") ni, "     ", newOmega, "     ", residual
         end do ! while
 
         poleStrenght = 1.0_8/selfEnergyDerivative
@@ -4273,7 +4273,7 @@ contains
 
             residual = abs(newOmega - lastOmega)
 
-            write (*, "(T5,I2,A5,E12.5E2,A5,E12.5E2)"), ni, "     ", newOmega, "     ", residual
+            write (*, "(T5,I2,A5,E12.5E2,A5,E12.5E2)") ni, "     ", newOmega, "     ", residual
           end do ! while
 
           if (o == 1) then

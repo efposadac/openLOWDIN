@@ -11,24 +11,26 @@ fi
 usage(){
 	echo "Usage:"
   echo "   $ lowdin -i file.lowdin [-n number] [-v number] [-p] [-s] [-h] "
-	echo ""
-	echo "   -i file.lowdin"
-	echo "      This is the input file name"
-	echo "   -n number"
-	echo "      This will set the number of OMP threads"
-	echo "   -v number"
-	echo "      This is the lowdin version that will be used"
-	echo "   -p"
-	echo "      This will print the output file to the standard output on the fly"
-	echo "   -w"
-	echo "      This will save the LOWDIN .wfn file"
-	echo "   -k"
-	echo "      This will keep the temporary files in the scratch directory after running the calculation"
-	echo "   -s"
-	echo "      This activate the singleton mode"
-	echo "   -h"
-	echo "      This will print this same message"
-	echo ""
+  echo ""
+  echo "   -i file.lowdin"
+  echo "      This is the input file name"
+  echo "   -n number"
+  echo "      This will set the number of OMP threads"
+  echo "   -v number"
+  echo "      This is the lowdin version that will be used"
+  echo "   -p"
+  echo "      This will print the output file to the standard output on the fly"
+  echo "   -w"
+  echo "      This will save the LOWDIN .wfn file"
+  echo "   -k"
+  echo "      This will keep the temporary files in the scratch directory after running the calculation"
+  echo "   -s"
+  echo "      This activate the singleton mode"
+  echo "   -S"
+  echo "      This will set the scratch folder"
+  echo "   -h"
+  echo "      This will print this same message"
+  echo ""
 }
 
 ############################################
@@ -45,39 +47,39 @@ singleton="F"
 version=".x"
 keepScratch="F"
 
-while getopts 	"i:pt:sv:n:hwkS:" OPTNAME
-do
-	case $OPTNAME in
-		i)
-			nameFile=$OPTARG
-			extFile=${nameFile/#*./}
-			;;
-		n)
-			numberOfThreads=$OPTARG
-			;;
-		p)
-			printOut="T"
-			;;
-		w)
-			saveWfn="T"
-			;;
-		k)
-			keepScratch="T"
-			;;
-		s)
-			singleton="T"
-			;;
-		v)
-			version="."$OPTARG".x"
-			;;
-		h)
-			usage
-			exit 0
-			;;
-		S)	
-			setScratch=$OPTARG
-			;;
-	esac
+while getopts   "i:pt:sv:n:hwkS:" OPTNAME
+  do
+  case $OPTNAME in
+    i)
+      nameFile=$OPTARG
+      extFile=${nameFile/#*./}
+      ;;
+    n)
+      numberOfThreads=$OPTARG
+      ;;
+    p)
+      printOut="T"
+      ;;
+    w)
+      saveWfn="T"
+      ;;
+    k)
+      keepScratch="T"
+      ;;
+    s)
+      singleton="T"
+      ;;
+    S)	
+      setScratch=$OPTARG
+      ;;
+    v)
+      version="."$OPTARG".x"
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+  esac
 done
 
 if [ -n "$setScratch" ]; then
@@ -87,6 +89,11 @@ fi
 #############################################
 # openLOWDIN singleton mode
 #############################################
+
+if [ -n "$setScratch" ]; then
+	export LOWDIN_SCRATCH=$setScratch
+fi
+echo $LOWDIN_SCRATCH
 
 if [ -e $LOWDIN_SCRATCH/lowdin.pid ]; then
 

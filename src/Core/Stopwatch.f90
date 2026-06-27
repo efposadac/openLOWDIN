@@ -64,7 +64,7 @@ contains
 
     this%name = "UNTITLED"
     this%startTime = 0.0_8
-    call FDATE(this%initialDate)
+    call date_and_time(date=this%initialDate)
     this%currentDate = trim(this%initialDate)
     this%enlapsetTime = 0.0_8
 
@@ -180,7 +180,7 @@ contains
     type(Stopwatch) :: this
     character(100) :: output
 
-    call FDATE(this%currentDate)
+    call date_and_time(date=this%currentDate)
     output = trim(this%currentDate)
 
   end function Stopwatch_getCurretData
