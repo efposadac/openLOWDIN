@@ -288,7 +288,7 @@ contains
 
             write (6, *) ""
             write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-              real(CIcore_instance%numberOfConfigurations*(2 + (3*ms + CONTROL_instance%NUMBER_OF_CI_STATES + 1) + 4*ms*ms)*8)/(1024**3), " GB"
+              real(CIcore_instance%numberOfConfigurations*(2 + (3*ms + CONTROL_instance%CI_NUMBER_OF_STATES + 1) + 4*ms*ms)*8)/(1024**3), " GB"
             write (6, *) ""
 
             call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &

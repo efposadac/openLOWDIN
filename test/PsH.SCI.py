@@ -9,7 +9,6 @@ def setReferenceValues():
 "HF energy" : [-0.666783062050,1E-8],
 "E_SCI+PT2" : [-0.743335409139,5E-6],
 }
-
     return refValues
 
 def getTestValues(testValues,testName):
