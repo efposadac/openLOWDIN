@@ -20,7 +20,11 @@ jobs:
         wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
         echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
         sudo apt-get -y update
-        sudo apt-get -y install intel-oneapi-mkl-devel intel-oneapi-compiler-dpcpp-cpp intel-oneapi-compiler-fortran
+        sudo apt-get -y install \
+        intel-oneapi-mkl-devel \
+        intel-oneapi-compiler-dpcpp-cpp \
+        intel-oneapi-compiler-fortran \
+        intel-oneapi-openmp
         source /opt/intel/oneapi/setvars.sh 
         # Define ENV Variables
         export WORKDIR=$PWD/dependencies
@@ -88,7 +92,7 @@ jobs:
         mv 'erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0' erkaleStaticForLowdin.tgz
         tar xzvf erkaleStaticForLowdin.tgz
         # Configure Lowdin
-        ./configure -f "ifx" -o 2 -p $WORKDIR/bin -s /tmp
+        ./configure -f "ifx" -o 1 -p $WORKDIR/bin -s /tmp -l "-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core"
         # Build Lowdin
         make -j 4
         # Install Lowdin

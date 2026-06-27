@@ -81,7 +81,7 @@ jobs:
         mv 'erkaleStaticForLowdin.tgz?rlkey=3jdaw8ad4o9uuyihzz5oojwvi&st=ehh2umyk&dl=0' erkaleStaticForLowdin.tgz
         tar xzvf erkaleStaticForLowdin.tgz
         # Configure Lowdin
-        ./configure -f "gfortran" -o 2 -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
+        ./configure -f "gfortran" -o 1 -p $WORKDIR/bin -s /tmp -l "-lblas -llapack"
         # Build Lowdin
         make -j 4
         # Install Lowdin

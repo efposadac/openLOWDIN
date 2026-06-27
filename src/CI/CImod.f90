@@ -286,11 +286,11 @@ contains
   
           case ("JADAMILU")
 
-            write (6,*) ""
-            write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-            float(CIcore_instance%numberOfConfigurations*( 2 + (3*ms + CONTROL_instance%CI_NUMBER_OF_STATES + 1) + 4*ms*ms)*8)/(1024**3) , " GB"
-            write (6,*) ""
-  
+            write (6, *) ""
+            write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+              real(CIcore_instance%numberOfConfigurations*(2 + (3*ms + CONTROL_instance%NUMBER_OF_CI_STATES + 1) + 4*ms*ms)*8)/(1024**3), " GB"
+            write (6, *) ""
+
             call CIJadamilu_jadamiluInterface(CIcore_instance%numberOfConfigurations, &
                int(CONTROL_instance%CI_NUMBER_OF_STATES,8), &
                                               CIcore_instance%eigenValues, &
@@ -302,10 +302,11 @@ contains
             end do
   
           case ("DSYEVX")
-  
-            write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-              float((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
-            write (6,*) ""
+            write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+              real((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
+            write (6, *) ""
+
+            call CIFullMatrix_buildHamiltonianMatrix(timeA, timeB)
 
             call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
     
@@ -321,9 +322,9 @@ contains
   
           case ("DSYEVR")
 
-            write (6,"(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
-              float((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
-            write (6,*) ""
+            write (6, "(T2,A,F14.5,A3 )") "Estimated memory needed: ", &
+              real((CIcore_instance%numberOfConfigurations**2 + 3)*8)/(1024**3), " GB"
+            write (6, *) ""
 
             call CIFullMatrix_buildHamiltonianMatrix( timeA, timeB)
     
@@ -337,14 +338,24 @@ contains
                    flags = SYMMETRIC)
   
           end select
-  
-          ecorr = CIcore_instance%eigenValues%values(1) - HartreeFock_instance%totalEnergy
-          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenValues%values(1)
+
           CIcore_instance%DDCISDTiming%values(i) = timeB - timeA
-  
-          write (6, "(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i - 1, CIcore_instance%groundStateEnergies%values(i), ecorr, &
-                                                               (CIcore_instance%groundStateEnergies%values(i - 1) - CIcore_instance%groundStateEnergies%values(i)), timeB - timeA
-  
+          CIcore_instance%groundStateEnergies%values(i) = CIcore_instance%eigenValues%values(1)
+
+          !! current correlation energy
+          if ( i == 2 ) then
+            ecorr = CIcore_instance%groundStateEnergies%values(i) - HartreeFock_instance%totalEnergy
+          else
+            !! damped correlation energy
+            ecorr = (1.0_8 - 0.5_8 ) * ( CIcore_instance%groundStateEnergies%values(i) - HartreeFock_instance%totalEnergy ) + &
+                    ( 0.5_8 ) * ( CIcore_instance%groundStateEnergies%values(i-1) - HartreeFock_instance%totalEnergy )
+          endif
+
+          write (6, "(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i - 1, CIcore_instance%groundStateEnergies%values(i), &
+                                       ecorr, &
+                                       (CIcore_instance%groundStateEnergies%values(i - 1) - CIcore_instance%groundStateEnergies%values(i)), &
+                                       timeB - timeA
+
           !! Restart ci matrix diagonalization from previous eigenvectors
           CONTROL_instance%CI_LOAD_EIGENVECTOR = .True.
   
@@ -357,9 +368,20 @@ contains
         write (6,"(T2,A42 )")    "  ITERATIVE DIAGONAL DRESSED CONVERGENCE  "
         write (6,"(T2,A95 )")    "Iter      Ground-State Energy       Correlation Energy           Energy Diff.          Time(s) "
         do i = 2, 31
-          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), ecorr, &
-                                                              (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)), &
-                                                              CIcore_instance%DDCISDTiming%values(i)
+
+          !! current correlation energy
+          if ( i == 2 ) then
+            ecorr = CIcore_instance%groundStateEnergies%values(i) - HartreeFock_instance%totalEnergy
+          else
+            !! damped correlation energy
+            ecorr = (1.0_8 - 0.5_8 ) * ( CIcore_instance%groundStateEnergies%values(i) - HartreeFock_instance%totalEnergy ) + &
+                    ( 0.5_8 ) * ( CIcore_instance%groundStateEnergies%values(i-1) - HartreeFock_instance%totalEnergy )
+          endif
+
+          write (6,"(T2,I2, F25.12, F25.12, F25.12, F16.4 )") i-1, CIcore_instance%groundStateEnergies%values(i), &
+                                       ecorr, &
+                                       (CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i)), &
+                                       CIcore_instance%DDCISDTiming%values(i)
 
           if ( abs( CIcore_instance%groundStateEnergies%values(i-1) - CIcore_instance%groundStateEnergies%values(i) ) <= 1e-6) exit
         end do

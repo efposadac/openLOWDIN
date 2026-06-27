@@ -125,8 +125,8 @@ contains
   !! @brief Define el constructor para la clase
   subroutine WaveFunction_constructor(these, nspecies, molsystem)
     implicit none
+    integer, intent(in) :: nspecies
     type(WaveFunction) :: these(nspecies)
-    integer :: nspecies
     type(MolecularSystem), optional, target :: molsystem
 
     integer :: speciesID, otherSpeciesID
@@ -814,7 +814,7 @@ contains
   !>
   !! @brief Builds two-particles matrix.
   subroutine WaveFunction_buildTwoParticlesMatrix(this, densityMatrixIN, factorIN, twoParticlesMatrixOUT, Libint2Objects)
-    use, intrinsic :: omp_lib
+    use :: omp_lib
     implicit none
     type(WaveFunction) :: this
     type(Matrix), optional :: densityMatrixIN
@@ -1167,7 +1167,7 @@ contains
   !>
   !! @brief Builds the coupling matrix for the selected speciesID.
   subroutine WaveFunction_buildCouplingMatrix(these, speciesID, densityMatricesIN, couplingMatrixOUT, hartreeMatricesOUT, Libint2Objects)
-    use, intrinsic :: omp_lib
+    use :: omp_lib
     implicit none
     type(WaveFunction) :: these(*)
     integer :: speciesID
