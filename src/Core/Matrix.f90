@@ -402,7 +402,7 @@ contains
     real(8) :: value
     integer :: j
     integer :: i ! Counts random numbers
-    integer(4) :: timeArray(3) ! Holds the hour, minute, and second
+    integer(4) :: timeArray(8) ! Holds the hour (5), minute (6), and seconds (7)
     logical :: symmetricTmp
 
     if (allocated(this%values)) deallocate (this%values)
