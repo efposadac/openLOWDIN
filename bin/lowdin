@@ -93,7 +93,6 @@ fi
 if [ -n "$setScratch" ]; then
 	export LOWDIN_SCRATCH=$setScratch
 fi
-echo $LOWDIN_SCRATCH
 
 if [ -e $LOWDIN_SCRATCH/lowdin.pid ]; then
 

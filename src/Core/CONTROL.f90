@@ -85,7 +85,7 @@ module CONTROL_
     logical :: HARTREE_PRODUCT_GUESS
     logical :: READ_COEFFICIENTS
     logical :: READ_FCHK
-     logical :: READ_NATURAL_ORBITALS
+    logical :: READ_NATURAL_ORBITALS
     logical :: WRITE_COEFFICIENTS_IN_BINARY
     logical :: READ_EIGENVALUES
     logical :: READ_EIGENVALUES_IN_BINARY
@@ -214,6 +214,9 @@ module CONTROL_
     integer :: CI_SCI_TARGET_GROWTH_STEPS
     integer :: CI_SCI_REFINEMENT_STEPS
     real(8) :: CISCI_HEAT_BATH_THRESHOLD(2) 
+    logical :: CI_MCSCF
+    logical :: CI_ONE_REDUCED_DENSITY_MATRIX
+    logical :: CI_TWO_REDUCED_DENSITY_MATRIX
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -572,6 +575,9 @@ module CONTROL_
   integer :: LowdinParameters_CISCITargetGrowthSteps
   integer :: LowdinParameters_CISCIRefinementSteps
   real(8) :: LowdinParameters_CISCIHeatBathThreshold(2)
+  logical :: LowdinParameters_CIMCSCF 
+  logical :: LowdinParameters_CIOneReducedDensityMatrix
+  logical :: LowdinParameters_CITwoReducedDensityMatrix
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -916,6 +922,9 @@ module CONTROL_
     LowdinParameters_CISCITargetGrowthSteps, &
     LowdinParameters_CISCIRefinementSteps, &
     LowdinParameters_CISCIHeatBathThreshold, &
+    LowdinParameters_CIMCSCF, &
+    LowdinParameters_CIOneReducedDensityMatrix, &
+    LowdinParameters_CITwoReducedDensityMatrix, &
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1281,6 +1290,9 @@ contains
     LowdinParameters_CISCIRefinementSteps = 2
     LowdinParameters_CISCIHeatBathThreshold(1) = 1.0E-3
     LowdinParameters_CISCIHeatBathThreshold(2) = 1.0E-6
+    LowdinParameters_CIMCSCF = .false.
+    LowdinParameters_CIOneReducedDensityMatrix = .false.
+    LowdinParameters_CITwoReducedDensityMatrix = .false.
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1635,6 +1647,10 @@ contains
     CONTROL_instance%CI_SCI_REFINEMENT_STEPS = 2
     CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(1) = 1.0E-3
     CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(2) = 1.0E-6
+    CONTROL_instance%CI_MCSCF = .FALSE.
+    CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX = .FALSE.
+    CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX = .FALSE.
+
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2038,6 +2054,9 @@ contains
     CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS = LowdinParameters_CISCITargetGrowthSteps
     CONTROL_instance%CI_SCI_REFINEMENT_STEPS = LowdinParameters_CISCIRefinementSteps
     CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD = LowdinParameters_CISCIHeatBathThreshold
+    CONTROL_instance%CI_MCSCF = LowdinParameters_CIMCSCF 
+    CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX = LowdinParameters_CIOneReducedDensityMatrix
+    CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX = LowdinParameters_CITwoReducedDensityMatrix
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -2416,6 +2435,10 @@ contains
     LowdinParameters_CISCITargetGrowthSteps = CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS
     LowdinParameters_CISCIRefinementSteps = CONTROL_instance%CI_SCI_REFINEMENT_STEPS
     LowdinParameters_CISCIHeatBathThreshold = CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD 
+    LowdinParameters_CIMCSCF = CONTROL_instance%CI_MCSCF
+    LowdinParameters_CIOneReducedDensityMatrix = CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX
+    LowdinParameters_CITwoReducedDensityMatrix = CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX
+
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2677,6 +2700,15 @@ contains
       if(CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL == "NONE" ) CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL = "FCI" 
       write (*,"(T10,A,A)") "CONFIGURATION INTERACTION LEVEL:  ", CONTROL_instance%CONFIGURATION_INTERACTION_LEVEL
       write (*,"(T10,A,A)") "SELECTIVE CONFIGURATION INTERACTION NETHOD:  ", CONTROL_instance%CI_SELECTIVE_METHOD
+    endif
+
+    if ( CONTROL_instance%CI_MCSCF ) then
+      CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX = .TRUE.
+      CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX = .TRUE.
+    endif
+
+    if ( CONTROL_instance%CI_NATURAL_ORBITALS ) then
+      CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX = .TRUE.
     endif
 
     !!***************************************************************************

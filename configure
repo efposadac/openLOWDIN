@@ -322,6 +322,7 @@ fi
 #                   LIBRARIES CONFIGURATION
 ###############################################################################
 
+echo $LAPACK_TYPE
 # Lapack
 if [[ $INLINEOPT == 'F' ]]; then
     echo -e "7. Blas and Lapack libraries: \n [1] blas, lapack \n [2] mkl \n [3] openblas \n [4] flexiblas \n (current=$LAPACK_TYPE)"
@@ -330,7 +331,7 @@ fi
 if [ "$INPUT_LAPACK_TYPE" = "" ] ; then
     INPUT_LAPACK_TYPE=$LAPACK_TYPE
 fi
-
+LAPACK_TYPE=$INPUT_LAPACK_TYPE
 if [ "$INPUT_LAPACK_TYPE" = "0" ] ; then
     LAPACK_TYPE="0" # user defined
 elif [ "$INPUT_LAPACK_TYPE" = "1" ] ; then
@@ -341,8 +342,6 @@ elif [ "$INPUT_LAPACK_TYPE" = "3" ] ; then
     LAPACK_LIBS="-lopenblas"
 elif [ "$INPUT_LAPACK_TYPE" = "4" ] ; then
     LAPACK_LIBS="-lflexiblas"
-else 
-    LAPACK_LIBS=""
 fi
 
 if [ "$CUDAFLAGS" = "yes" ] ; then
