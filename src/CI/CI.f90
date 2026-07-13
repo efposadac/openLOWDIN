@@ -34,6 +34,7 @@ module CI_
   use CIcore_ , only : CIcore_constructor
   use InputCI_
   use CImod_
+  use CIdensity_
   implicit none
 
   public :: CI_main
@@ -76,7 +77,7 @@ contains
     call CImod_run()
     call CImod_show()
     call CImod_showEigenVectors()
-    call CImod_densityMatrices()
+    call CIdensity_compute()
     call CImod_destructor()
   
     !!stop time

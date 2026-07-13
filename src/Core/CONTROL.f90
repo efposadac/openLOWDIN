@@ -2707,7 +2707,7 @@ contains
       CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX = .TRUE.
     endif
 
-    if ( CONTROL_instance%CI_NATURAL_ORBITALS ) then
+    if ( CONTROL_instance%CI_NATURAL_ORBITALS .or. CONTROL_instance%CI_STATES_TO_PRINT > 0 ) then
       CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX = .TRUE.
     endif
 
