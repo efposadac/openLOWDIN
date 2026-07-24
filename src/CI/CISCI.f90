@@ -497,7 +497,8 @@ contains
       !! recalculate n conf to prevent the code breaking in case the targetSpace is not fully filled
       numberOfConfigurations = 0
       do a = 1, CISCI_instance%targetSpaceSize
-        if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1  ) exit
+        !if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1  ) exit
+        if (CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
         numberOfConfigurations = numberOfConfigurations + 1
       enddo
 

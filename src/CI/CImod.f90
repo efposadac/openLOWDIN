@@ -47,6 +47,7 @@ module CImod_
   use CIJadamilu_
   use CIOrder_
   use CIStrings_
+  use CIMCSCF_
 
   ! use ArpackInterface_
   implicit none
@@ -453,6 +454,10 @@ contains
       else  
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
                         initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
+      endif
+
+      if ( CONTROL_instance%CI_MCSCF ) then
+        call CIMCSCF_compute()
       endif
 
       call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )

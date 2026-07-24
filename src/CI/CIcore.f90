@@ -98,7 +98,8 @@
   type(CIcore) :: CIcore_instance
 
   public :: &
-       CIcore_constructor
+       CIcore_constructor, &
+       CIcore_two2one
 
 contains
 
@@ -413,6 +414,19 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
 
 
   end subroutine
+
+  function CIcore_two2one ( pq, rs ) result ( pqrs )
+    implicit none
+    integer :: pq, rs
+    integer :: pqrs
+
+    if ( pq < rs ) then
+      pqrs = ( ( rs - 1 ) * rs ) / 2.0 + pq
+    else
+      pqrs = ( ( pq - 1 ) * pq ) / 2.0 + rs
+    endif
+
+  end function CIcore_two2one
 
 end module CIcore_
 

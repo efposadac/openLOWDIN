@@ -41,11 +41,11 @@ module CIdensity_
   implicit none
 
   public :: &
-       CIdensity_compute
+       CIdensity_compute, &
+       CIdensity_1RDM_SCI, &
+       CIdensity_2RDM_SCI
   private :: &
-       CIdensity_oneParticleCI, &
-       CIdensity_oneParticleSCI, &
-       !CIdensity_twoParticleSCI, &
+       CIdensity_1RDM_CI, &
        CIdensity_energyTerms, &
        CIdensity_naturalOrbitals
 
@@ -53,7 +53,7 @@ contains
 
   subroutine CIdensity_compute()
     implicit none
-    type(matrix), allocatable :: ciDensityMatrix(:,:), auxDensMatrix(:,:)
+    type(matrix), allocatable :: ciDensityMatrix(:,:)
     type(matrix), allocatable :: coefficients(:)
     integer :: state, species, numberOfSpecies
     integer :: k, n
@@ -72,7 +72,6 @@ contains
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     !! constructor
     allocate( ciDensityMatrix(numberOfSpecies,CONTROL_instance%CI_STATES_TO_PRINT), &
-              auxDensMatrix(numberOfSpecies,CIcore_instance%nproc), &
               coefficients(numberOfSpecies) )
 
     !! matrix allocation
@@ -89,22 +88,17 @@ contains
           end do
        end do
 
-       do n = 1, CIcore_instance%nproc
-          call Matrix_constructor ( auxDensMatrix(species,n) , &
-               int(numberOfContractions,8), &
-               int(numberOfContractions,8),  0.0_8 )
-       end do
     end do
 
     !! computing all density related stuff
     if ( CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX ) then 
       if ( CONTROL_instance%CI_SELECTIVE_METHOD == "NONE" ) then
-        call CIdensity_oneParticleCI( ciDensityMatrix, auxDensMatrix )
+        call CIdensity_1RDM_CI( ciDensityMatrix )
       else
-        call CIdensity_oneParticleSCI( ciDensityMatrix, auxDensMatrix )
+        call CIdensity_1RDM_SCI( ciDensityMatrix )
       endif
     endif
-    !if ( CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX ) call CIdensity_twoParticle( ) 
+    !if ( CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX ) call CIdensity_2RDM_SCI( ) 
     if ( CONTROL_instance%CI_STATES_TO_PRINT > 0 ) call CIdensity_energyTerms( coefficients, ciDensityMatrix )
     if ( CONTROL_instance%CI_STATES_TO_PRINT > 0 .and. CONTROL_instance%CI_NATURAL_ORBITALS) call CIdensity_naturalOrbitals( coefficients, ciDensityMatrix )
 
@@ -113,26 +107,23 @@ contains
       do state = 1, CONTROL_instance%CI_STATES_TO_PRINT
         call Matrix_destructor(ciDensityMatrix(species, state))
       end do
-
-      do n = 1, CIcore_instance%nproc
-        call Matrix_destructor(auxDensMatrix(species, n))
-      end do
       call Matrix_destructor(coefficients(species))
     end do
-    deallocate( ciDensityMatrix, auxDensMatrix, coefficients )
+    deallocate( ciDensityMatrix, coefficients )
 
     !$  timeDB = omp_get_wtime()
     !$  write(*,"(A,F10.4,A4)") "** TOTAL Elapsed Time for Building density matrices: ", timeDB - timeDA ," (s)"
 
   end subroutine CIdensity_compute
 
-  subroutine CIdensity_oneParticleCI( ciDensityMatrix, auxDensMatrix )
+  subroutine CIdensity_1RDM_CI( ciDensityMatrix )
     implicit none
     integer :: i, j, k, l, mu, nu, n
     integer :: factor
     integer :: numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
     integer :: state, species, orbital, orbitalA, orbitalB
-    type(matrix), allocatable, intent(inout) :: ciDensityMatrix(:,:), auxDensMatrix(:,:)
+    type(matrix), allocatable, intent(inout) :: ciDensityMatrix(:,:)
+    type(matrix), allocatable :: auxDensMatrix(:,:)
     integer :: numberOfSpecies
     integer(8) :: numberOfConfigurations, c
     integer, allocatable :: cilevel(:), cilevelA(:)
@@ -150,6 +141,20 @@ contains
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     numberOfConfigurations = CIcore_instance%numberOfConfigurations 
+
+    allocate ( auxDensMatrix(numberOfSpecies,CIcore_instance%nproc))
+
+    !! matrix allocation
+    do species=1, numberOfSpecies
+       numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
+
+       do n = 1, CIcore_instance%nproc
+          call Matrix_constructor ( auxDensMatrix(species,n) , &
+               int(numberOfContractions,8), &
+               int(numberOfContractions,8),  0.0_8 )
+       end do
+    end do
+
   
     allocate (stringAinB ( numberOfSpecies ))
   
@@ -346,15 +351,21 @@ contains
     deallocate ( CIcore_instance%allIndexConf )
     deallocate ( stringAinB )
 
-  end subroutine CIdensity_oneParticleCI
+    do species = 1, numberOfSpecies
+      do n = 1, CIcore_instance%nproc
+        call Matrix_destructor(auxDensMatrix(species, n))
+      end do
+    end do
+    deallocate( auxDensMatrix )
 
-  subroutine CIdensity_oneParticleSCI( ciDensityMatrix, auxDensMatrix )
+  end subroutine CIdensity_1RDM_CI
+
+  subroutine CIdensity_1RDM_SCI( ciDensityMatrix )
     implicit none
     integer :: i, j, k, l, mu, nu, n
-    integer :: factor
     integer :: numberOfOrbitals, numberOfContractions, numberOfOccupiedOrbitals
     integer :: state, species, orbital, orbitalA, orbitalB
-    type(matrix), allocatable, intent(inout) :: ciDensityMatrix(:,:), auxDensMatrix(:,:)
+    type(matrix), allocatable, intent(inout) :: ciDensityMatrix(:,:)
     integer :: numberOfSpecies
     integer(8) :: numberOfConfigurations, a, b, c
     !! Auxiliary variables for SCI
@@ -389,7 +400,8 @@ contains
     !! Building the CI reduced density matrix in the molecular orbital representation in parallel
     do state=1, CONTROL_instance%CI_STATES_TO_PRINT
 
-      do a = 1, CIcore_instance%numberOfConfigurations
+      do a = 1, 1
+      !do a = 1, CIcore_instance%numberOfConfigurations
         n = 1
 
         do spi = 1, numberOfSpecies 
@@ -415,17 +427,18 @@ contains
           do k = 1, numberOfOccupiedOrbitals
 
             !!Occupied orbitals
-            auxDensMatrix(spi,n)%values(k,k) = auxDensMatrix(spi,n)%values(k,k) - CIcore_instance%eigenVectors%values(a,state)**2
+            ciDensityMatrix(spi,state)%values(k,k) = ciDensityMatrix(spi,state)%values(k,k) - 1!CIcore_instance%eigenVectors%values(a,state)**2
             orbital = occA(spi)%values(k) 
 
             !!Unoccupied orbitals
-            auxDensMatrix(spi,n)%values(orbital,orbital) = auxDensMatrix(spi,n)%values(orbital,orbital) + CIcore_instance%eigenVectors%values(a,state)**2
+            ciDensityMatrix(spi,state)%values(orbital,orbital) = ciDensityMatrix(spi,state)%values(orbital,orbital) + 1!CIcore_instance%eigenVectors%values(a,state)**2
 
            end do
          end do
 
         !!Off Diagonal contributions
-        do b = a + 1, CICore_instance%numberOfConfigurations 
+        do b = a + 1, 1
+        !do b = a + 1, CICore_instance%numberOfConfigurations 
 
           do spi = 1, numberOfSpecies 
             !orbB(spi)%values = CISCI_instance%targetOrb(spi,b)%values
@@ -459,27 +472,19 @@ contains
 
             diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
 
-            auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) = auxDensMatrix(spi,n)%values( diffOrbi(1), diffOrbi(3) ) + &
+            ciDensityMatrix(spi,state)%values( diffOrbi(1), diffOrbi(3) ) = ciDensityMatrix(spi,state)%values( diffOrbi(1), diffOrbi(3) ) + &
                                                             factorA * & 
-                                                            CIcore_instance%eigenVectors%values(a,state) * &
-                                                            CIcore_instance%eigenVectors%values(b,state)
-            auxDensMatrix(spi,n)%values( diffOrbi(3), diffOrbi(1) ) = auxDensMatrix(spi,n)%values( diffOrbi(3), diffOrbi(1) ) + &
+                                                            1!CIcore_instance%eigenVectors%values(a,state) * &
+                                                            !CIcore_instance%eigenVectors%values(b,state)
+           ciDensityMatrix(spi,state)%values( diffOrbi(3), diffOrbi(1) ) = ciDensityMatrix(spi,state)%values( diffOrbi(3), diffOrbi(1) ) + &
                                                             factorA * &
-                                                            CIcore_instance%eigenVectors%values(a,state) * &
-                                                            CIcore_instance%eigenVectors%values(b,state)
+                                                            1!CIcore_instance%eigenVectors%values(a,state) * &
+                                                            !CIcore_instance%eigenVectors%values(b,state)
            
           endif !! coupling 
         enddo !! b
       end do !! a
 
-      !! Gather the parallel results
-      do species=1, numberOfSpecies
-         do n=1, CIcore_instance%nproc
-            ciDensityMatrix(species,state)%values = ciDensityMatrix(species,state)%values + auxDensMatrix(species,n)%values
-            auxDensMatrix(species,n)%values=0.0
-         end do
-      end do
- 
     end do !! number of CI states
 
     do spi = 1, numberOfSpecies
@@ -495,7 +500,254 @@ contains
     deallocate ( orbB )
     deallocate ( couplingS )
        
-  end subroutine CIdensity_oneParticleSCI
+  end subroutine CIdensity_1RDM_SCI
+
+  subroutine CIdensity_2RDM_SCI( ciDensityMatrix )
+    implicit none
+    type(vector), allocatable, intent(inout) :: ciDensityMatrix(:,:)
+    integer :: mu, nu !! particles
+    integer :: p, pp, pppp, q, r, rr, pprr, pr, rp, prrp, rrpp, rppr !! orbitals general
+    integer :: pp_aux, ij_aux, kl_aux
+    integer :: iq, qj, ij, ppij, iqqj, kl, klij, ijkl
+    integer(8) :: II, JJ !! configurations
+    integer(8) :: numberOfConfigurations
+    integer :: numberOfOccupiedOrbitals_spi, numberOfOccupiedOrbitals_spj
+    integer :: numberOfOrbitals_spi, numberOfOrbitals_spj
+    integer :: state
+    integer :: species, numberOfSpecies
+    integer :: spi, spj
+    !! Auxiliary variables for SCI
+    integer(1), allocatable :: couplingS(:)
+    !integer :: oia, oib
+    type (ivector), allocatable :: occA(:), occB(:)
+    type (ivector), allocatable :: orbA(:), orbB(:)
+    integer :: factorA, factorB
+    integer :: diffOrbi(4), diffOrbj(4)
+
+    !!Iterators: i,j - Configurations .... k,l - molecular orbitals .... mu,nu - atomic orbitals ... 
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+  
+    numberOfConfigurations = CIcore_instance%numberOfConfigurations 
+  
+    allocate ( occA ( numberOfSpecies ) )
+    allocate ( occB ( numberOfSpecies ) )
+    allocate ( orbA ( numberOfSpecies ) )
+    allocate ( orbB ( numberOfSpecies ) )
+    allocate ( couplingS ( numberOfSpecies ) )
+    
+    do spi = 1, numberOfSpecies
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+    end do
+
+    !! Building the CI reduced density matrix in the molecular orbital representation in parallel
+    do state = 1, CONTROL_instance%CI_NUMBER_OF_STATES
+      !do II = 1, CIcore_instance%numberOfConfigurations
+      do II = 1, 1
+
+        do spi = 1, numberOfSpecies 
+          orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,II)
+          occA(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:,II) 
+        enddo
+
+        !!Diagonal contributions
+        do spi = 1, numberOfSpecies
+          numberOfOccupiedOrbitals_spi = CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+          numberOfOrbitals_spi = CIcore_instance%numberOfOrbitals%values(spi)
+
+          !! alpha-alpha
+          do mu = 1, numberOfOccupiedOrbitals_spi
+            p = occA(spi)%values(mu) 
+            pp = ( p - 1 )*numberOfOrbitals_spi + p 
+
+              do nu = mu, numberOfOccupiedOrbitals_spi
+              r = occA(spi)%values(nu) 
+              rr = ( r - 1 )*numberOfOrbitals_spi + r 
+
+              pprr = CIcore_two2one ( pp, rr )
+              ciDensityMatrix(spi,spi)%values(pprr) = ciDensityMatrix(spi,spi)%values(pprr) + 1!&
+                                                        !CIcore_instance%eigenVectors%values(II,state)**2
+
+                rp = ( p - 1 )*numberOfOrbitals_spi + r 
+              pr = ( r - 1 )*numberOfOrbitals_spi + p 
+              prrp = CIcore_two2one ( pr, rp )
+                ciDensityMatrix(spi,spi)%values(prrp) = ciDensityMatrix(spi,spi)%values(prrp) - 1! &
+                                                         ! CIcore_instance%eigenVectors%values(II,state)**2
+            end do !nu
+
+          end do ! mu
+
+          !! alpha-beta 
+          do spj = spi + 1, numberOfSpecies
+            !if ( spj == spi ) cycle !! hmmm
+            numberOfOccupiedOrbitals_spj = CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+            do mu = 1, numberOfOccupiedOrbitals_spi
+              p = occA(spi)%values(mu) 
+              pp = CIcore_instance%twoIndexArray(spi)%values(p,p)
+              pp_aux = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( pp - 1_8 )
+
+              do nu = 1, numberOfOccupiedOrbitals_spj
+                r = occA(spj)%values(nu) 
+                rr = CIcore_instance%twoIndexArray(spj)%values(r,r)
+                pprr = pp_aux + rr 
+                ciDensityMatrix(spi,spj)%values(pprr) = ciDensityMatrix(spi,spj)%values(pprr) + 1!CIcore_instance%eigenVectors%values(II,state)**2
+  
+              end do !nu
+            end do ! mu
+          end do ! spj
+
+        enddo !spi
+
+        !!Off Diagonal contributions
+        !do JJ = II + 1, 1 
+        !!do JJ = II + 1, CICore_instance%numberOfConfigurations 
+
+        !  do spi = 1, numberOfSpecies 
+        !    orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,JJ)
+        !    occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:,JJ) 
+        !  enddo
+
+        !  !! determinate number of diff orbitals
+        !  couplingS = 0
+        !  do spi = 1, numberOfSpecies
+        !    numberOfOccupiedOrbitals_spi = CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+        !    couplingS(spi) = couplingS(spi) + numberOfOccupiedOrbitals_spi &
+        !                      - sum ( orbA(spi)%values(:) * orbB(spi)%values(:) ) 
+        !  end do
+      
+        !  select case ( sum(couplingS) )
+      
+        !  !! one orbital different
+        !  case (1)
+        !    do species = 1, numberOfSpecies
+        !      if ( couplingS(species) == 1 ) spi = species
+        !    end do
+  
+        !    diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
+
+        !    ij = CIcore_instance%twoIndexArray(spi)%values( diffOrbi(1), diffOrbj(3) )
+
+        !    do mu = 1, numberOfOccupiedOrbitals_spi
+        !      p = occA(spi)%values(mu) 
+        !      pp = CIcore_instance%twoIndexArray(spi)%values( p, p )
+        !      ppij = CIcore_instance%fourIndexArray(spi)%values(pp, ij)
+  
+        !      ciDensityMatrix(spi,spi)%values( ppij ) = ciDensityMatrix(spi,spi)%values( ppij ) + &
+        !                                                    factorA * & 
+        !                                                    CIcore_instance%eigenVectors%values(II,state) * &
+        !                                                    CIcore_instance%eigenVectors%values(JJ,state)
+
+        !      q = occA(spi)%values(mu) 
+        !      iq = CIcore_instance%twoIndexArray(spi)%values( diffOrbi(1), q )
+        !      qj = CIcore_instance%twoIndexArray(spi)%values( q, diffOrbi(3) )
+        !      iqqj = CIcore_instance%fourIndexArray(spi)%values( iq, qj)
+
+        !      ciDensityMatrix(spi,spi)%values( iqqj ) = ciDensityMatrix(spi,spi)%values( iqqj ) + &
+        !                                                    factorA * & 
+        !                                                    CIcore_instance%eigenVectors%values(II,state) * &
+        !                                                    CIcore_instance%eigenVectors%values(JJ,state)
+        !    enddo
+
+        !    !! alpha-beta, diff in alpha
+        !    do spj = spi + 1, numberOfSpecies
+        !      !if ( spj == spi ) cycle !hmm
+
+        !      ij_aux = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( ij - 1_8 )
+
+        !      do mu = 1, numberOfOccupiedOrbitals_spj
+        !        p = occA(spj)%values(mu)
+        !        pp = CIcore_instance%twoIndexArray(spj)%values( p, p )
+
+        !        ppij = pp + ij_aux
+
+        !        ciDensityMatrix(spi,spj)%values( ppij ) = ciDensityMatrix(spi,spj)%values( ppij ) + &
+        !                                                      factorA * & 
+        !                                                      CIcore_instance%eigenVectors%values(II,state) * &
+        !                                                      CIcore_instance%eigenVectors%values(JJ,state)
+  
+        !      enddo !mu
+        !    enddo !spj 
+
+        !  !! two orbital different
+        !  case(2)
+  
+        !    select case ( maxval(couplingS) )
+        !    !! two orbital different, same species
+        !    case (2)
+        !      do species = 1, numberOfSpecies
+        !        if ( couplingS(species) == 2 ) spi = species
+        !      end do
+  
+        !      diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
+
+        !      ij = CIcore_instance%twoIndexArray(spi)%values( diffOrbi(1), diffOrbi(3) )
+        !      kl = CIcore_instance%twoIndexArray(spi)%values( diffOrbi(2), diffOrbi(4) )
+
+        !      ijkl = CIcore_instance%fourIndexArray(spi)%values(ij, kl)
+  
+        !      ciDensityMatrix(spi,spi)%values( ijkl ) = ciDensityMatrix(spi,spi)%values( ijkl ) + &
+        !                                                    factorA * & 
+        !                                                    CIcore_instance%eigenVectors%values(II,state) * &
+        !                                                    CIcore_instance%eigenVectors%values(JJ,state)
+
+        !      klij = CIcore_instance%fourIndexArray(spi)%values(kl, ij)
+
+        !      ciDensityMatrix(spi,spi)%values( klij ) = ciDensityMatrix(spi,spi)%values( klij ) + &
+        !                                                    factorA * & 
+        !                                                    CIcore_instance%eigenVectors%values(II,state) * &
+        !                                                    CIcore_instance%eigenVectors%values(JJ,state)
+
+        !    !! two orbital different, different species
+        !    case (1)
+        !      do species = 1, numberOfSpecies
+        !        if ( couplingS(species) == 1 ) then 
+        !          spi = species
+        !          exit
+        !        end if
+        !      end do
+        !      do species = spi + 1, numberOfSpecies
+        !        if ( couplingS(species) == 1 ) spj = species
+        !      end do
+  
+        !      diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
+        !      diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj)%values, orbB(spj)%values, occA(spj)%values, occB(spj)%values, factorB )
+
+        !      kl = CIcore_instance%twoIndexArray(spi)%values( diffOrbi(1), diffOrbi(3) )
+        !      ij = CIcore_instance%twoIndexArray(spj)%values( diffOrbj(1), diffOrbj(3) )
+
+        !      kl_aux = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( kl - 1_8 )
+        !      klij = kl_aux + ij
+
+        !      ciDensityMatrix(spi,spj)%values( klij ) = ciDensityMatrix(spi,spj)%values( klij ) + &
+        !                                                    factorA * factorB * & 
+        !                                                    CIcore_instance%eigenVectors%values(II,state) * &
+        !                                                    CIcore_instance%eigenVectors%values(JJ,state)
+
+        !    end select ! maxval(couplingS)  
+
+        !  end select ! sum(couplingS) 
+
+        !enddo !! JJ
+      end do !! II
+    end do !! number of CI states
+
+    do spi = 1, numberOfSpecies
+      call Vector_destructorInteger ( occA(spi) ) 
+      call Vector_destructorInteger ( occB(spi) )
+      call Vector_destructorInteger ( orbA(spi) ) 
+      call Vector_destructorInteger ( orbB(spi) ) 
+    end do
+
+    deallocate ( occA )
+    deallocate ( occB )
+    deallocate ( orbA )
+    deallocate ( orbB )
+    deallocate ( couplingS )
+
+  end subroutine CIdensity_2RDM_SCI
 
   subroutine CIdensity_energyTerms(  coefficients, ciDensityMatrix )
     implicit none
