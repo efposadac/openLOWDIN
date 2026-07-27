@@ -323,6 +323,18 @@ def getSCIPT2Energy(testName):
     output.close()
     return energy
 
+def getMCSCFInitialEnergy(testName):
+    output = open(testName+".out", "r")
+    outputRead = output.readlines()
+    energy=1.0E16
+    for i in range(0,len(outputRead)):
+        line = outputRead[i]
+        if "MCSCF Initial total energy =" in line:
+            energy = float(line.split()[5])
+            break
+    output.close()
+    return energy
+
 def getP2orbEnergy(testName,species,number):
     output = open(testName+".out", "r")
     outputRead = output.readlines()

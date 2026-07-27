@@ -69,41 +69,28 @@ contains
       call Vector_constructor(CI2RDM(spi,spi), numberOfElements, 0.0_8)
       CI2RDM(spi,spi)%values = 0.0_8
 
-      !! initializing with HF occupancy, although this is not really neccesary, but RDM subroutines asssume this 
-      !do i = 1, numberOfOccupiedOrbitals_i
-      !  ii = CIcore_instance%twoIndexArray(spi)%values(i,i)
-      !  iiii = CIcore_instance%fourIndexArray(spi)%values(ii,ii)
-      !  CI2RDM( spi, spi )%values( iiii ) = 1.0_8
-      !enddo ! i
-
       do spj = spi + 1, numberOfSpecies
         numberOfContractions_j = MolecularSystem_getTotalNumberOfContractions( spj )
         numberOfOccupiedOrbitals_j = CIcore_instance%numberOfOccupiedOrbitals%values( spj )
 
         numberOfContractions = numberOfContractions_i + numberOfContractions_j
 
-        numberOfElements = (numberOfContractions_i*((numberOfContractions_i + 1.0_8)/2.0_8))* &
-                           (numberOfContractions_j*((numberOfContractions_j + 1.0_8)/2.0_8))
+        numberOfElements = int( (numberOfContractions_i * numberOfContractions_i )* &
+                                (numberOfContractions_j * numberOfContractions_j ), 8)
+
 
         call Vector_constructor( CI2RDM(spi,spj), numberOfElements, 0.0_8)
 
-        !!! initializing with HF occupancy, although this is not really neccesary, but RDM subroutines asssume this 
-        !do i = 1, numberOfOccupiedOrbitals_i
-        !  ii = CIcore_instance%twoIndexArray(spi)%values(i,i)
-        !  ii_aux = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( ii - 1_8 )
-        !  do k = 1, numberOfOccupiedOrbitals_j
-        !    kk = CIcore_instance%twoIndexArray(spj)%values(k,k)
-        !    iikk = ii_aux + kk 
-        !    CI2RDM( spi, spj )%values( iikk ) = 1.0_8
-        !  enddo ! k 
-        !enddo ! i 
       enddo ! spj
     enddo ! spi
 
+    write (6,*) "Building 1-RDM ..."
     call CIdensity_1RDM_SCI( CI1RDM )
 
+    write (6,*) "Building 2-RDM ..."
     call CIdensity_2RDM_SCI( CI2RDM )
 
+    write (6,*) "Computing the MCSCF energy from 1- and 2-RDM ..."
     call CIMCSCF_energy( CI1RDM, CI2RDM  )
 
     !call CIMCSCF_gradient()
@@ -156,9 +143,10 @@ contains
     energy_total = 0.0_8
     n_pairs = 0.0_8
 
+    !open(unit=1018, file="2rdm", status="replace", form="formatted")
+
     do spi = 1, numberOfSpecies
       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
-
       do p = 1, numberOfContractions_i
         do q = 1, numberOfContractions_i
           pq = CIcore_instance%twoIndexArray(spi)%values(p,q)
@@ -177,13 +165,12 @@ contains
 
               energy_two_aa = energy_two_aa + 0.5_8 * CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs,1) * &
                             CI2RDM(spi,spi)%values(pqrs_rdm)
-              !print *, p,q,r,s, pq_rdm, rs_rdm, pqrs_rdm, CI2RDM(spi,spi)%values(pqrs_rdm), CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs,1)
+              !write (1018,"(I2,I2,I2,I2,I6,F12.8,F12.8 )" ) p,q,r,s, pqrs_rdm, CI2RDM(spi,spi)%values(pqrs_rdm), CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs,1)
 
             enddo ! s
           enddo ! r
 
           pqpq = CIcore_two2one ( pq_rdm, pq_rdm )
-          n_pairs = n_pairs + CI2RDM(spi,spi)%values(pqpq)
 
           do spj = spi + 1, numberOfSpecies
 
@@ -194,14 +181,14 @@ contains
                 rs = CIcore_instance%twoIndexArray(spj)%values(r,s )
                 pqrs = pq_aux + rs
 
+                rs_rdm = ( r - 1) * numberOfContractions_j + s
+                pqrs_rdm = ( pq_rdm - 1 ) * numberOfContractions_j * numberOfContractions_j + rs_rdm 
                 energy_two_ab = energy_two_ab + CIcore_instance%fourCenterIntegrals(spi,spj)%values(pqrs,1) * &
-                            CI2RDM(spi,spj)%values(pqrs)
+                            CI2RDM(spi,spj)%values(pqrs_rdm)
 
               enddo ! s
             enddo ! r
 
-          pqpq = pq_aux + pq
-          n_pairs = n_pairs + CI2RDM(spi,spj)%values(pqpq)
 
           enddo ! spj
 
@@ -210,13 +197,17 @@ contains
     enddo ! spi
 
     energy_total = energy_one + energy_two_aa + energy_two_ab + HartreeFock_instance%puntualInteractionEnergy
+ 
+    write (6,*) ""
+    write (6,*) "MCSCF initial energy components: "
+    write (6,"(T2,A37,F25.12)") "MCSCF Initial fixed potential =       ", HartreeFock_instance%puntualInteractionEnergy
+    write (6,"(T2,A37,F25.12)") "MCSCF Initial one-body energy =       ", energy_one
+    write (6,"(T2,A37,F25.12)") "MCSCF Initial two-body intra energy = ", energy_two_aa
+    write (6,"(T2,A37,F25.12)") "MCSCF Initial two-body inter energy = ", energy_two_ab
+    write (6,"(T2,A37,F25.12)") "MCSCF Initial total energy =          ", energy_total
+    write (6,*) ""
 
-    print *, "MCSCF Energy point c",  HartreeFock_instance%puntualInteractionEnergy
-    print *, "MCSCF Energy one    ", energy_one
-    print *, "MCSCF Energy two aa ", energy_two_aa
-    print *, "MCSCF Energy two ab ", energy_two_ab
-    print *, "MCSCF Energy total  ", energy_total
-    print *, "MCSCF n_pairs       ", n_pairs
+    !close(1018)
 
   end subroutine CIMCSCF_energy
 

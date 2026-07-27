@@ -6,14 +6,16 @@ import sys
 import lowdinTestFunctions as test
 def setReferenceValues():
     refValues = {
-"HF energy" : [-75.983504636825,1E-8],
-"E_SCI+PT2" : [-76.117610594227,5E-6],
+"HF energy" : [-74.963681398260,1E-8],
+"E_SCI+PT2" : [-75.013764411383,5E-6],
+"E_MCSCF initial" : [-75.013764411383,5E-6],
 }
     return refValues
 
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
     testValues["E_SCI+PT2"] = test.getSCIPT2Energy(testName)
+    testValues["E_MCSCF initial"] = test.getMCSCFInitialEnergy(testName)
     return
 
 if __name__ == '__main__':
