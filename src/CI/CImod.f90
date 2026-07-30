@@ -457,7 +457,31 @@ contains
       endif
 
       if ( CONTROL_instance%CI_MCSCF ) then
+
+        call CISCI_destructor()
+
         call CIMCSCF_compute()
+
+        write (*, *) "Getting transformed integrals..."
+        call CImod_getTransformedIntegrals()
+
+        call CISCI_show()
+
+        write (*,*) "Allocating arrays for SCI ..."
+        call CISCI_constructor( CIcore_instance%numberOfConfigurations )
+
+        call Vector_constructor(CIcore_instance%eigenValues, &
+                                int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
+
+        !! initial size, CISCI_run will increase it
+        call Matrix_constructor (CIcore_instance%eigenVectors, &
+           int(CIcore_instance%numberOfConfigurations,8), &
+           int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
+
+        call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
+                       initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
+
+
       endif
 
       call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )
@@ -516,6 +540,12 @@ contains
     integer :: wfnUnit
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    if (allocated(CIcore_instance%twoCenterIntegrals)) deallocate (CIcore_instance%twoCenterIntegrals)
+    if (allocated(CIcore_instance%fourCenterIntegrals)) deallocate (CIcore_instance%fourCenterIntegrals)
+    if (allocated(CIcore_instance%twoIndexArray)) deallocate (CIcore_instance%twoIndexArray)
+    if (allocated(CIcore_instance%fourIndexArray)) deallocate (CIcore_instance%fourIndexArray)
+
     allocate(CIcore_instance%twoCenterIntegrals(numberOfSpecies))
     allocate(CIcore_instance%fourCenterIntegrals(numberOfSpecies,numberOfSpecies))
 
@@ -543,6 +573,8 @@ contains
       open(unit=wfnUnit, file=trim(wfnFile), status="old", form="unformatted")
 
       arguments(2) = MolecularSystem_getNameOfSpecies(i)
+      !if ( i == 2 ) arguments(2) =   MolecularSystem_getNameOfSpecies(1)
+      !if ( i == 3 ) arguments(2) =   MolecularSystem_getNameOfSpecies(1)
       arguments(1) = "COEFFICIENTS"
 
       coefficients = &

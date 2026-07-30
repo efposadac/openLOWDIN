@@ -21,7 +21,7 @@ CONTROL
 	CIPrintThreshold = 5e-2
 	CISCICoreSpace = 50
 	CISCITargetSpace = 500
-	CISCITargetGrowthFactor = 2
+	CISCITargetGrowthFactor = 1
 	CISCITargetGrowthSteps = 4
 	CISCIRefinementSteps = 0
 	CISCIBufferFactor = 16
