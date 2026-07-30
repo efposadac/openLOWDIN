@@ -63,8 +63,6 @@ contains
     integer(8) :: occupation, otherOccupation
     character(10) :: nameOfSpecies, symbolOfSpecies
     character(10) :: nameOfOtherSpecies, symbolOfOtherSpecies
-    type(Vector) :: eigenValues
-    type(Vector) :: eigenValuesOfOtherSpecie
     type(Matrix) :: auxMatrix
     type(TransformIntegralsA) :: repulsionTransformer
     type(TransformIntegralsB) :: transformInstanceB
@@ -197,7 +195,7 @@ contains
       numberOfContractions = MolecularSystem_getTotalNumberOfContractions(i)
       occupation = MolecularSystem_getOcupationNumber(i)
       arguments(2) = MolecularSystem_getNameOfSpecies(i)
-  
+
       arguments(1) = "COEFFICIENTS"
       eigenVec = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
                                     columns=int(max(numberOfContractions, occupation), 8), binary=.true., arguments=arguments(1:2))
@@ -206,10 +204,6 @@ contains
       densityMatrix = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions, 8), &
                                          columns=int(numberOfContractions, 8), binary=.true., arguments=arguments(1:2))
   
-      arguments(1) = "ORBITALS"
-      call Vector_getFromFile(elementsNum=numberOfContractions, &
-                              unit=wfnUnit, binary=.true., arguments=arguments(1:2), &
-                              output=eigenValues)
       close (wfnUnit)
   
       speciesID = i
@@ -282,16 +276,11 @@ contains
           otherOccupation = MolecularSystem_getOcupationNumber(j)
   
           arguments(2) = trim(MolecularSystem_getNameOfSpecies(j))
-  
+
           arguments(1) = "COEFFICIENTS"
           eigenVecOtherSpecie = &
             Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractionsOfOtherSpecie, 8), &
                                columns=int(max(numberOfContractionsOfOtherSpecie, otherOccupation), 8), binary=.true., arguments=arguments(1:2))
-  
-          arguments(1) = "ORBITALS"
-          call Vector_getFromFile(elementsNum=numberOfContractionsofOtherSpecie, &
-                                  unit=wfnUnit, binary=.true., arguments=arguments(1:2), &
-                                  output=eigenValuesOfOtherSpecie)
   
           arguments(1) = "DENSITY"
           otherdensityMatrix = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractionsOfOtherSpecie, 8), &

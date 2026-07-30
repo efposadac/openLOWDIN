@@ -185,6 +185,9 @@ contains
     call Vector_constructorInteger8 ( CISCI_instance%index_amplitudeCore, int(CISCI_instance%buffer_amplitudeCoreSize,8),  0_8)
 
     !! arrays for storing CI configurations, species, orbitals, vector size
+    if ( allocated ( CISCI_instance%confTarget_orb ) ) deallocate ( CISCI_instance%confTarget_orb )  
+    if ( allocated ( CISCI_instance%confTarget_occ ) ) deallocate ( CISCI_instance%confTarget_occ )  
+
     allocate ( CISCI_instance%confCore ( numberOfSpecies ) ) 
     allocate ( CISCI_instance%confTarget_orb ( numberOfSpecies ) ) 
     allocate ( CISCI_instance%confTarget_occ ( numberOfSpecies ) ) 
@@ -248,6 +251,40 @@ contains
     endif
 
   end subroutine CISCI_constructor
+
+  !! Allocating arrays 
+  subroutine CISCI_destructor( )
+    implicit none
+
+    deallocate ( CISCI_instance%combinedOrbitalsPositions )
+    deallocate ( CISCI_instance%combinedOccupiedOrbitalsPositions )
+    deallocate ( CISCI_instance%omp_targetInterval ) !fixed
+    deallocate ( CISCI_instance%omp_target_iterator_m ) !variable
+
+    !! arrays for storing coefficients
+    call Vector_destructor(CISCI_instance%buffer_amplitudeCore)
+    call Vector_destructor(CISCI_instance%coefficientCore)
+
+    !! auxiliary array to trace the original elements in array sorting
+    call Vector_destructorInteger8 ( CISCI_instance%index_amplitudeCore)
+
+    !! arrays for storing CI configurations, species, orbitals, vector size
+    deallocate ( CISCI_instance%confCore ) 
+    deallocate ( CISCI_instance%confAmplitudeCore_orb ) 
+
+    call Vector_destructor ( CISCI_instance%diagonalCore )
+
+    !! eigenvalues per SCI iteration
+    deallocate ( CISCI_instance%eigenValues )
+    deallocate ( CISCI_instance%minCoeff )
+
+    !! target space size per iteration
+    deallocate ( CISCI_instance%targetSpaceSize_iter )
+    deallocate ( CISCI_instance%canonicalOrder )
+
+    call CISort_destructor()
+
+  end subroutine CISCI_destructor
  
   !! main part
   subroutine CISCI_run( numberOfConfigurations, eigenVectors, initialEnergy, initialStep, finalStep )
