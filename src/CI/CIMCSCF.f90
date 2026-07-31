@@ -93,10 +93,10 @@ contains
     write (6,*) "Building 1-RDM ..."
     call CIdensity_1RDM_SCI( CI1RDM )
 
-    do spi = 1, numberOfSpecies
-      print *, "1rdm for", spi
-      call Matrix_show (CI1RDM(spi,1))
-    enddo 
+    !do spi = 1, numberOfSpecies
+    !  print *, "1rdm for", spi
+    !  call Matrix_show (CI1RDM(spi,1))
+    !enddo 
 
     write (6,*) "Building 2-RDM ..."
     call CIdensity_2RDM_SCI( CI2RDM )
@@ -172,12 +172,11 @@ contains
     energy_total = 0.0_8
     n_pairs = 0.0_8
 
-    !open(unit=1018, file="2rdm", status="replace", form="formatted")
-    !open(unit=1019, file="2rdm.inter", status="replace", form="formatted")
+    open(unit=1018, file="2rdm", status="replace", form="formatted")
+    open(unit=1019, file="2rdm.inter", status="replace", form="formatted")
 
     do spi = 1, numberOfSpecies
       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
-
       !! one body
       do p = 1, numberOfContractions_i
         do q = 1, numberOfContractions_i
@@ -198,7 +197,7 @@ contains
 
               energy_two_aa = energy_two_aa + 0.5_8 * CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs,1) * &
                             CI2RDM(spi,spi)%values(pqrs_rdm)
-              !write (1018,"(I2,I2,I2,I2,I6,F12.8,F12.8 )" ) p,q,r,s, pqrs_rdm, CI2RDM(spi,spi)%values(pqrs_rdm), CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs,1)
+              write (1018,"(I2,I2,I2,I2,I6,F12.8,F12.8 )" ) p,q,r,s, pqrs_rdm, CI2RDM(spi,spi)%values(pqrs_rdm), CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs,1)
 
             enddo ! s
           enddo ! r
@@ -227,8 +226,8 @@ contains
                 energy_two_ab = energy_two_ab + CIcore_instance%fourCenterIntegrals(spi,spj)%values(pqrs,1) * &
                             CI2RDM(spi,spj)%values(pqrs_rdm)
 
-                !write (1019,"(I2,I2,I2,I2,I6,F12.8,F12.8 )" ) p,q,r,s, pqrs_rdm, CI2RDM(spi,spj)%values(pqrs_rdm), &
-                !CIcore_instance%fourCenterIntegrals(spi,spj)%values(pqrs,1)
+                write (1019,"(I2,I2,I2,I2,I6,F12.8,F12.8 )" ) p,q,r,s, pqrs_rdm, CI2RDM(spi,spj)%values(pqrs_rdm), &
+                CIcore_instance%fourCenterIntegrals(spi,spj)%values(pqrs,1)
 
               enddo ! s
             enddo ! r
@@ -249,8 +248,8 @@ contains
     write (6,"(T2,A37,F25.12)") "MCSCF Initial total energy =          ", energy_total
     write (6,*) ""
 
-   ! close(1018)
-   ! close(1019)
+    close(1018)
+    close(1019)
 
   end subroutine CIMCSCF_energy
 
@@ -382,10 +381,10 @@ contains
 
     enddo ! spi
 
-    do spi = 1, numberOfSpecies
-      print *, "fock for spi", spi
-      call Matrix_show (fock(spi))
-    enddo ! spi
+    !do spi = 1, numberOfSpecies
+    !  print *, "fock for spi", spi
+    !  call Matrix_show (fock(spi))
+    !enddo ! spi
 
     !! gradient 
     do spi = 1, numberOfSpecies
@@ -634,8 +633,8 @@ contains
         enddo ! q
       enddo ! p 
   
-      print *, "hessian for spi", spi
-      call Matrix_show (hessian(spi))
+      !print *, "hessian for spi", spi
+      !call Matrix_show (hessian(spi))
 
     enddo ! spi
 
@@ -657,7 +656,7 @@ contains
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    epsilon = 1.0E-3
+    epsilon = 1.0E-2
 
     allocate( rotations(numberOfSpecies) )
     do spi = 1, numberOfSpecies
@@ -765,8 +764,8 @@ contains
       deallocate ( IPIV )
       deallocate ( A )
 
-      print *, "U"
-      call Matrix_show ( unitaryMatrix(spi) )
+      !print *, "U"
+      !call Matrix_show ( unitaryMatrix(spi) )
 
     enddo ! spi
 

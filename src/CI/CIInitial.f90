@@ -219,8 +219,8 @@ contains
 
         do i = 1, numberOfSpecies
 
-          allocate (orbitalsA(CIcore_instance%numberOfOrbitals%values(i)))
-          allocate (orbitalsB(CIcore_instance%numberOfOrbitals%values(i)))
+          allocate (orbitalsA(CIcore_instance%numberOfActiveOrbitals%values(i)))
+          allocate (orbitalsB(CIcore_instance%numberOfActiveOrbitals%values(i)))
           orbitalsA = 0
           orbitalsB = 0
 

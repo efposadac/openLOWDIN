@@ -24,6 +24,7 @@
     type(ivector8) :: numberOfCoreOrbitals
     type(ivector8) :: numberOfOccupiedOrbitals
     type(ivector8) :: numberOfOrbitals
+    type(ivector8) :: numberOfActiveOrbitals
      type(vector) ::  numberOfSpatialOrbitals2 
      type(vector) :: eigenvalues
      type(vector) :: groundStateEnergies
@@ -165,6 +166,7 @@ contains
 
     call Vector_constructorInteger8(CIcore_instance%numberOfCoreOrbitals, numberOfSpecies)
     call Vector_constructorInteger8(CIcore_instance%numberOfOccupiedOrbitals, numberOfSpecies)
+    call Vector_constructorInteger8(CIcore_instance%numberOfActiveOrbitals, numberOfSpecies)
     call Vector_constructorInteger8(CIcore_instance%numberOfOrbitals, numberOfSpecies)
     call Vector_constructor (CIcore_instance%lambda, numberOfSpecies)
     call Vector_constructor (CIcore_instance%numberOfSpatialOrbitals2, numberOfSpecies)
@@ -193,6 +195,8 @@ contains
        CIcore_instance%numberOfOccupiedOrbitals%values(i) = int (MolecularSystem_getOcupationNumber( i )* &
                                                                               CIcore_instance%lambda%values(i))
        CIcore_instance%numberOfOrbitals%values(i) = MolecularSystem_getTotalNumberOfContractions( i )* &
+                                                                      CIcore_instance%lambda%values(i) 
+       CIcore_instance%numberOfActiveOrbitals%values(i) = MolecularSystem_getTotalNumberOfContractions( i )* &
                                                                       CIcore_instance%lambda%values(i) 
        CIcore_instance%numberOfSpatialOrbitals2%values(i) = MolecularSystem_getTotalNumberOfContractions( i )
        CIcore_instance%numberOfSpatialOrbitals2%values(i) = CIcore_instance%numberOfSpatialOrbitals2%values(i) *  ( &
@@ -369,14 +373,14 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
 
     !! default 
     CIcore_instance%numberOfCoreOrbitals%values(speciesID) = 0
-    CIcore_instance%numberOfOrbitals%values(speciesID) = canonicalNumberOfOrbitals
+    CIcore_instance%numberOfActiveOrbitals%values(speciesID) = canonicalNumberOfOrbitals
 
     !! Take the active space from input
     if ( InputCI_Instance(speciesID)%coreOrbitals /= 0 ) then
        CIcore_instance%numberOfCoreOrbitals%values(speciesID) = InputCI_Instance(speciesID)%coreOrbitals 
     end if
     if ( InputCI_Instance(speciesID)%activeOrbitals /= 0 ) then
-      CIcore_instance%numberOfOrbitals%values(speciesID) = InputCI_Instance(speciesID)%activeOrbitals * &
+      CIcore_instance%numberOfActiveOrbitals%values(speciesID) = InputCI_Instance(speciesID)%activeOrbitals * &
                                     CIcore_instance%lambda%values(speciesID) + &
                                     CIcore_instance%numberOfCoreOrbitals%values(speciesID)
     end if
@@ -403,7 +407,7 @@ recursive  function CIcore_gatherConfRecursion(s, numberOfSpecies, indexConf, c,
 
       do i = 1, canonicalNumberOfOrbitals 
         if ( orbital_occupations%values(i) < 1E-8 ) then
-          CIcore_instance%numberOfOrbitals%values(speciesID) = i 
+          CIcore_instance%numberOfActiveOrbitals%values(speciesID) = i 
           exit
         endif
       enddo

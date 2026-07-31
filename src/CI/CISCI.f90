@@ -82,12 +82,12 @@ contains
     do spi = 1, CIcore_instance%numberOfSpecies 
       totalSize = totalSize + &
                   ( CISCI_instance%buffer_amplitudeCoreSize * &
-                                  ( 8 + 8 + 1*CIcore_instance%numberOfOrbitals%values(spi) ) & ! data type for coeff, index, conf_orb
+                                  ( 8 + 8 + 1*CIcore_instance%numberOfActiveOrbitals%values(spi) ) & ! data type for coeff, index, conf_orb
                   + CISCI_instance%coreSpaceSize * &
-                                  ( 8 + 1*CIcore_instance%numberOfOrbitals%values(spi)) & ! coeff, conf
+                                  ( 8 + 1*CIcore_instance%numberOfActiveOrbitals%values(spi)) & ! coeff, conf
                   + CISCI_instance%targetSpaceSize_max * &
                                   ( 8 + 8 + 2*8 + CIcore_instance%nproc * 8 & !! coeff, diagonal, eigenvectors, W per omp thread
-                                    + 1*CIcore_instance%numberOfOrbitals%values(spi) + 4*CIcore_instance%numberOfOrbitals%values(spi) ) )  !! conf_orb, conf_cc
+                                    + 1*CIcore_instance%numberOfActiveOrbitals%values(spi) + 4*CIcore_instance%numberOfActiveOrbitals%values(spi) ) )  !! conf_orb, conf_cc
 
       do spj = spi, CIcore_instance%numberOfSpecies 
         totalSize = totalSize + &
@@ -154,13 +154,13 @@ contains
     numberOfConfigurations = CISCI_instance%targetSpaceSize !! initial size
 
     !! auxiliary variables to map orbitals from vector to array location
-    CISCI_instance%combinedNumberOfOrbitals = sum(CIcore_instance%numberOfOrbitals%values(:))
+    CISCI_instance%combinedNumberOfOrbitals = sum(CIcore_instance%numberOfActiveOrbitals%values(:))
     allocate ( CISCI_instance%combinedOrbitalsPositions(2,numberOfSpecies) )
     m = 0
     do spi = 1, numberOfSpecies
       CISCI_instance%combinedOrbitalsPositions(1,spi) = m + 1
-      CISCI_instance%combinedOrbitalsPositions(2,spi) = m + CIcore_instance%numberOfOrbitals%values(spi)
-      m = m + CIcore_instance%numberOfOrbitals%values(spi)
+      CISCI_instance%combinedOrbitalsPositions(2,spi) = m + CIcore_instance%numberOfActiveOrbitals%values(spi)
+      m = m + CIcore_instance%numberOfActiveOrbitals%values(spi)
     enddo 
 
     CISCI_instance%combinedNumberOfOccupiedOrbitals = sum(CIcore_instance%numberOfOccupiedOrbitals%values(:))
@@ -192,8 +192,8 @@ contains
     allocate ( CISCI_instance%confTarget_orb ( numberOfSpecies ) ) 
     allocate ( CISCI_instance%confTarget_occ ( numberOfSpecies ) ) 
     do spi = 1, numberOfSpecies 
-      call Matrix_constructorInteger1 ( CISCI_instance%confCore(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%coreSpaceSize,8), -1_1 )
-      call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1) !! this will be reallocated
+      call Matrix_constructorInteger1 ( CISCI_instance%confCore(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%coreSpaceSize,8), -1_1 )
+      call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1) !! this will be reallocated
       call Matrix_constructorInteger ( CISCI_instance%confTarget_occ(spi), int(CIcore_instance%numberOfOccupiedOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_4) !! this will be reallocated
     enddo
     allocate ( CISCI_instance%confAmplitudeCore_orb (  CISCI_instance%combinedNumberOfOrbitals, CISCI_instance%buffer_amplitudeCoreSize ) ) 
@@ -202,7 +202,7 @@ contains
     !! this was replaced by a "vectorized" array to avoid using arrays of types inside a recursive function
     !!do spi = 1, numberOfSpecies
     !!allocate ( CISCI_instance%confAmplitudeCore_orb ( numberOfSpecies ) )
-      !!call Matrix_constructorInteger1 ( CISCI_instance%confAmplitudeCore_orb(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%buffer_amplitudeCoreSize,8), -1_1) 
+      !!call Matrix_constructorInteger1 ( CISCI_instance%confAmplitudeCore_orb(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%buffer_amplitudeCoreSize,8), -1_1) 
     !!enddo
 
     !! store the orbitals for each target configurations, to avoid recomputing them
@@ -210,7 +210,7 @@ contains
     !!allocate ( CISCI_instance%targetOrb ( numberOfSpecies, CISCI_instance%targetSpaceSize ) )
     !!do a = 1, CISCI_instance%targetSpaceSize
     !!  do spi = 1, numberOfSpecies
-    !!    call Vector_constructorInteger ( CISCI_instance%targetOrb(spi,a), CIcore_instance%numberOfOrbitals%values(spi), 0 )
+    !!    call Vector_constructorInteger ( CISCI_instance%targetOrb(spi,a), CIcore_instance%numberOfActiveOrbitals%values(spi), 0 )
     !!  enddo
     !!enddo
 
@@ -239,8 +239,8 @@ contains
     allocate ( CISCI_instance%canonicalOrder ( numberOfSpecies ) )
 
     do spi = 1, numberOfSpecies
-      call Vector_constructorInteger ( CISCI_instance%canonicalOrder(spi), CIcore_instance%numberOfOrbitals%values(spi), 0 )
-      do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+      call Vector_constructorInteger ( CISCI_instance%canonicalOrder(spi), CIcore_instance%numberOfActiveOrbitals%values(spi), 0 )
+      do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
         CISCI_instance%canonicalOrder(spi)%values(pi) = pi
       enddo
     enddo
@@ -463,7 +463,7 @@ contains
 
       !! reallocate due to increased target size
       do spi = 1, CIcore_instance%numberOfSpecies
-        call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
+        call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
         call Matrix_constructorInteger ( CISCI_instance%confTarget_occ(spi), int(CIcore_instance%numberOfOccupiedOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_4)
       enddo
 
@@ -488,6 +488,14 @@ contains
     CIcore_instance%eigenValues%values(1) = CISCI_instance%eigenValues(finalk)%values(1)
     write (6,"(T2,A,ES12.4)") "Minimum coefficient in target space: ", CISCI_instance%minCoeff(finalk) 
     write (6,*)    ""
+
+    !! recalculate n conf to prevent the code breaking in case the targetSpace is not fully filled
+    numberOfConfigurations = 0
+    do a = 1, CISCI_instance%targetSpaceSize
+      !if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1  ) exit
+      if (CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
+      numberOfConfigurations = numberOfConfigurations + 1
+    enddo
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
     if ( finalStep ) then
@@ -530,14 +538,6 @@ contains
           call CISCI_heatBathGenerate ( CISCI_instance%diagonalTarget, eigenVectors%values(:,1), CISCI_instance%confTarget_orb, &
           CISCI_instance%targetSpaceSize, currentEnergy, PERTURBATIVE )
       end select
-
-      !! recalculate n conf to prevent the code breaking in case the targetSpace is not fully filled
-      numberOfConfigurations = 0
-      do a = 1, CISCI_instance%targetSpaceSize
-        !if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1  ) exit
-        if (CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
-        numberOfConfigurations = numberOfConfigurations + 1
-      enddo
 
       !! the real PT2 calculation
       call CISCI_PT2 ( CISCI_instance%targetSpaceSize, CIcore_instance%eigenValues%values(1), CISCI_instance%PT2energy, eigenVectors )
@@ -618,8 +618,8 @@ contains
 
     do spi = 1, numberOfSpecies 
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0) 
-      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0) 
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
     
       do pi = 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
         orbA(spi)%values(pi) = 1.0
@@ -644,7 +644,7 @@ contains
           !!call CISCI_decimalToBinary ( confCore%values(spi,a), orbA(spi)%values )
 
           !! build auxiliary vectors of occupied and virtuals orbitals
-          do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
             if ( orbA(spi)%values(pi) == 1 ) then
               oia = oia + 1
               occA(spi)%values(oia) = pi
@@ -658,7 +658,7 @@ contains
           do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
             orbA(spi)%values(oi1) = orbA(spi)%values(oi1) - 1 
             oi1 = occA(spi)%values(pi)  
-            do qi = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+            do qi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
               vi1 = virA(spi)%values(qi)
               orbA(spi)%values(vi1) = orbA(spi)%values(vi1) + 1
               m = m + 1
@@ -754,10 +754,10 @@ contains
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
       call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
-      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     n = omp_get_thread_num() + 1
@@ -778,7 +778,7 @@ contains
         orbA(spi)%values(:) = confCore(spi)%values(:,a) 
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
           if ( orbA(spi)%values(pi) == 1_8 ) then
             oia = oia + 1_8
             occA(spi)%values(oia) = pi
@@ -813,7 +813,7 @@ contains
           !! remove energy from the excited orbital
           diagEnergy_ao1 = diagEnergy_a - CISCI_calculateEnergyOne( spi, occA, occA, oi1, oi1 )
 
-          do qi = 1_8, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) !! occ or core???
+          do qi = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) !! occ or core???
             vi1 = virA(spi)%values(qi)
             orbB(spi)%values(vi1) = orbB(spi)%values(vi1) + 1_8
             occB(spi)%values(pi) = vi1
@@ -857,7 +857,7 @@ contains
               diagEnergy_ao1o2 = diagEnergy_ao1 - CISCI_calculateEnergyOne( spi, occA, occA, oi2, oi2 )
               diagEnergy_ao1o2 = diagEnergy_ao1o2 + CISCI_calculateEnergyTwoSame( spi, occA, occA, oi1, oi2, oi1, oi2 )
 
-              do si = 1_8, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+              do si = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
                 vi2 = virA(spi)%values(si)
                 if ( vi1 <= vi2 ) cycle 
                 orbB(spi)%values(vi2) = orbB(spi)%values(vi2) + 1_8
@@ -910,7 +910,7 @@ contains
                 diagEnergy_ao1o2 = diagEnergy_ao1 - CISCI_calculateEnergyOne( spj, occA, occA, oj2, oj2 )
                 diagEnergy_ao1o2 = diagEnergy_ao1o2 + CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, oi1, oj2 )
 
-                do sj = 1_8, CIcore_instance%numberOfOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+                do sj = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
                   vj2 = virA(spj)%values(sj)
                   orbB(spj)%values(vj2) = orbB(spj)%values(vj2) + 1_8
                   occB(spj)%values(rj) = vj2
@@ -1055,10 +1055,10 @@ contains
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
       call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
-      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     n = omp_get_thread_num() + 1
@@ -1078,7 +1078,7 @@ contains
         orbA(spi)%values(:) = confCore(spi)%values(:,a) 
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
           if ( orbA(spi)%values(pi) == 1 ) then
             oia = oia + 1
             occA(spi)%values(oia) = pi
@@ -1107,7 +1107,7 @@ contains
           oi1 = occA(spi)%values(pi)  
           orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1 
 
-          do qi = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+          do qi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
             vi1 = virA(spi)%values(qi)
             orbB(spi)%values(vi1) = orbB(spi)%values(vi1) + 1
             occB(spi)%values(pi) = vi1
@@ -1144,7 +1144,7 @@ contains
               oi2 = occA(spi)%values(ri)  
               if ( oi1 <= oi2 ) cycle 
               orbB(spi)%values(oi2) = orbB(spi)%values(oi2) - 1 
-              do si = 1, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+              do si = 1, CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
                 vi2 = virA(spi)%values(si)
                 if ( vi1 <= vi2 ) cycle 
                 orbB(spi)%values(vi2) = orbB(spi)%values(vi2) + 1
@@ -1189,7 +1189,7 @@ contains
               do rj = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1, CIcore_instance%numberOfOccupiedOrbitals%values(spj)
                 oj2 = occA(spj)%values(rj)  
                 orbB(spj)%values(oj2) = orbB(spj)%values(oj2) - 1 
-                do sj = 1, CIcore_instance%numberOfOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+                do sj = 1, CIcore_instance%numberOfActiveOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
                   vj2 = virA(spj)%values(sj)
                   orbB(spj)%values(vj2) = orbB(spj)%values(vj2) + 1
                   occB(spj)%values(rj) = vj2 
@@ -1463,8 +1463,8 @@ contains
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
       call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     thread_id = omp_get_thread_num() + 1
@@ -1647,8 +1647,8 @@ contains
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
       call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
     !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
     !$omp do schedule (static)
@@ -1668,7 +1668,7 @@ contains
         orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,a)
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        !do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        !do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
         !  if ( orbA(spi)%values(pi) == 1 ) then
         !    oia = oia + 1
         !    occA(spi)%values(oia) = pi
@@ -1706,7 +1706,7 @@ contains
           !do spi = 1, numberOfSpecies 
           !  oib = 0 
           !  !! build auxiliary vectors of occupied and virtuals orbitals
-          !  do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          !  do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
           !    if ( orbB(spi)%values(pi) == 1 ) then
           !      oib = oib + 1
           !      occB(spi)%values(oib) = pi
@@ -1813,7 +1813,7 @@ contains
 
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) 
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
 !$  timeA= omp_get_wtime()
@@ -1835,7 +1835,7 @@ contains
         !!call CISCI_decimalToBinary ( CISCI_instance%confAmplitudeCore_orb%values(spi,a), orbA(spi)%values )
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
           if ( orbA(spi)%values(pi) == 1 ) then
             oia = oia + 1
             occA(spi)%values(oia) = pi
@@ -2109,8 +2109,8 @@ contains
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) 
       call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     energyCorrection = 0.0_8
@@ -2131,7 +2131,7 @@ contains
         orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
           if ( orbA(spi)%values(pi) == 1 ) then
             oia = oia + 1
             occA(spi)%values(oia) = pi
@@ -2268,8 +2268,8 @@ contains
     CIlevel = 0
 
     do spi = 1, numberOfSpecies
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbRef(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbRef(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     !building reference orbitals
@@ -2354,7 +2354,7 @@ contains
     above = 0
     below = 0  
     qi = 0
-    do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+    do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
       pos = 0
       qi = qi + orb%values(pi)
       if ( orb%values(pi) == 1 ) then
@@ -2592,7 +2592,7 @@ contains
         !! compare each orb for all species
         species: do spi = 1, CIcore_instance%numberOfSpecies 
 
-          do orb = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          do orb = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
             auxorb = auxorb + 1
             if (  CISCI_instance%confCore(spi)%values(orb,j) == CISCI_instance%confAmplitudeCore_orb(auxorb, i) ) then
               is_equal = .true.
@@ -2646,7 +2646,7 @@ contains
 
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) 
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     do a = 1, CISCI_instance%targetSpaceSize
@@ -2673,7 +2673,7 @@ contains
 
         occA(spi)%values(:) = 0
         !! build auxiliary vectors of occupied and virtuals orbitals
-        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
           if ( orbA(spi)%values(pi) == 1_1 ) then
             oia = oia + 1
             occA(spi)%values(oia) = pi
@@ -2723,6 +2723,7 @@ contains
 
   !! Sort the two particles contributions according to HeatBath CI method
   !! Section II.A of 10.1021/acs.jctc.6b00407
+  !! TODO: check where we need total or active number of orbitals
   subroutine CISCI_heatbathIntegralSorting( heatBathDoubleExcitations, heatBathDoubleExcitations_index, &
     heatBathDoubleExcitations_size )
     implicit none
@@ -2739,7 +2740,7 @@ contains
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
 
-    allocate ( occupied ( maxval(CIcore_instance%numberOfOrbitals%values(:) ) ) )
+    allocate ( occupied ( maxval(CIcore_instance%numberOfActiveOrbitals%values(:) ) ) )
     occupied = .False. 
 
     !! matrix allocation and initialization
@@ -2747,13 +2748,13 @@ contains
     do spi = 1, numberOfSpecies
 
       !! triangular with diagonal terms
-      size_ii = ( CIcore_instance%numberOfOrbitals%values(spi) * ( CIcore_instance%numberOfOrbitals%values(spi) + 1_8)) / 2.0
+      size_ii = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * ( CIcore_instance%numberOfActiveOrbitals%values(spi) + 1_8)) / 2.0
       call Matrix_constructor ( heatBathDoubleExcitations(spi,spi), &
                                 size_ii, size_ii, 0.0_8 &
                               )
       do spj = spi + 1, numberOfSpecies
         !! full
-        size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+        size_ij = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * CIcore_instance%numberOfActiveOrbitals%values(spj) )
         call Matrix_constructor ( heatBathDoubleExcitations(spj,spi), &
                                   size_ij, size_ij, 0.0_8 &
                                 )
@@ -2763,13 +2764,13 @@ contains
     allocate ( heatBathDoubleExcitations_index(numberOfSpecies,numberOfSpecies))
     do spi = 1, numberOfSpecies
       !! triangular with diagonal terms
-      size_ii = ( CIcore_instance%numberOfOrbitals%values(spi) * ( CIcore_instance%numberOfOrbitals%values(spi) + 1_8)) / 2.0
+      size_ii = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * ( CIcore_instance%numberOfActiveOrbitals%values(spi) + 1_8)) / 2.0
       call Matrix_constructorInteger8 ( heatBathDoubleExcitations_index(spi,spi), &
                                         size_ii, size_ii, 0_8 &
                                       )
       do spj = spi + 1, numberOfSpecies
         !! full
-        size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+        size_ij = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * CIcore_instance%numberOfActiveOrbitals%values(spj) )
         call Matrix_constructorInteger8 ( heatBathDoubleExcitations_index(spj,spi), &
                                           size_ij, size_ij, 0_8 &
                                         )
@@ -2779,13 +2780,13 @@ contains
     allocate ( heatBathDoubleExcitations_size(numberOfSpecies,numberOfSpecies))
     do spi = 1, numberOfSpecies
       !! triangular with diagonal terms
-      size_ii = ( CIcore_instance%numberOfOrbitals%values(spi) * ( CIcore_instance%numberOfOrbitals%values(spi) + 1_8)) / 2.0
+      size_ii = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * ( CIcore_instance%numberOfActiveOrbitals%values(spi) + 1_8)) / 2.0
       call Matrix_constructorInteger8 ( heatBathDoubleExcitations_size(spi,spi), &
                                         size_ii, 2_8, 0_8 &
                                       ) ! Max size for SCI and PT heatbath thresholds
       do spj = spi + 1, numberOfSpecies
         !! full
-        size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+        size_ij = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * CIcore_instance%numberOfActiveOrbitals%values(spj) )
         call Matrix_constructorInteger8 ( heatBathDoubleExcitations_size(spj,spi), &
                                           size_ij, 2_8, 0_8 &
                                         )  ! Max size for SCI and PT heatbath thresholds
@@ -2794,11 +2795,11 @@ contains
 
     !! index initialization (same species), including diag terms
     do spi = 1, numberOfSpecies
-      do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
-        do qi = pi, CIcore_instance%numberOfOrbitals%values(spi)
+      do pi = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
+        do qi = pi, CIcore_instance%numberOfActiveOrbitals%values(spi)
           pq = CIcore_instance%twoIndexArray(spi)%values(qi,pi)
-          do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
-            do si = ri, CIcore_instance%numberOfOrbitals%values(spi)
+          do ri = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
+            do si = ri, CIcore_instance%numberOfActiveOrbitals%values(spi)
               rs = CIcore_instance%twoIndexArray(spi)%values(si,ri)
               !! missing condition for rs > pq? nope
               heatBathDoubleExcitations_index(spi,spi)%values(rs,pq) = rs
@@ -2811,19 +2812,19 @@ contains
     !! getting contributions to double excitaions (same species), excluding diagonal terms (pp -> rr)
     do spi = 1, numberOfSpecies
 
-      size_ii = ( CIcore_instance%numberOfOrbitals%values(spi) * ( CIcore_instance%numberOfOrbitals%values(spi) + 1_8)) / 2.0
+      size_ii = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * ( CIcore_instance%numberOfActiveOrbitals%values(spi) + 1_8)) / 2.0
 
       kappa = MolecularSystem_instance%species(spi)%kappa
-      do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+      do pi = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
         occupied(pi) = .True.
 
-        do qi = pi + 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+        do qi = pi + 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
           occupied(qi) = .True.
 
           pq = CIcore_instance%twoIndexArray(spi)%values(qi,pi)
-          do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+          do ri = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
             if ( occupied(ri) ) cycle
-            do si = ri + 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+            do si = ri + 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
               if ( occupied(si) ) cycle
               rs = CIcore_instance%twoIndexArray(spi)%values(si,ri)
 
@@ -2856,7 +2857,7 @@ contains
           !do rs = 1_8, size_ii
           !  print *, rs, heatBathDoubleExcitations_index(spi,spi)%values(rs,pq), &
           !  heatBathDoubleExcitations(spi,spi)%values(rs,pq), "|", &
-          !  IndexMap_vectorToMatrix( heatBathDoubleExcitations_index(spi,spi)%values(rs,pq), CIcore_instance%numberOfOrbitals%values(spi))
+          !  IndexMap_vectorToMatrix( heatBathDoubleExcitations_index(spi,spi)%values(rs,pq), CIcore_instance%numberOfActiveOrbitals%values(spi))
           !enddo
 
           !! finding the size of elements above SCI variational threshold
@@ -2886,17 +2887,17 @@ contains
     !! index initialization (diff species)
     do spi = 1, numberOfSpecies
       do spj = spi + 1, numberOfSpecies
-        do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
-          do qj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+        do pi = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
+          do qj = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj)
 
             !!index for HBCI
-            pq = qj + CIcore_instance%numberOfOrbitals%values(spj) * ( pi - 1_8 )
+            pq = qj + CIcore_instance%numberOfActiveOrbitals%values(spj) * ( pi - 1_8 )
 
-            do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
-              do sj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+            do ri = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
+              do sj = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj)
 
                 !!index for HBCI
-                rs = sj + CIcore_instance%numberOfOrbitals%values(spj) * ( ri - 1_8 )
+                rs = sj + CIcore_instance%numberOfActiveOrbitals%values(spj) * ( ri - 1_8 )
                 heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) = rs
 
               enddo !sj
@@ -2910,18 +2911,18 @@ contains
     do spi = 1, numberOfSpecies
       do spj = spi + 1, numberOfSpecies
 
-        size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
-        do pi = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
-          do qj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+        size_ij = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * CIcore_instance%numberOfActiveOrbitals%values(spj) )
+        do pi = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
+          do qj = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj)
             !!index for HBCI
-            pq = qj + CIcore_instance%numberOfOrbitals%values(spj) * ( pi - 1_8 )
-            do ri = pi + 1_8, CIcore_instance%numberOfOrbitals%values(spi)
+            pq = qj + CIcore_instance%numberOfActiveOrbitals%values(spj) * ( pi - 1_8 )
+            do ri = pi + 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
               !! integral index
               pr = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( CIcore_instance%twoIndexArray(spi)%values(ri,pi) - 1_8 ) !! aux index
-              do sj = qj + 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+              do sj = qj + 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj)
 
                 !!index for HBCI
-                rs = sj + CIcore_instance%numberOfOrbitals%values(spj) * ( ri - 1_8 )
+                rs = sj + CIcore_instance%numberOfActiveOrbitals%values(spj) * ( ri - 1_8 )
 
                 !! integral index
                 qs = CIcore_instance%twoIndexArray(spj)%values(sj,qj)
@@ -2944,14 +2945,14 @@ contains
                                           1_8, size_ij &
                                         )
 
-            !do ri = 1_8, CIcore_instance%numberOfOrbitals%values(spi)
-            !  do sj = 1_8, CIcore_instance%numberOfOrbitals%values(spj)
+            !do ri = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi)
+            !  do sj = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj)
 
-            !    rs = sj + CIcore_instance%numberOfOrbitals%values(spj) * ( ri - 1_8 )
+            !    rs = sj + CIcore_instance%numberOfActiveOrbitals%values(spj) * ( ri - 1_8 )
             !    print *, spi, spj, ri, sj, rs, heatBathDoubleExcitations_index(spj,spi)%values(rs,pq), &
             !    heatBathDoubleExcitations(spj,spi)%values(rs,pq), "|", &
-            !    ((heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8 ) / CIcore_instance%numberOfOrbitals%values(spj)) + 1_8, &
-            !    mod(heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8, CIcore_instance%numberOfOrbitals%values(spj)) + 1_8
+            !    ((heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8 ) / CIcore_instance%numberOfActiveOrbitals%values(spj)) + 1_8, &
+            !    mod(heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj)) + 1_8
             !  enddo ! sj
             !enddo ! ri
 
@@ -2984,6 +2985,7 @@ contains
   end subroutine CISCI_heatbathIntegralSorting
 
   !! generate the configurations to form the target space from the core space
+  !! TODO: check where we need total or active number of orbitals
   subroutine CISCI_heatBathGenerate (  diagonal, coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, mode )
 
     implicit none
@@ -3047,10 +3049,10 @@ contains
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
       call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
-      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( virB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     n = omp_get_thread_num() + 1
@@ -3071,7 +3073,7 @@ contains
         orbA(spi)%values(:) = confCore(spi)%values(:,a) 
 
         !! build auxiliary vectors of occupied and virtuals orbitals
-        do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+        do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
           if ( orbA(spi)%values(pi) == 1_8 ) then
             oia = oia + 1_8
             occA(spi)%values(oia) = pi
@@ -3100,7 +3102,7 @@ contains
           oi1 = occA(spi)%values(pi)  
           orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1_8
 
-          do qi = 1_8, CIcore_instance%numberOfOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) !! occ or core???
+          do qi = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) !! occ or core???
             vi1 = virA(spi)%values(qi)
             orbB(spi)%values(vi1) = orbB(spi)%values(vi1) + 1_8
             occB(spi)%values(pi) = vi1
@@ -3155,7 +3157,7 @@ contains
               if ( CIenergy > CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(mode) ) then
 
                 !! get the different orbitals (excitation)
-                rs_pair = IndexMap_vectorToMatrix( CISCI_instance%heatBathDoubleExcitations_index(spi,spi)%values(rs,pq), CIcore_instance%numberOfOrbitals%values(spi))
+                rs_pair = IndexMap_vectorToMatrix( CISCI_instance%heatBathDoubleExcitations_index(spi,spi)%values(rs,pq), CIcore_instance%numberOfActiveOrbitals%values(spi))
                 vi1 = rs_pair(1)
                 vi2 = rs_pair(2)
 
@@ -3192,7 +3194,7 @@ contains
         !! generate double excitations (diff species)
         do spj = spi + 1, numberOfSpecies
 
-          size_ij = ( CIcore_instance%numberOfOrbitals%values(spi) * CIcore_instance%numberOfOrbitals%values(spj) )
+          size_ij = ( CIcore_instance%numberOfActiveOrbitals%values(spi) * CIcore_instance%numberOfActiveOrbitals%values(spj) )
           do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
             oi1 = occA(spi)%values(pi)  
             orbB(spi)%values(oi1) = orbB(spi)%values(oi1) - 1_8
@@ -3200,7 +3202,7 @@ contains
               oj2 = occA(spj)%values(qj)  
               orbB(spj)%values(oj2) = orbB(spj)%values(oj2) - 1_8
 
-              pq = qj + CIcore_instance%numberOfOrbitals%values(spj) * ( pi - 1_8 )
+              pq = qj + CIcore_instance%numberOfActiveOrbitals%values(spj) * ( pi - 1_8 )
 
               do rs = 1_8, size_ij
               !do rs = 1_8, CISCI_instance%heatBathDoubleExcitations_size(spj,spi)%values(pq,mode) 
@@ -3210,8 +3212,8 @@ contains
                 if ( CIenergy > CONTROL_instance%CISCI_HEAT_BATH_THRESHOLD(mode) ) then
 
                   !! get the different orbitals (excitation)
-                  vi1 = ((CISCI_instance%heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8 ) / CIcore_instance%numberOfOrbitals%values(spj)) + 1_8
-                  vj2 = mod(CISCI_instance%heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8, CIcore_instance%numberOfOrbitals%values(spj)) + 1_8
+                  vi1 = ((CISCI_instance%heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8 ) / CIcore_instance%numberOfActiveOrbitals%values(spj)) + 1_8
+                  vj2 = mod(CISCI_instance%heatBathDoubleExcitations_index(spj,spi)%values(rs,pq) - 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj)) + 1_8
 
                   if ( orbB(spi)%values(vi1) == 1_8 ) cycle ! already occupied
                   if ( orbB(spj)%values(vj2) == 1_8 ) cycle ! already occupied

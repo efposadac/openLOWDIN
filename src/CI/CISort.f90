@@ -30,7 +30,7 @@ contains
     nproc = CIcore_instance%nproc 
 
     !! auxiliary variables to map orbitals from vector to array location
-    CISort_instance%combinedNumberOfOrbitals = int(sum(CIcore_instance%numberOfOrbitals%values(:)),8)
+    CISort_instance%combinedNumberOfOrbitals = int(sum(CIcore_instance%numberOfActiveOrbitals%values(:)),8)
   
     allocate ( CISort_instance%tmp_Vector(  CISort_instance%combinedNumberOfOrbitals, nproc + 1 ) )
     allocate ( CISort_instance%pivot( CISort_instance%combinedNumberOfOrbitals, nproc + 1 ) )

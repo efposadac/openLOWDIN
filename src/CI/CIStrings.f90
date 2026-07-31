@@ -74,7 +74,7 @@ contains
                                        sum(CIcore_instance%numberOfStrings(i)%values), int(0, 4))
 
         call Matrix_constructorInteger1(CIcore_instance%orbitals(i), &
-                                        int(CIcore_instance%numberOfOrbitals%values(i), 8), &
+                                        int(CIcore_instance%numberOfActiveOrbitals%values(i), 8), &
                                         sum(CIcore_instance%numberOfStrings(i)%values), 0_1)
 
       else
@@ -152,7 +152,7 @@ contains
 
     if (ci == 1 .and. ci < cilevel) then ! first
       do m = int(occupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOccupiedOrbitals%values(i))
-        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfActiveOrbitals%values(i))
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
           oci = CIStrings_buildStringsRecursion(i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel)
@@ -161,7 +161,7 @@ contains
       end do
     else if (ci > 1 .and. ci < cilevel) then ! mid
       do m = int(occupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfOccupiedOrbitals%values(i))
-        do a = int(unoccupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfActiveOrbitals%values(i))
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
           oci = CIStrings_buildStringsRecursion(i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel)
@@ -170,7 +170,7 @@ contains
 
     else if (ci == 1 .and. ci == cilevel) then ! mid
       do m = int(occupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOccupiedOrbitals%values(i))
-        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfActiveOrbitals%values(i))
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
           CIcore_instance%numberOfStrings(i)%values(ci + 1) = &
@@ -182,7 +182,7 @@ contains
     else !final
 
       do m = int(occupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfOccupiedOrbitals%values(i))
-        do a = int(unoccupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfActiveOrbitals%values(i))
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
           CIcore_instance%numberOfStrings(i)%values(ci + 1) = &
@@ -211,7 +211,7 @@ contains
 
     if (ci == 1 .and. ci < cilevel) then ! first
       do m = int(occupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOccupiedOrbitals%values(i))
-        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfActiveOrbitals%values(i))
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
           oci = CIStrings_buildStringsRecursion2(i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c)
@@ -220,7 +220,7 @@ contains
       end do
     else if (ci > 1 .and. ci < cilevel) then ! mid
       do m = int(occupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfOccupiedOrbitals%values(i))
-        do a = int(unoccupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfActiveOrbitals%values(i))
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
           oci = CIStrings_buildStringsRecursion2(i, numberOfSpecies, occupiedCode, unoccupiedCode, ci, cilevel, order, c)
@@ -229,7 +229,7 @@ contains
 
     else if (ci == 1 .and. ci == cilevel) then ! mid
       do m = int(occupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOccupiedOrbitals%values(i))
-        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci)) + 1, int(CIcore_instance%numberOfActiveOrbitals%values(i))
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
 
@@ -243,7 +243,7 @@ contains
     else !final
 
       do m = int(occupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfOccupiedOrbitals%values(i))
-        do a = int(unoccupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfOrbitals%values(i))
+        do a = int(unoccupiedCode(i)%values(ci - 1)) + 1, int(CIcore_instance%numberOfActiveOrbitals%values(i))
           occupiedCode(i)%values(ci) = m
           unoccupiedCode(i)%values(ci) = a
           c = c + 1

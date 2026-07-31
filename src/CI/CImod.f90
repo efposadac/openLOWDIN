@@ -148,14 +148,14 @@ contains
 
     write (*,"(A28)",advance="no") "  active virtual orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)",advance="no") CIcore_instance%numberOfOrbitals%values(i) - &
+      write (*,"(I5)",advance="no") CIcore_instance%numberOfActiveOrbitals%values(i) - &
                          CIcore_instance%numberOfOccupiedOrbitals%values(i) 
     end do
     write (*,*) ""
 
     write (*,"(A28)",advance="no") " total active orbitals: "
     do i = 1, numberOfSpecies
-      write (*,"(I5)",advance="no")  CIcore_instance%numberOfOrbitals%values(i) - &
+      write (*,"(I5)",advance="no")  CIcore_instance%numberOfActiveOrbitals%values(i) - &
                           CIcore_instance%numberOfCoreOrbitals%values(i) 
     end do
     write (*,*) ""
@@ -446,6 +446,7 @@ contains
            int(CIcore_instance%numberOfConfigurations,8), &
            int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
 
+      if ( .not. CONTROL_instance%CI_MCSCF ) then
       if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
                         initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .false. ) ! do a cisd- first
@@ -455,9 +456,14 @@ contains
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
                         initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
       endif
+      endif
 
       if ( CONTROL_instance%CI_MCSCF ) then
 
+        call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
+                        initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
+
+        !do i = 1, 10
         call CISCI_destructor()
 
         call CIMCSCF_compute()
@@ -480,6 +486,7 @@ contains
 
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
                        initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
+        !enddo
 
 
       endif
@@ -934,7 +941,7 @@ contains
   
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
-                do p = 1, CIcore_instance%numberOfOrbitals%values(i)
+                do p = 1, CIcore_instance%numberOfActiveOrbitals%values(i)
                   write (*, "(I1)", advance="no")  CIcore_instance%orbitals(i)%values(p,indexConf(i)) 
                 end do
                 write (*, "(A1)", advance="no")  " "
@@ -985,7 +992,7 @@ contains
             if ( abs(CIcore_instance%eigenVectors%values(a,c)) > CONTROL_instance%CI_PRINT_THRESHOLD ) then  
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
-                do p = 1, CIcore_instance%numberOfOrbitals%values(i)
+                do p = 1, CIcore_instance%numberOfActiveOrbitals%values(i)
                   write (*, "(I1)", advance="no") CISCI_instance%confTarget_orb(i)%values(p,a)
                                                   !CISCI_instance%targetOrb(i,a)%values(p)
                 end do
@@ -1008,7 +1015,7 @@ contains
   
               write (*, "(T1,I8,A1)", advance="no") a, " "
               do i = 1, numberOfSpecies
-                do p = 1, CIcore_instance%numberOfOrbitals%values(i)
+                do p = 1, CIcore_instance%numberOfActiveOrbitals%values(i)
                   if ( CISCI_instance%confTarget_orb(i)%values(p,a)  == 1 ) then
                     !CISCI_instance%targetOrb(i,a)%values(p)
                     write (*, "(I3,A1)", advance="no") p, " "
@@ -1076,7 +1083,7 @@ contains
     call Vector_destructor(CIcore_instance%diagonalHamiltonianMatrix2)
     call Matrix_destructor(CIcore_instance%hamiltonianMatrix)
     call Vector_destructorInteger8(CIcore_instance%numberOfOccupiedOrbitals)
-    call Vector_destructorInteger8(CIcore_instance%numberOfOrbitals)
+    call Vector_destructorInteger8(CIcore_instance%numberOfActiveOrbitals)
     call Vector_destructor (CIcore_instance%lambda)
 
     call Matrix_destructor(CIcore_instance%eigenVectors)

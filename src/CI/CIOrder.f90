@@ -355,7 +355,7 @@ contains
 
     total = 0
     do spi = 1, CIcore_instance%numberOfSpecies
-      total = total + CIOrder_log_combinations(CIcore_instance%numberOfOrbitals%values(spi), &
+      total = total + CIOrder_log_combinations(CIcore_instance%numberOfActiveOrbitals%values(spi), &
                                                CIcore_instance%numberOfOccupiedOrbitals%values(spi) - CIcore_instance%numberOfCoreOrbitals%values(spi))
     end do
 

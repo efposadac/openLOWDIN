@@ -395,8 +395,8 @@ contains
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
       call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     !! Building the CI reduced density matrix in the molecular orbital representation in parallel
@@ -413,7 +413,7 @@ contains
           orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,a)
 
           !! build auxiliary vectors of occupied and virtuals orbitals
-          do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+          do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
             if ( orbA(spi)%values(pi) == 1 ) then
               oia = oia + 1
               occA(spi)%values(oia) = pi
@@ -460,7 +460,7 @@ contains
             do spi = 1, numberOfSpecies 
               oib = 0 
               !! build auxiliary vectors of occupied and virtuals orbitals
-              do pi = 1, CIcore_instance%numberOfOrbitals%values(spi)
+              do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
                 if ( orbB(spi)%values(pi) == 1 ) then
                   oib = oib + 1
                   occB(spi)%values(oib) = pi
@@ -548,15 +548,15 @@ contains
     do spi = 1, numberOfSpecies
       call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
       call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
-      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
 
     !CIcore_instance%eigenVectors%values(1,1) = 1.0_8 
 
     !! Building the CI reduced density matrix in the molecular orbital representation in parallel
     do state = 1, CONTROL_instance%CI_NUMBER_OF_STATES
-     ! do II = 1, 1!CIcore_instance%numberOfConfigurations
+      !do II = 1, 1!CIcore_instance%numberOfConfigurations
       do II = 1, CIcore_instance%numberOfConfigurations
 
         do spi = 1, numberOfSpecies 
@@ -581,13 +581,11 @@ contains
               pprr = CIcore_two2one ( pp, rr )
               ciDensityMatrix(spi,spi)%values(pprr) = ciDensityMatrix(spi,spi)%values(pprr) + &
                                                         CIcore_instance%eigenVectors%values(II,state)**2
-
               rp = r + ( p - 1 )*numberOfOrbitals_spi  
               pr = p + ( r - 1 )*numberOfOrbitals_spi 
               prrp = CIcore_two2one ( pr, rp )
                 ciDensityMatrix(spi,spi)%values(prrp) = ciDensityMatrix(spi,spi)%values(prrp) - &
                                                          CIcore_instance%eigenVectors%values(II,state)**2
-
             end do !nu
           end do ! mu
 
@@ -894,7 +892,6 @@ contains
        speciesName = MolecularSystem_getNameOfSpecies(species)
        
        numberOfContractions = MolecularSystem_getTotalNumberOfContractions( species )
-       ! numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(species)
        numberOfOccupiedOrbitals = CIcore_instance%numberOfOccupiedOrbitals%values(species)
 
        arguments(2) = speciesName

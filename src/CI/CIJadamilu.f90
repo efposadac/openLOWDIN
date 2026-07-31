@@ -748,7 +748,7 @@ contains
 
             !coupling = 0
           !!$omp simd
-            !do p = CIcore_instance%numberOfCoreOrbitals%values(i)+1, CIcore_instance%numberOfOrbitals%values(i)
+            !do p = CIcore_instance%numberOfCoreOrbitals%values(i)+1, CIcore_instance%numberOfActiveOrbitals%values(i)
             !  coupling = coupling + CIcore_instance%orbitals(i)%values(p,a) * CIcore_instance%orbitals(i)%values(p,b)
             !end do
             !coupling = CIcore_instance%numberOfOccupiedOrbitals%values(i) - coupling -  CIcore_instance%numberOfCoreOrbitals%values(i)
