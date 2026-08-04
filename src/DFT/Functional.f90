@@ -55,6 +55,7 @@ module Functional_
     Functional_MLCSAEvaluate, &
     Functional_MLCSANEvaluate, &
     Functional_myCSEvaluate, &
+    Functional_expCSgeneralEvaluate, &
     Functional_expCSEvaluate, &
     Functional_expCSGGAEvaluate, &
     Functional_PSNEvaluate, &
@@ -1208,6 +1209,93 @@ contains
     ! write(*,"(A,F10.3,A4)") "**expCSEvaluate:", time2-time1 ," (s)"
 
   end subroutine Functional_expCSEvaluate
+  
+  subroutine Functional_expCSgeneralEvaluate(this, mp, mn, qp, qn, npoints, rhoN, rhoP, ec, vcN, vcP)
+    ! Evaluates my Exponential Jastrow factor functional
+    ! Felix Moncada, 2019-2026
+    implicit none
+    type(Functional):: this !!type of functional
+    real(8) :: mp,mn,qp,qn !!masses and charges
+    integer(8) :: npoints !!nuclear gridSize
+    real(8) :: rhoN(*), rhoP(*) !! electron and positive particle Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcN(*), vcP(*) !! Potentials - output
+
+    real(8) :: zeta
+    real(8) :: a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, p
+    real(8) :: beta, dbetaN, dbetaP, F, dFdbeta, aPoly, aExp, bPoly, bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta
+    real(8) :: d2BdN2, d2BdP2, d2BdNP !! dummys - not required
+    real(8) :: deltaQ
+    real :: time1, time2
+    integer :: i, n
+
+    real(8) :: densityThreshold
+
+    densityThreshold = CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD !TODO: add to other functionals
+
+    zeta=abs(mn*mp*qn*qp/(mn+mp))
+    
+    ! write(*,"(A)") "i, rhoN(i), rhoP(i), beta, dbetaN, dbetaP, F, ec(i)*rhoN(i), vcN(i), vcP(i)"
+    !!Adiabatic fit
+    a4 = 1.0*zeta**5
+    a3 = 330.096*zeta**4
+    a2 = 126.390*zeta**3
+    a1 = 37.810*zeta**2
+    a0 = 4.5839773752240566113*zeta
+    b4 = 0.6572515786440476772*zeta**4
+    b3 = 216.787*zeta**3
+    b2 = 39.661*zeta**2
+    b1 = 10.225*zeta
+    b0 = 1.0
+
+    !!Scaling factor
+    p = 1.0
+    if (CONTROL_instance%DUMMY_REAL(1) .ne. 0) then
+      p = CONTROL_instance%DUMMY_REAL(1)
+    end if
+
+    time1 = omp_get_wtime()
+    !$omp parallel private(beta, dbetaN, dbetaP, d2BdN2, d2BdP2, d2BdNP, F, dFdbeta, aPoly,aExp,bPoly,bExp, daPolydbeta, daExpdbeta, dbPolydbeta, dbExpdbeta)
+    !$omp do schedule (dynamic)
+    do i = 1, npoints
+
+      call Functional_getBeta(rhoN(i), rhoP(i), 0.0_8, 0.0_8, beta, dbetaN, dbetaP, d2BdN2, d2BdP2, d2BdNP)
+
+      if (rhoN(i) .gt. densityThreshold .and. rhoP(i) .gt. densityThreshold) then !
+        !!!Energy
+        aPoly = a0 + a1*beta + a2*beta**2 + a3*beta**3 + a4*beta**4
+        bPoly = b0*beta**3 + b1*beta**4 + b2*beta**5 + b3*beta**6 + b4*beta**7
+        F = aPoly/bPoly
+
+        !!!Potential
+        daPolydbeta = a1 + 2*a2*beta + 3*a3*beta**2 + 4*a4*beta**3
+        dbPolydbeta = 3.0*b0*beta**2 + 4.0*b1*beta**3 + 5.0*b2*beta**4 + 6.0*b3*beta**5 + 7.0*b4*beta**6
+        dFdbeta = (daPolydbeta*bPoly - aPoly*dbPolydbeta)/bPoly**2
+
+      else if (rhoN(i) .gt. densityThreshold .or. rhoP(i) .gt. densityThreshold) then !
+        F = a0/b0*beta**(-3)
+        dFdbeta = -3*a0/b0*beta**(-4)
+
+      else
+        F = 0.0
+        dFdbeta = 0.0
+
+      end if
+
+      ! ec(i)= -p*rhoN(i)*rhoN(i)*F
+      ec(i) = p*qn*qp*rhoP(i)*F
+      vcN(i) = p*qn*qp*rhoP(i)*(F + rhoN(i)*dbetaN*dFdbeta)
+      vcP(i) = p*qn*qp*rhoN(i)*(F + rhoP(i)*dbetaP*dFdbeta)
+
+      ! write(*,"(I0.1,9F20.10)") i, rhoN(i), rhoP(i), beta, dbetaN, dbetaP, F, ec(i)*rhoN(i), vcN(i), vcP(i)
+    end do
+    !$omp end do
+    !$omp end parallel
+
+    time2 = omp_get_wtime()
+    ! write(*,"(A,F10.3,A4)") "**expCSEvaluate:", time2-time1 ," (s)"
+
+  end subroutine Functional_expCSgeneralEvaluate
 
   subroutine Functional_expCSGGAEvaluate(this, mass, npoints, electronDensity, electronGradient, positronDensity, positronGradient, &
                                          ec, vcE, vcgE, vcP, vcgP)
@@ -1398,7 +1486,7 @@ contains
   subroutine Functional_getBeta(rhoE, rhoP, positiveMass, functionalLimitConstant, &
                                 beta, dBdE, dBdP, d2BdE2, d2BdP2, d2BdEP)
     ! Evaluates beta function for electron-positive particle correlation energy from low density energy limits
-    ! Felix Moncada, 2020
+    ! Felix Moncada, 2020,2026
     implicit none
     real(8) :: rhoE, rhoP !! electron and positive particle Densities - input
     real(8) :: positiveMass !!positive particle mass
@@ -1410,7 +1498,7 @@ contains
     real(8) :: rhoTot, rhoDif
     real(8) :: cutOff
 
-    real(8) :: densityThreshold
+    real(8) :: densityThreshold, bias
 
     densityThreshold = CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD !TODO: add to other functionals
     rhoTot = rhoE + rhoP
@@ -1542,20 +1630,6 @@ contains
       if (rhoTot .gt. densityThreshold) then !
         ! if( rhoTot .gt. densityThreshold .and. Sqrt(rhoDif**2) .gt. densityThreshold ) then !
 
-        ! beta=(q0*(rhoTot+Sqrt(rhoDif**2)))**(1.0/3.0)
-
-        ! dBdE=q0*(1.0+rhoDif/Sqrt(rhoDif**2))/&
-        !      (3.0*beta**2)
-
-        ! dBdP=q0*(1.0-rhoDif/Sqrt(rhoDif**2))/&
-        !      (3.0*beta**2)
-
-        ! d2BdE2=-4.0*q0**2*(1.0+rhoDif/Sqrt(rhoDif**2))/&
-        !      (9.0*beta**5)
-
-        ! d2BdP2=-4.0*q0**2*(1.0-rhoDif/Sqrt(rhoDif**2))/&
-        !      (9.0*beta**5)
-
         beta = (q0*(rhoTot + rhoDif*tanh(rhoDif/rhoTot/cutOff)))**(1.0/3.0)
 
         dBdE = q0*(2.0*rhoDif*rhoP*(1.0/cosh(rhoDif/rhoTot/cutOff))**2 &
@@ -1676,7 +1750,35 @@ contains
       end if
 
       ! print *, rhoE, rhoP, beta
-    case default
+   case ("MAXSQRT")
+      if (CONTROL_instance%BETA_PARAMETER_A .ne. 0.0 .and. CONTROL_instance%BETA_PARAMETER_B .ne. 0.0) then
+         q0 = CONTROL_instance%BETA_PARAMETER_A
+         cutOff = CONTROL_instance%BETA_PARAMETER_B
+      else
+         q0 = 2.0929434157925280
+         cutOff = 0.001
+      end if
+
+      beta = 0.0
+      dBdE = 0.0
+      dBdP = 0.0
+      d2BdE2 = 0.0
+      d2BdP2 = 0.0
+      d2BdEP = 0.0
+      
+      bias=Sqrt((rhoDif/rhoTot)**2+cutOff)
+
+      if (rhoTot .gt. densityThreshold) beta=q0*(rhoTot/2.0*(1.0+bias))**(1.0/3.0)
+
+      !!I have to check these!
+      if (rhoE .gt. densityThreshold) dBdE=q0/(3.0*2.0**(1.0/3.0))*&
+           (1.0+2.0*rhoDif*rhoP/(rhoTot)**2.0/bias+bias)/(rhoTot*(1+bias))**(2.0/3.0)
+
+      if (rhoP .gt. densityThreshold) dBdP=q0/(3.0*2.0**(1.0/3.0))*&
+           (1.0-2.0*rhoDif*rhoE/(rhoTot)**2.0/bias+bias)/(rhoTot*(1+bias))**(2.0/3.0)
+
+      ! print *, "rhoE, rhoP, beta, dBdE, dBdP", rhoE, rhoP, beta, dBdE, dBdP
+   case default
 
     end select
 

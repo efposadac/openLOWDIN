@@ -800,7 +800,17 @@ contains
                                    electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
                                    energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values)
 
-    case ("EXPCS-A")
+    case ("EXPCS")
+       call Functional_expCSgeneralEvaluate(Functionals(speciesID, otherSpeciesID), &
+            MolecularSystem_getMass(otherSpeciesID, Grid_instance(otherSpeciesID)%molSys), &
+            MolecularSystem_getMass(speciesID, Grid_instance(speciesID)%molSys),&
+            MolecularSystem_getCharge(otherSpeciesID, Grid_instance(otherSpeciesID)%molSys), &
+            MolecularSystem_getCharge(speciesID, Grid_instance(speciesID)%molSys),&
+            otherGridSize, &
+            electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
+            energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values)
+
+   case ("EXPCS-A")
       call Functional_expCSEvaluate(Functionals(speciesID, otherSpeciesID), MolecularSystem_getMass(otherSpeciesID, Grid_instance(otherSpeciesID)%molSys), otherGridSize, &
                                     electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
                                     energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values)
