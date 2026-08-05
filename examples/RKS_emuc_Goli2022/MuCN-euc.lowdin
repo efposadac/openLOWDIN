@@ -1,0 +1,122 @@
+!This calculation reproduces the results for a molecule in Goli and Shahbazian muon correlation functional paper
+!The paper reports total energy: -93.3882, mu kinetic: 0.0189, C-mu bond length: 1.072
+!From this calculation we get  : -93.3908,           : 0.0192,                 : 1.074
+!there is a small difference because we use cartesian and not spherical GTFs. 
+
+SYSTEM_DESCRIPTION='Muon functional test - MuCN from 10.1063/5.0077179'
+
+!The geometry is taken from their supporting information
+!We use the same basis sets
+GEOMETRY
+e-(C) PC-2 0.0 0.0 0.0
+e-(N) PC-2 0.0 0.0 -1.14598
+e-(H) PC-2 0.0 0.0 0.82596
+u+ 14S14P14D 0.0 0.0 0.82596
+C dirac 0.0 0.0 0.0
+N dirac 0.0 0.0 -1.14598
+END GEOMETRY
+
+TASKS
+method = "RKS"
+END TASKS
+
+!EMUC-1 is the functional defined in their paper
+!For MCDFT calculations is better to start from reference vectors from HF, or DFT with point charges calculations
+!But for this one, it manages to converge from the HCORE default guess
+!To converge the SCF, we have to add a level shifting for the muons (this also applies to nuclei and positrons in MCDFT calculations)
+CONTROL
+electronExchangeCorrelationFunctional="B3LYP"
+muonElectronCorrelationFunctional="EMUC-1"
+readCoefficients=.F.
+nonElectronicLevelShifting=0.10
+END CONTROL
+
+!Even-tempered parameters for this custom basis set are defined in the paper
+BASIS 14S14P14D
+O-U+ U+ (14S14P14D) BASIS TYPE: 2
+42
+0	0	1
+0.707106781187	1.0
+0	0	1
+1.000000000000	1.0
+2	0	1
+1.414213562373	1.0
+3	0	1
+2.000000000000	1.0
+4	0	1
+2.828427124746	1.0
+5	0	1
+4.000000000000	1.0
+6	0	1
+5.656854249492	1.0
+7	0	1
+8.000000000000	1.0
+8	0	1
+11.313708498985	1.0
+9	0	1
+16.000000000000	1.0
+10	0	1
+22.627416997970	1.0
+10	0	1
+32.000000000000	1.0
+12	0	1
+45.254833995939	1.0
+13 	0	1
+64.000000000000	1.0
+0	1	1
+0.707106781187	1.0
+1	1	1
+1.000000000000	1.0
+2	1	1
+1.414213562373	1.0
+3	1	1
+2.000000000000	1.0
+4	1	1
+2.828427124746	1.0
+5	1	1
+4.000000000000	1.0
+6	1	1
+5.656854249492	1.0
+7	1	1
+8.000000000000	1.0
+8	1	1
+11.313708498985	1.0
+9	1	1
+16.000000000000	1.0
+10	1	1
+22.627416997970	1.0
+11	1	1
+32.000000000000	1.0
+12	1	1
+45.254833995939	1.0
+13 	1	1
+64.000000000000	1.0
+0	2	1
+0.707106781187	1.0
+1	2	1
+1.000000000000	1.0
+2	2	1
+1.414213562373	1.0
+3	2	1
+2.000000000000	1.0
+4	2	1
+2.828427124746	1.0
+5	2	1
+4.000000000000	1.0
+6	2	1
+5.656854249492	1.0
+7	2	1
+8.000000000000	1.0
+8	2	1
+11.313708498985	1.0
+9	2	1
+16.000000000000	1.0
+10	2	1
+22.627416997970	1.0
+12	2	1
+32.000000000000	1.0
+12	2	1
+45.254833995939	1.0
+13 	2	1
+64.000000000000	1.0
+END BASIS
