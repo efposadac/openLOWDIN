@@ -1,0 +1,46 @@
+SYSTEM_DESCRIPTION='Molecula de H2'
+
+GEOMETRY
+e-(C) PC-0 0.0 0.0 0.0
+e-(N) PC-0 0.0 0.0 -1.14598
+e-(H) PC-1 0.0 0.0 1.06602
+u+ 5S5P 0.0 0.0 1.06602
+C dirac 0.0 0.0 0.0
+N dirac 0.0 0.0 -1.14598
+END GEOMETRY
+
+TASKS
+method = "UKS"
+END TASKS
+
+CONTROL
+readCoefficients=.F.
+nonElectronicLevelShifting=0.10
+electronExchangeCorrelationFunctional="B3LYP"
+nuclearElectronCorrelationFunctional="EMUC-1"
+END CONTROL
+
+BASIS 5S5P
+O-U+ U+ (SP) BASIS TYPE: 2
+10
+1 0 1
+10.4040 1.0
+2 0 1
+7.0649 1.0
+3 0 1
+5.2960 1.0
+4 0 1
+4.1400 1.0
+5 0 1
+2.0700 1.0
+1 1 1
+10.4040 1.0
+2 1 1
+7.0649 1.0
+3 1 1
+5.2960 1.0
+4 1 1
+4.1400 1.0
+5 1 1
+2.0700 1.0
+END BASIS

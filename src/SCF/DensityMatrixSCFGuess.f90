@@ -38,10 +38,11 @@ contains
 
   !>
   !! @brief Obtiene la matriz de densidad inicial
-  subroutine DensityMatrixSCFGuess_getGuess(speciesID, hcoreMatrix, transformationMatrix, densityMatrix, orbitals, printInfo, system)
+  subroutine DensityMatrixSCFGuess_getGuess(speciesID, hcoreMatrix, overlapMatrix, transformationMatrix, densityMatrix, orbitals, printInfo, system)
     implicit none
     integer, intent(in) :: speciesID
     type(Matrix), intent(in) :: hcoreMatrix
+    type(Matrix), intent(in) :: overlapMatrix
     type(Matrix), intent(in) :: transformationMatrix
     type(Matrix), intent(inout) :: densityMatrix
     type(Matrix), intent(inout) :: orbitals
@@ -50,7 +51,7 @@ contains
 
     type(MolecularSystem), pointer :: molSys
 
-    type(Matrix) :: auxMatrix
+    type(Matrix) :: guessMatrix, auxMatrix
     character(30) :: nameOfSpecies, symbolOfSpecies
     integer(8) :: orderOfMatrix, occupationNumber
     logical :: existPlain, existBinnary, readSuccess
@@ -58,7 +59,8 @@ contains
     character(50) :: wfnFile
     character(50) :: arguments(20)
     integer :: wfnUnit
-    integer :: i, j, k
+    integer :: i, j, k, ktrial, kprev
+    real(8) :: normCheck
 
     if (present(system)) then
       molSys => system
@@ -144,25 +146,44 @@ contains
       call Matrix_show(orbitals)
     end if
 
-    call Matrix_copyConstructor(auxMatrix, orbitals)
+    call Matrix_copyConstructor(guessMatrix, orbitals)
     !! Segment for fractional occupations: introduce fractional occupation
     if (trim(symbolOfSpecies) == trim(CONTROL_instance%IONIZE_SPECIES(1))) then
       do i = 1, size(CONTROL_instance%IONIZE_MO)
         if (CONTROL_instance%IONIZE_MO(i) .gt. 0 .and. CONTROL_instance%MO_FRACTION_OCCUPATION(i) .lt. 1.0_8) then
           if (printInfo) write (*, "(A,F6.2,A,I5,A,A)") "Removing ", (1.0 - CONTROL_instance%MO_FRACTION_OCCUPATION(i))*100, &
             " % of the density associated with orbital No. ", CONTROL_instance%IONIZE_MO(i), " of ", trim(symbolOfSpecies)
-          auxMatrix%values(:, CONTROL_instance%IONIZE_MO(i)) = auxMatrix%values(:, CONTROL_instance%IONIZE_MO(i))*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION(i))
+          guessMatrix%values(:, CONTROL_instance%IONIZE_MO(i)) = guessMatrix%values(:, CONTROL_instance%IONIZE_MO(i))*sqrt(CONTROL_instance%MO_FRACTION_OCCUPATION(i))
         end if
       end do
     end if
 
     call Matrix_constructor(densityMatrix, int(orderOfMatrix, 8), int(orderOfMatrix, 8), 0.0_8)
-    do i = 1, orderOfMatrix
-      do j = 1, orderOfMatrix
-        do k = 1, occupationNumber
-          densityMatrix%values(i, j) = densityMatrix%values(i, j) + auxMatrix%values(i, k)*auxMatrix%values(j, k)
-        end do
-      end do
+    call Matrix_constructor(auxMatrix, int(orderOfMatrix, 8), int(orderOfMatrix, 8), 0.0_8)
+
+    kprev=0
+    do k = 1, occupationNumber
+       !Check if the orbital that's going to be added is not full of zeros! 
+       !if it fails, try the next orbital
+       do ktrial = kprev+1, orderOfMatrix
+          do i = 1, orderOfMatrix
+             do j = 1, orderOfMatrix
+                auxMatrix%values(i, j) = guessMatrix%values(i, ktrial)*guessMatrix%values(j, ktrial)
+             end do
+          end do
+          normCheck = sum(transpose(auxMatrix%values)*overlapMatrix%values)
+          ! print *, "kt, normCheck", ktrial, normCheck
+          if (abs(normCheck) .gt. CONTROL_instance%DOUBLE_ZERO_THRESHOLD) then
+             kprev=ktrial
+             exit
+          end if
+          if (ktrial == orderOfMatrix) call Exception_sendWarning ("All the guess eigenvectors are zero! for species "//trim(nameOfSpecies), "at DensityMatrixSCFGuess_getGuess")
+       end do
+       do i = 1, orderOfMatrix
+          do j = 1, orderOfMatrix
+             densityMatrix%values(i, j) = densityMatrix%values(i, j) + guessMatrix%values(i, ktrial)*guessMatrix%values(j, ktrial)
+          end do
+       end do
     end do
     densityMatrix%values = densityMatrix%values*MolecularSystem_getEta(speciesID, molSys)
 

@@ -698,7 +698,7 @@ contains
     type(Vector) :: energyDensity
     type(Vector) :: sigma
     type(Vector) :: densityAB, potentialAB, sigmaAB, sigmaPotentialAB
-    type(Vector) :: electronicDensityAtOtherGrid, electronicGradientAtOtherGrid(3), electronicPotentialAtOtherGrid, electronicGradientPotentialAtOtherGrid(3)
+    type(Vector) :: electronicDensityAtOtherGrid, electronicGradientAtOtherGrid(3), spinDensityAtOtherGrid, spinGradientAtOtherGrid(3), electronicPotentialAtOtherGrid, otherElectronicPotentialAtOtherGrid, electronicGradientPotentialAtOtherGrid(3)
     integer :: i, j, dir
     integer(8) :: k
 
@@ -715,21 +715,26 @@ contains
 
     call Vector_constructor(energyDensity, otherGridSize, 0.0_8)
     call Vector_constructor(electronicDensityAtOtherGrid, otherGridSize, 0.0_8)
+    call Vector_constructor(spinDensityAtOtherGrid, otherGridSize, 0.0_8)
     call Vector_constructor(electronicPotentialAtOtherGrid, otherGridSize, 0.0_8)
+    call Vector_constructor(otherElectronicPotentialAtOtherGrid, otherGridSize, 0.0_8)
     do dir = 1, 3
       call Vector_constructor(electronicGradientAtOtherGrid(dir), otherGridSize, 0.0_8)
+      call Vector_constructor(spinGradientAtOtherGrid(dir), otherGridSize, 0.0_8)
       call Vector_constructor(electronicGradientPotentialAtOtherGrid(dir), otherGridSize, 0.0_8)
     end do
 
     !!This adds E-BETA density and gradient
     call GridManager_getElectronicDensityInOtherGrid(Grid_instance, GridsCommonPoints, speciesID, otherSpeciesID, &
                                                      GridsCommonPoints(speciesID, otherSpeciesID)%totalSize, int(GridsCommonPoints(speciesID, otherSpeciesID)%points%values), &
-                                                     electronicDensityAtOtherGrid, electronicGradientAtOtherGrid)
+                                                     electronicDensityAtOtherGrid, electronicGradientAtOtherGrid,spinDensityAtOtherGrid, spinGradientAtOtherGrid)
 
     if (trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
       auxstring = trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
     else if (trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
       auxstring = trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL)
+    else if (trim(CONTROL_instance%MUON_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
+      auxstring = trim(CONTROL_instance%MUON_ELECTRON_CORRELATION_FUNCTIONAL)
     else
       auxstring = "NONE"
     end if
@@ -760,6 +765,13 @@ contains
                                   electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
                                   energyDensity%values, electronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values)
 
+    case ("EMUC-1")
+      call Functional_EMUCEvaluate(Functionals(speciesID, otherSpeciesID), otherGridSize, &
+           electronicDensityAtOtherGrid%values, spinDensityAtOtherGrid%values, &
+           Grid_instance(otherSpeciesID)%density%values, &
+           energyDensity%values, electronicPotentialAtOtherGrid%values, &
+           otherElectronicPotentialAtOtherGrid%values, Grid_instance(otherSpeciesID)%potential%values)
+      
     case ("IKN-NSF")
       call Functional_IKNEvaluate(Functionals(speciesID, otherSpeciesID), MolecularSystem_getMass(otherSpeciesID, Grid_instance(otherSpeciesID)%molSys), otherGridSize, &
                                   electronicDensityAtOtherGrid%values, Grid_instance(otherSpeciesID)%density%values, &
@@ -834,7 +846,7 @@ contains
 
     case default
       print *, trim(auxstring)
-      call Exception_stopError("The "//otherNameOfSpecies//"electron functional chosen is not implemented", "at GridManager_getInterspeciesEnergyAndPotentialAtGrid")
+      call Exception_stopError("The "//trim(otherNameOfSpecies)//"electron functional chosen is not implemented", "at GridManager_getInterspeciesEnergyAndPotentialAtGrid")
 
     end select
 
@@ -860,12 +872,17 @@ contains
         otherElectronExchangeCorrelationEnergy = otherElectronExchangeCorrelationEnergy + &
                                                  energyDensity%values(j)*Grid_instance(otherElectronID)%density%values(i)*Grid_instance(otherSpeciesID)%points%values(j, 4)
 
-        Grid_instance(otherElectronID)%potential%values(i) = Grid_instance(otherElectronID)%potential%values(i) + electronicPotentialAtOtherGrid%values(j)
-        do dir = 1, 3
-          Grid_instance(otherElectronID)%gradientPotential(dir)%values(i) = Grid_instance(otherElectronID)%gradientPotential(dir)%values(i) &
-                                                                            + electronicGradientPotentialAtOtherGrid(dir)%values(j)
-        end do
+        if (trim(auxstring) .eq. "EMUC-1") then
+           Grid_instance(otherElectronID)%potential%values(i) = Grid_instance(otherElectronID)%potential%values(i) + otherElectronicPotentialAtOtherGrid%values(j)
 
+        else
+           Grid_instance(otherElectronID)%potential%values(i) = Grid_instance(otherElectronID)%potential%values(i) + electronicPotentialAtOtherGrid%values(j)
+           do dir = 1, 3
+              Grid_instance(otherElectronID)%gradientPotential(dir)%values(i) = Grid_instance(otherElectronID)%gradientPotential(dir)%values(i) &
+                                                                            + electronicGradientPotentialAtOtherGrid(dir)%values(j)
+           end do
+
+        end if
       end if
 
     end do
@@ -984,7 +1001,7 @@ contains
 
   end subroutine GridManager_buildExchangeCorrelationMatrix
 
-  subroutine GridManager_getElectronicDensityInOtherGrid(Grid_instance, GridsCommonPoints, electronicID, otherSpeciesID, commonGridSize, commonPoints, electronicDensityAtOtherGrid, electronicGradientAtOtherGrid)
+  subroutine GridManager_getElectronicDensityInOtherGrid(Grid_instance, GridsCommonPoints, electronicID, otherSpeciesID, commonGridSize, commonPoints, electronicDensityAtOtherGrid, electronicGradientAtOtherGrid, spinDensityAtOtherGrid, spinGradientAtOtherGrid)
     implicit none
     type(Grid) :: Grid_instance(:)
     type(Grid) :: GridsCommonPoints(:, :)
@@ -993,6 +1010,8 @@ contains
     integer :: commonPoints(commonGridSize, 2)
     type(Vector) :: electronicDensityAtOtherGrid
     type(Vector) :: electronicGradientAtOtherGrid(3)
+    type(Vector) :: spinDensityAtOtherGrid
+    type(Vector) :: spinGradientAtOtherGrid(3)
 
     character(50) :: nameOfElectron
     integer :: otherElectronicID
@@ -1009,7 +1028,9 @@ contains
     if (nameOfElectron .eq. "E-ALPHA") otherElectronicID = MolecularSystem_getSpeciesID("E-BETA", Grid_instance(electronicID)%molSys)
     if (nameOfElectron .eq. "E-BETA") otherElectronicID = MolecularSystem_getSpeciesID("E-ALPHA", Grid_instance(electronicID)%molSys)
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Why is this not zero? FM 2026
     call Vector_constructor(electronicDensityAtOtherGrid, otherGridSize, 1.0E-12_8)
+    call Vector_constructor(spinDensityAtOtherGrid, otherGridSize, 1.0E-12_8)
 
     time1 = omp_get_wtime()
 
@@ -1023,6 +1044,10 @@ contains
         electronicGradientAtOtherGrid(1)%values(j) = Grid_instance(electronicID)%densityGradient(1)%values(i) + Grid_instance(otherElectronicID)%densityGradient(1)%values(i)
         electronicGradientAtOtherGrid(2)%values(j) = Grid_instance(electronicID)%densityGradient(2)%values(i) + Grid_instance(otherElectronicID)%densityGradient(2)%values(i)
         electronicGradientAtOtherGrid(3)%values(j) = Grid_instance(electronicID)%densityGradient(3)%values(i) + Grid_instance(otherElectronicID)%densityGradient(3)%values(i)
+        spinDensityAtOtherGrid%values(j) = Grid_instance(electronicID)%density%values(i) - Grid_instance(otherElectronicID)%density%values(i)
+        spinGradientAtOtherGrid(1)%values(j) = Grid_instance(electronicID)%densityGradient(1)%values(i) - Grid_instance(otherElectronicID)%densityGradient(1)%values(i)
+        spinGradientAtOtherGrid(2)%values(j) = Grid_instance(electronicID)%densityGradient(2)%values(i) - Grid_instance(otherElectronicID)%densityGradient(2)%values(i)
+        spinGradientAtOtherGrid(3)%values(j) = Grid_instance(electronicID)%densityGradient(3)%values(i) - Grid_instance(otherElectronicID)%densityGradient(3)%values(i)        
       else
         electronicDensityAtOtherGrid%values(j) = Grid_instance(electronicID)%density%values(i)
         electronicGradientAtOtherGrid(1)%values(j) = Grid_instance(electronicID)%densityGradient(1)%values(i)
@@ -1105,21 +1130,23 @@ contains
     real(8) :: rhoE, rhoP, rhoTot, rhoDif, npos, densityThreshold
     real(8) :: beta, dBdE, dBdP, d2BdE2, d2BdP2, d2BdEP
 
-    integer :: n, nproc
+    integer :: n, nproc, dir
     real(8) :: contactDensity, overlapDensity
     character(50) :: auxstring
-    type(Vector) :: electronicDensityAtOtherGrid, electronicGradientAtOtherGrid(3), gfactor
+    type(Vector) :: electronicDensityAtOtherGrid, electronicGradientAtOtherGrid(3), spinDensityAtOtherGrid, spinGradientAtOtherGrid(3), gfactor
 
     gridSize = Grid_instance(otherSpeciesID)%totalSize
 
     call Vector_constructor(electronicDensityAtOtherGrid, gridSize, 0.0_8)
-    call Vector_constructor(electronicGradientAtOtherGrid(1), gridSize, 0.0_8)
-    call Vector_constructor(electronicGradientAtOtherGrid(2), gridSize, 0.0_8)
-    call Vector_constructor(electronicGradientAtOtherGrid(3), gridSize, 0.0_8)
+    call Vector_constructor(spinDensityAtOtherGrid, gridSize, 0.0_8)
+    do dir = 1, 3
+      call Vector_constructor(electronicGradientAtOtherGrid(dir), gridSize, 0.0_8)
+      call Vector_constructor(spinGradientAtOtherGrid(dir), gridSize, 0.0_8)
+    end do
 
     !electrons go on the first position
     call GridManager_getElectronicDensityInOtherGrid(Grid_instance, GridsCommonPoints, speciesID, otherSpeciesID, &
-                                                     GridsCommonPoints(speciesID, otherSpeciesID)%totalSize, int(GridsCommonPoints(speciesID, otherSpeciesID)%points%values), electronicDensityAtOtherGrid, electronicGradientAtOtherGrid)
+                                                     GridsCommonPoints(speciesID, otherSpeciesID)%totalSize, int(GridsCommonPoints(speciesID, otherSpeciesID)%points%values), electronicDensityAtOtherGrid, electronicGradientAtOtherGrid,spinDensityAtOtherGrid, spinGradientAtOtherGrid)
 
     call Vector_constructor(gfactor, gridSize, 0.0_8)
     gfactor%values = 0.0_8

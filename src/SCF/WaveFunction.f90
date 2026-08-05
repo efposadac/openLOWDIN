@@ -558,7 +558,6 @@ contains
     auxOmega = MolecularSystem_getOmega(this%species, this%molSys)
 
     if (auxOmega .ne. 0.0_8) then
-      CONTROL_instance%ARE_THERE_QDO_POTENTIALS = .true.
       this%HCoreMatrix%values = this%HCoreMatrix%values + &
                                 (1.0/2.0)*MolecularSystem_getMass(this%species, this%molSys)*auxOmega**2*this%harmonic%values
       this%externalPotentialMatrix%values = this%externalPotentialMatrix%values + &

@@ -50,6 +50,7 @@ module Functional_
     Functional_libxcEvaluate, &
     Functional_LDAEvaluate, &
     Functional_EPCEvaluate, &
+    Functional_EMUCEvaluate, &
     Functional_IKNEvaluate, &
     Functional_MLCSEvaluate, &
     Functional_MLCSAEvaluate, &
@@ -287,6 +288,8 @@ contains
         auxstring = trim(CONTROL_instance%NUCLEAR_ELECTRON_CORRELATION_FUNCTIONAL)
       else if (trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
         auxstring = trim(CONTROL_instance%POSITRON_ELECTRON_CORRELATION_FUNCTIONAL)
+      else if (trim(CONTROL_instance%MUON_ELECTRON_CORRELATION_FUNCTIONAL) .ne. "NONE") then
+        auxstring = trim(CONTROL_instance%MUON_ELECTRON_CORRELATION_FUNCTIONAL)
       else
         auxstring = "NONE"
       end if
@@ -354,15 +357,15 @@ contains
 
             if (this%correlationName .ne. "NONE") then
 
-              write (*, "(T5,A10,A10,A5,A12,A)") trim(this%symbol1), trim(this%symbol2), "", "exchange:", xc_f03_func_info_get_name(this%info1)
+              write (*, "(T5,A10,A10,A5,A12,A)") trim(this%symbol1), trim(this%symbol2), "", "exchange:", trim(xc_f03_func_info_get_name(this%info1))
               ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
 
-              write (*, "(T5,A10,A10,A5,A12,A)") trim(this%symbol1), trim(this%symbol2), "", "correlation:", xc_f03_func_info_get_name(this%info2)
+              write (*, "(T5,A10,A10,A5,A12,A)") trim(this%symbol1), trim(this%symbol2), "", "correlation:", trim(xc_f03_func_info_get_name(this%info2))
               ! print *, "family", xc_f03_func_info_get_family(this%info2), "shell", this%shell
 
             else
 
-              write (*, "(T5,A10,A10,A5,A21,A)") trim(this%symbol1), trim(this%symbol2), "", "exchange-correlation:", xc_f03_func_info_get_name(this%info1)
+              write (*, "(T5,A10,A10,A5,A21,A)") trim(this%symbol1), trim(this%symbol2), "", "exchange-correlation:", trim(xc_f03_func_info_get_name(this%info1))
 
               ! print *, "family", xc_f03_func_info_get_family(this%info1), "shell", this%shell
 
@@ -422,8 +425,8 @@ contains
           else if (CONTROL_instance%BETA_FUNCTION .eq. "NEWNEWBETA") then
 
             if (this%mass2 .gt. 2.0) then !hydrogen
-              STOP "this beta function only works for electron-positron"
-            else !positron
+              call Exception_stopError("this beta function only works for electron-positron","At Functional_show")
+           else !positron
               a0 = 2.2919886876120283056
               Eab = 0.25
               Eab2 = 0.2620050702329801
@@ -573,7 +576,7 @@ contains
       c = 3.2
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_EPCEvaluate")
     end if
 
     ec(1:n) = 0.0
@@ -599,6 +602,56 @@ contains
 
   end subroutine Functional_EPCEvaluate
 
+  subroutine Functional_EMUCEvaluate(this, n, rhoABsum, rhoABdiff, rhoMu, ec, vcA, vcB, vcMu)
+    ! Evaluates Goli and Shabazian electron-positive muon correlation functional
+    ! Alpha and Beta electronic densities
+    ! Felix Moncada, 2026
+    implicit none
+    type(Functional):: this !!type of functional
+    integer(8) :: n !!nuclear gridSize
+    real(8) :: rhoABsum(*), rhoABdiff(*), rhoMu(*) !! electron and muon Densities - input
+    real(8) :: ec(*) !! Energy density - output
+    real(8) :: vcA(*), vcB(*), vcMu(*) !! Potentials - output
+
+    real(8) :: rhoA, rhoB, denominatorA, denominatorB, densityThreshold
+    integer :: i
+
+    densityThreshold = CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD !TODO: add to other functionals
+
+    if (this%name .ne. "correlation:EMUC-1") then
+      print *, this%name
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_EMUCEvaluate")
+    end if
+
+    ec(1:n) = 0.0
+    vcA(1:n) = 0.0
+    vcB(1:n) = 0.0
+    vcMu(1:n) = 0.0
+
+    ! print *, "i, rhoE, rhoN, denominator, energy density, potentialE, potentialN"
+    !$omp parallel private(rhoA,rhoB,denominatorA,denominatorB)
+    !$omp do schedule (dynamic)
+    do i = 1, n
+       if (rhoABsum(i) + rhoMu(i) .lt. densityThreshold) cycle
+       rhoA=(rhoABsum(i)+rhoABdiff(i))/2.0      
+       rhoB=(rhoABsum(i)-rhoABdiff(i))/2.0      
+       denominatorA = 1.0 + 4.0*rhoA*rhoMu(i)*(2.0+sqrt(rhoMu(i)))
+       denominatorB = 1.0 + 4.0*rhoB*rhoMu(i)*(2.0+sqrt(rhoMu(i)))
+!!!Energy density per electron
+       ec(i) = (rhoA*rhoMu(i)*(-2.0+sqrt(rhoMu(i)))/denominatorA+&
+            rhoB*rhoMu(i)*(-2.0+sqrt(rhoMu(i)))/denominatorB)/rhoABsum(i)
+!!!Potential
+       vcA(i) = rhoMu(i)*(-2.0+sqrt(rhoMu(i)))/denominatorA**2.0      
+       vcB(i) = rhoMu(i)*(-2.0+sqrt(rhoMu(i)))/denominatorB**2.0      
+       vcMu(i) = rhoA*(-4.0+sqrt(rhoMu(i))*(3.0+16.0*rhoA*rhoMu(i)))/2.0/denominatorA**2.0+&
+            rhoB*(-4.0+sqrt(rhoMu(i))*(3.0+16.0*rhoB*rhoMu(i)))/2.0/denominatorB**2.0
+       ! write(*,"(I0.1,5ES16.6)") i, rhoE(i), rhoN(i),  ec(i), vcE(i), vcN(i)
+    end do
+    !$omp end do
+    !$omp end parallel
+
+  end subroutine Functional_EMUCEvaluate
+  
   subroutine Functional_IKNEvaluate(this, mass, n, rhoE, rhoN, ec, vcE, vcN)
     ! Evaluates YUTAKA IMAMURA, HIROYOSHI KIRYU, HIROMI NAKAI Colle Salvetti nuclear electron correlation functional J Comput Chem 29: 735–740, 2008
     ! Only works for Hydrogen - can be extended
@@ -629,7 +682,7 @@ contains
       end if
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_IKNEvaluate")
     end if
 
     do i = 1, n
@@ -663,8 +716,6 @@ contains
         end if
       end if
     end do
-
-    ! STOP
 
   end subroutine Functional_IKNEvaluate
 
@@ -700,7 +751,7 @@ contains
       end if
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_MLCSEvaluate")
     end if
 
     do i = 1, n
@@ -734,8 +785,6 @@ contains
 
       end if
     end do
-
-    ! STOP
 
   end subroutine Functional_MLCSEvaluate
 
@@ -771,7 +820,7 @@ contains
       end if
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_MLCSAEvaluate")
     end if
 
     do i = 1, n
@@ -805,8 +854,6 @@ contains
 
       end if
     end do
-
-    ! STOP
 
   end subroutine Functional_MLCSAEvaluate
 
@@ -842,7 +889,7 @@ contains
       end if
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_MLCSANEvaluate")
     end if
 
     do i = 1, n
@@ -878,8 +925,6 @@ contains
 
       end if
     end do
-
-    ! STOP
 
   end subroutine Functional_MLCSANEvaluate
 
@@ -996,7 +1041,7 @@ contains
       bn = 5.580898227664
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_MyCSEvaluate")
     end if
 
     if (CONTROL_instance%DUMMY_REAL(1) .ne. 0 .and. CONTROL_instance%DUMMY_REAL(2) .ne. 0) then
@@ -1156,7 +1201,7 @@ contains
       end if
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_expCSEvaluate")
     end if
 
     p = 1.0
@@ -1349,7 +1394,7 @@ contains
       b0 = 1.0
     end if
 
-    if (mass .gt. 2.0) STOP "the expCSGGA functional only works for positron-electron correlation at the moment"
+    if (mass .gt. 2.0) call Exception_stopError("the expCSGGA functional only works for positron-electron correlation at the moment","Functional_expCSGGA")
 
     p = 1.0
     g1 = 1.0
@@ -1869,7 +1914,7 @@ contains
       Cc = 5.21152*2.0_8
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_PSN")
     end if
 
     ! densityThreshold=CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD
@@ -1974,7 +2019,7 @@ contains
       xcut = 6.0
     else
       print *, this%name
-      STOP "The nuclear electron functional chosen is not implemented"
+      call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_PSNAP")
     end if
 
     densityThreshold = CONTROL_instance%NUCLEAR_ELECTRON_DENSITY_THRESHOLD
@@ -2067,7 +2112,7 @@ contains
       energyDensity = -0.5_8*mass/(mass + 1.0_8)
       b = -0.5_8
     else
-      ! STOP  "The nuclear electron functional chosen is not implemented"
+       call Exception_stopError("The nuclear electron functional chosen is not implemented","Functional_LowLimit")
     end if
 
     do i = 1, n
