@@ -1,0 +1,41 @@
+GEOMETRY
+	e-[O]	3-21g	0.000000      0.000000     -0.066575
+	e-[H]	3-21g   	0.000000      0.754175      0.528381
+	e-[H]	3-21g   	0.000000     -0.754175      0.528381
+	O	dirac		0.000000      0.000000     -0.066575
+	H_1	dirac		0.000000      0.754175      0.528381	
+	H_1	dirac		0.000000     -0.754175      0.528381  
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel = "FCI"
+END TASKS
+
+CONTROL
+	!readCoefficients = T
+	!noSCF = T
+	integralsTransformationMethod = "C"
+	!buildTwoParticlesMatrixForOneParticle = T
+	HFprintEigenVectors = "ALL"
+	CIselectiveMethod = "ASCI"
+	CIdiagonalizationMethod = "JADAMILU"
+	CInumberOfStates = 1	
+	CIPrintThreshold = 5e-2
+	CISCICoreSpace = 18
+	CISCITargetSpace = 50
+	CISCITargetGrowthFactor = 2
+	CISCITargetGrowthSteps = 2
+	CISCIRefinementSteps = 0
+	CISCIBufferFactor = 64
+	CIMatVecTolerance = 1e-12
+	CIMCSCF = T
+	!debugSCFs = T
+	totalEnergyTolerance=1E-10
+	integralThreshold = 1e-16
+END CONTROL
+
+INPUT_CI
+	species="E-ALPHA" core=3 active=4
+	species="E-BETA" core=3 active=4
+END INPUT_CI

@@ -463,7 +463,7 @@ contains
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
                         initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
 
-        !do i = 1, 10
+        do i = 1, 150
         call CISCI_destructor()
 
         call CIMCSCF_compute()
@@ -486,7 +486,7 @@ contains
 
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
                        initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
-        !enddo
+        enddo
 
 
       endif

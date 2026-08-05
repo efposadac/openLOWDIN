@@ -2393,7 +2393,7 @@ contains
     diffOrb = 0
     z = 0
     ! different orbital in A
-    do pi = 1, n_occ
+    do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1, n_occ
       if ( orbB(occA(pi) ) == 0  ) then
         z = z + 1
         diffOrb(z) = occA(pi)
@@ -2403,7 +2403,7 @@ contains
 
     z = 2
     ! different orbital in B
-    do pi = 1, n_occ
+    do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1, n_occ
       if ( orbA(occB(pi) ) == 0  ) then
         z = z + 1
         diffOrb(z) = occB(pi)

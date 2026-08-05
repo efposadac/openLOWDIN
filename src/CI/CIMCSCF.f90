@@ -55,9 +55,9 @@ contains
                int( numberOfContractions_i, 8), &
                int( numberOfContractions_i, 8), 0.0_8 )
           !! initializing with HF occupancy, although this is not really neccesary, but RDM subroutines asssume this 
-          do i = 1, numberOfOccupiedOrbitals_i
-            CI1RDM( spi, state )%values( i, i ) = 1.0_8
-          enddo ! i 
+          !do i = 1, numberOfOccupiedOrbitals_i
+          !  CI1RDM( spi, state )%values( i, i ) = 1.0_8
+          !enddo ! i 
        enddo ! state
     enddo ! spi
 
@@ -93,16 +93,8 @@ contains
     write (6,*) "Building 1-RDM ..."
     call CIdensity_1RDM_SCI( CI1RDM )
 
-    !do spi = 1, numberOfSpecies
-    !  print *, "1rdm for", spi
-    !  call Matrix_show (CI1RDM(spi,1))
-    !enddo 
-
     write (6,*) "Building 2-RDM ..."
     call CIdensity_2RDM_SCI( CI2RDM )
-
-    !CI2RDM(1,3)%values(:) = CI2RDM(1,2)%values(:)
-    !CI2RDM(2,3)%values(:) = CI2RDM(1,2)%values(:)
 
     write (6,*) "Computing the MCSCF energy from 1- and 2-RDM ..."
     call CIMCSCF_energy( CI1RDM, CI2RDM  )
@@ -111,7 +103,7 @@ contains
     call CIMCSCF_gradient( CI1RDM, CI2RDM, fock, gradient )
 
     write (6,*) "Building MCSCF hessian (diagonal) ..."
-    call CIMCSCF_hessian( CI1RDM, CI2RDM, fock, hessian )
+    call CIMCSCF_hessian( CI1RDM, CI2RDM, fock, hessian, gradient )
 
     !! Newtown-Rapshon
     write (6,*) "Performing MCSCF Newton Raphson minimization ..."
@@ -140,6 +132,7 @@ contains
       call Matrix_destructor( gradient(spi) )
       call Matrix_destructor( fock(spi) )
     enddo
+
     deallocate( rotations )
     deallocate( hessian )
     deallocate( gradient )
@@ -172,9 +165,6 @@ contains
     energy_total = 0.0_8
     n_pairs = 0.0_8
 
-    open(unit=1018, file="2rdm", status="replace", form="formatted")
-    open(unit=1019, file="2rdm.inter", status="replace", form="formatted")
-
     do spi = 1, numberOfSpecies
       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
       !! one body
@@ -185,7 +175,7 @@ contains
 
           energy_one = energy_one + CIcore_instance%twoCenterIntegrals(spi)%values(p,q) * &
                             CI1RDM(spi,1)%values(p,q)
-
+                            
           !! two body intra
           do r = 1, numberOfContractions_i
             do s = 1, numberOfContractions_i
@@ -197,8 +187,6 @@ contains
 
               energy_two_aa = energy_two_aa + 0.5_8 * CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs,1) * &
                             CI2RDM(spi,spi)%values(pqrs_rdm)
-              write (1018,"(I2,I2,I2,I2,I6,F12.8,F12.8 )" ) p,q,r,s, pqrs_rdm, CI2RDM(spi,spi)%values(pqrs_rdm), CIcore_instance%fourCenterIntegrals(spi,spi)%values(pqrs,1)
-
             enddo ! s
           enddo ! r
         enddo ! q 
@@ -225,10 +213,6 @@ contains
                 pqrs_rdm = pq_rdm + ( rs_rdm - 1 ) * numberOfContractions_i * numberOfContractions_i
                 energy_two_ab = energy_two_ab + CIcore_instance%fourCenterIntegrals(spi,spj)%values(pqrs,1) * &
                             CI2RDM(spi,spj)%values(pqrs_rdm)
-
-                write (1019,"(I2,I2,I2,I2,I6,F12.8,F12.8 )" ) p,q,r,s, pqrs_rdm, CI2RDM(spi,spj)%values(pqrs_rdm), &
-                CIcore_instance%fourCenterIntegrals(spi,spj)%values(pqrs,1)
-
               enddo ! s
             enddo ! r
           enddo ! q 
@@ -248,9 +232,6 @@ contains
     write (6,"(T2,A37,F25.12)") "MCSCF Initial total energy =          ", energy_total
     write (6,*) ""
 
-    close(1018)
-    close(1019)
-
   end subroutine CIMCSCF_energy
 
   subroutine CIMCSCF_gradient( CI1RDM, CI2RDM, fock, gradient )
@@ -260,6 +241,8 @@ contains
     type(matrix), allocatable, intent(inout) :: fock(:) ! species % numcontractions, numcontractions
     type(matrix), allocatable, intent(inout) :: gradient(:) ! species % numcontractions, numcontractions
     integer :: p,q,r,s,t, pr, pr_rdm, qr, qr_aux, st, st_rdm, qrst, prst_rdm, st_aux
+    integer :: pq, rs, pqrs
+    integer :: ps, pp, qs, pqrr, pqst, prqr, psqt, qt, rr
     integer :: pqpq_rdm, pq_rdm 
     integer :: spi, spj, numberOfSpecies
     integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
@@ -291,6 +274,7 @@ contains
 
             fock(spi)%values( p, q ) = fock(spi)%values( p, q ) + CIcore_instance%twoCenterIntegrals(spi)%values(q,r) * &
                                                                       CI1RDM(spi,1)%values(p,r)
+
           enddo
         enddo
       enddo
@@ -306,8 +290,8 @@ contains
 
             qr = CIcore_instance%twoIndexArray(spi)%values( q, r )
 
-            do s = 1, numberOfContractions_i
-              do t = 1, numberOfContractions_i
+           do s = 1, numberOfContractions_i
+            do t = 1, numberOfContractions_i
 
                 st = CIcore_instance%twoIndexArray(spi)%values(s,t)
                 st_rdm = s + ( t - 1) * numberOfContractions_i 
@@ -338,7 +322,6 @@ contains
 
                   st_rdm = s + ( t - 1) * numberOfContractions_j 
                   prst_rdm = st_rdm + ( pr_rdm - 1 ) * numberOfContractions_j * numberOfContractions_j  
-                  !! or stpr_rdm
 
                   fock(spi)%values( p, q ) = fock(spi)%values( p, q ) + CIcore_instance%fourCenterIntegrals(spi,spj)%values(qrst,1) * &
                                                                       CI2RDM(spj,spi)%values(prst_rdm)
@@ -375,7 +358,6 @@ contains
               enddo ! s
             enddo ! r
           enddo ! spj
-
         enddo ! q 
       enddo ! p
 
@@ -395,29 +377,34 @@ contains
         enddo ! q 
       enddo ! p
 
-      print *, "gradient for spi", spi
-      call Matrix_show (gradient(spi))
+      !call Matrix_show (gradient(spi))
 
     enddo ! spi
 
-
   end subroutine CIMCSCF_gradient
 
-  subroutine CIMCSCF_hessian( CI1RDM, CI2RDM, fock, hessian )
+  subroutine CIMCSCF_hessian( CI1RDM, CI2RDM, fock, hessian, gradient )
     implicit none
     type(matrix), allocatable, intent(in) :: CI1RDM(:,:) ! species, state % numcontractions, numcontractions
     type(vector), allocatable, intent(in) :: CI2RDM(:,:) ! species, species % numcontractions, numcontractions, numcontractions, numcontractions
     type(matrix), allocatable, intent(in) :: fock(:) ! species % numcontractions, numcontractions
     type(matrix), allocatable, intent(inout) :: hessian(:) ! species % numcontractions, numcontractions (diagonal)
-    type(matrix), allocatable :: W_I(:) ! species % numcontractions, numcontractions (diagonal)
-    type(matrix), allocatable :: W_II(:) ! species % numcontractions, numcontractions (diagonal)
+    type(matrix), allocatable, intent(in) :: gradient(:) ! species % numcontractions, numcontractions
+    type(matrix), allocatable :: W_xyxy(:) ! species % numcontractions, numcontractions (diagonal)
+    type(matrix), allocatable :: W_yxxy(:) ! species % numcontractions, numcontractions (diagonal)
+    type(matrix), allocatable :: W_xyyx(:) ! species % numcontractions, numcontractions (diagonal)
+    type(matrix), allocatable :: W_yxyx(:) ! species % numcontractions, numcontractions (diagonal)
     integer :: spi, spj, numberOfSpecies
     integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
     integer :: numberOfContractions_j, numberOfOccupiedOrbitals_j
     integer :: x, y, xy, xy_aux, m, n, yy, yy_aux, mn, xm, ym, ym_aux, yn, xmyn, xymn, ymyn, yymn
+    integer :: xx, xx_aux, xxmn
     integer :: xy_rdm, xx_rdm, mn_rdm, xn_rdm, mx_rdm, my_rdm, xm_rdm 
     integer :: xnmx_rdm, xnmy_rdm, xnxm_rdm, xnym_rdm, xxmn_rdm, xymn_rdm, ym_rdm
+    integer :: xn, xmxn, ymxn, yn_rdm, ynmx_rdm, ynmy_rdm, yx, yx_aux, yx_rdm, yxmn, yxmn_rdm, ynxm_rdm, ynym_rdm, yy_rdm, yymn_rdm
     integer :: p, q
+    integer :: pp, qq, pq, qp, ppqq, pqpq, pqqp
+    real(8) :: auxvalue
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -427,18 +414,28 @@ contains
       call Matrix_constructor ( hessian( spi ), int( numberOfContractions_i, 8), int( numberOfContractions_i, 8), 0.0_8 ) 
     enddo
 
-    allocate( W_I(numberOfSpecies) )
+    allocate( W_xyxy(numberOfSpecies) )
     do spi = 1, numberOfSpecies
        numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
-      call Matrix_constructor ( W_I( spi ), int( numberOfContractions_i, 8), int( numberOfContractions_i, 8), 0.0_8 ) 
+      call Matrix_constructor ( W_xyxy( spi ), int( numberOfContractions_i, 8), int( numberOfContractions_i, 8), 0.0_8 ) 
     enddo
-    allocate( W_II(numberOfSpecies) )
+    allocate( W_yxxy(numberOfSpecies) )
     do spi = 1, numberOfSpecies
        numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
-      call Matrix_constructor ( W_II( spi ), int( numberOfContractions_i, 8), int( numberOfContractions_i, 8), 0.0_8 ) 
+      call Matrix_constructor ( W_yxxy( spi ), int( numberOfContractions_i, 8), int( numberOfContractions_i, 8), 0.0_8 ) 
+    enddo
+    allocate( W_xyyx(numberOfSpecies) )
+    do spi = 1, numberOfSpecies
+       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
+      call Matrix_constructor ( W_xyyx( spi ), int( numberOfContractions_i, 8), int( numberOfContractions_i, 8), 0.0_8 ) 
+    enddo
+    allocate( W_yxyx(numberOfSpecies) )
+    do spi = 1, numberOfSpecies
+       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
+      call Matrix_constructor ( W_yxyx( spi ), int( numberOfContractions_i, 8), int( numberOfContractions_i, 8), 0.0_8 ) 
     enddo
 
-    ! W_I
+    ! W_xyxy
     do spi = 1, numberOfSpecies
       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
       do x = 1, numberOfContractions_i
@@ -446,9 +443,9 @@ contains
         xx_rdm = ( x - 1) * numberOfContractions_i + x
         do y = 1, numberOfContractions_i
 
-          W_I(spi)%values(x,y) = W_I(spi)%values(x,y) + 2.0_8 * CIcore_instance%twoCenterIntegrals(spi)%values(y,y) * &
-                                                                CI1RDM(spi,1)%values(x,x)
-
+          W_xyxy(spi)%values(x,y) = W_xyxy(spi)%values(x,y) + 2.0_8 * CI1RDM(spi,1)%values(x,x) * &
+                                                              CIcore_instance%twoCenterIntegrals(spi)%values(y,y)
+                                                                
           yy = CIcore_instance%twoIndexArray(spi)%values(y,y)
                                                                      
           do m = 1, numberOfContractions_i
@@ -466,9 +463,8 @@ contains
               mn = CIcore_instance%twoIndexArray(spi)%values(m,n)
               yymn = CIcore_instance%fourIndexArray(spi)%values(yy,mn)
 
-              W_I(spi)%values( x, y ) = W_I(spi)%values( x, y ) + 2.0_8 * &
-                                                                  CIcore_instance%fourCenterIntegrals(spi,spi)%values(yymn,1) * &
-                                                                  CI2RDM(spi,spi)%values(xxmn_rdm)
+              W_xyxy(spi)%values( x, y ) = W_xyxy(spi)%values( x, y ) + 2.0_8 * CI2RDM(spi,spi)%values(xxmn_rdm) * &
+                                                            CIcore_instance%fourCenterIntegrals(spi,spi)%values(yymn,1)
 
               yn = CIcore_instance%twoIndexArray(spi)%values(y,n)
               ymyn = CIcore_instance%fourIndexArray(spi)%values(ym,yn)
@@ -477,9 +473,9 @@ contains
               xnmx_rdm = CIcore_two2one ( xn_rdm, mx_rdm )
               xnxm_rdm = CIcore_two2one ( xn_rdm, xm_rdm )
 
-              W_I(spi)%values( x, y ) = W_I(spi)%values( x, y ) + 2.0_8 * &
-                                                        CIcore_instance%fourCenterIntegrals(spi,spi)%values(ymyn,1) * &
-                                                        ( CI2RDM(spi,spi)%values(xnmx_rdm) + CI2RDM(spi,spi)%values(xnxm_rdm) )
+              W_xyxy(spi)%values( x, y ) = W_xyxy(spi)%values( x, y ) + 2.0_8 * &
+                                              ( CI2RDM(spi,spi)%values(xnmx_rdm) + CI2RDM(spi,spi)%values(xnxm_rdm) ) * &
+                                              CIcore_instance%fourCenterIntegrals(spi,spi)%values(ymyn,1)
             enddo ! n
           enddo ! m
 
@@ -495,10 +491,9 @@ contains
 
                 mn_rdm = m + ( n - 1) * numberOfContractions_j 
                 xxmn_rdm = mn_rdm + ( xx_rdm - 1 ) * numberOfContractions_j * numberOfContractions_j 
-                W_I(spi)%values( x, y ) = W_I(spi)%values( x, y ) + 2.0_8 * &
-                                                                   CIcore_instance%fourCenterIntegrals(spi,spj)%values(yymn,1) * &
-                                                                   CI2RDM(spj,spi)%values(xxmn_rdm)
-
+                W_xyxy(spi)%values( x, y ) = W_xyxy(spi)%values( x, y ) + 2.0_8 * CI2RDM(spj,spi)%values(xxmn_rdm) * &
+                                                      CIcore_instance%fourCenterIntegrals(spi,spj)%values(yymn,1) 
+                                                                   
               enddo ! n 
             enddo ! m
           enddo ! spj 
@@ -515,54 +510,51 @@ contains
 
                 mn_rdm = m + ( n - 1) * numberOfContractions_j 
                 xxmn_rdm = xx_rdm + ( mn_rdm - 1 ) * numberOfContractions_i * numberOfContractions_i  
-                W_I(spi)%values( x, y ) = W_I(spi)%values( x, y ) + 2.0_8 * &
-                                                                   CIcore_instance%fourCenterIntegrals(spi,spj)%values(yymn,1) * &
-                                                                   CI2RDM(spi,spj)%values(xxmn_rdm)
+                W_xyxy(spi)%values( x, y ) = W_xyxy(spi)%values( x, y ) + 2.0_8 * CI2RDM(spi,spj)%values(xxmn_rdm) * &
+                                                  CIcore_instance%fourCenterIntegrals(spi,spj)%values(yymn,1)
               enddo ! n 
             enddo ! m
           enddo ! spj 
 
+        enddo ! y
 
-
-        enddo ! q
-
-        W_I(spi)%values( x, x ) = W_I(spi)%values( x, x ) + 2.0_8 * fock(spi)%values( x, x )
-
+        W_xyxy(spi)%values( x, x ) = W_xyxy(spi)%values( x, x ) + fock(spi)%values( x, x ) + fock(spi)%values( x, x )
       enddo ! x
 
     enddo ! spi
 
-    ! W_II
+    ! W_yxxy
     do spi = 1, numberOfSpecies
       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
       do x = 1, numberOfContractions_i
 
         do y = 1, numberOfContractions_i
 
-          W_II(spi)%values(y,x) = W_I(spi)%values(y,x) + 2.0_8 * CIcore_instance%twoCenterIntegrals(spi)%values(x,y) * &
-                                                                 CI1RDM(spi,1)%values(y,x)
-
+          W_yxxy(spi)%values(x,y) = W_yxxy(spi)%values(x,y) + 2.0_8 * CI1RDM(spi,1)%values(y,x) * &
+                                                            CIcore_instance%twoCenterIntegrals(spi)%values(x,y) 
+                                                                 
           xy_rdm = x + ( y - 1) * numberOfContractions_i 
           xy = CIcore_instance%twoIndexArray(spi)%values(x,y)
                                                                      
           do m = 1, numberOfContractions_i
 
-            xm = CIcore_instance%twoIndexArray(spi)%values(x,m)
             my_rdm = m + ( y - 1) * numberOfContractions_i 
             ym_rdm = y + ( m - 1) * numberOfContractions_i
 
             do n = 1, numberOfContractions_i
 
+              mn = CIcore_instance%twoIndexArray(spi)%values(m,n)
               mn_rdm = m + ( n - 1) * numberOfContractions_i 
               xymn_rdm = CIcore_two2one ( xy_rdm, mn_rdm )
 
               mn = CIcore_instance%twoIndexArray(spi)%values(m,n)
               xymn = CIcore_instance%fourIndexArray(spi)%values(xy,mn)
 
-              W_II(spi)%values( y, x ) = W_II(spi)%values( y, x ) + 2.0_8 * &
-                                                            CIcore_instance%fourCenterIntegrals(spi,spi)%values(xymn,1) * &
-                                                            CI2RDM(spi,spi)%values(xymn_rdm)
+              W_yxxy(spi)%values( x, y ) = W_yxxy(spi)%values( x, y ) + 2.0_8 * CI2RDM(spi,spi)%values(xymn_rdm) * &
+                                             CIcore_instance%fourCenterIntegrals(spi,spi)%values(xymn,1)
+                                                            
 
+              xm = CIcore_instance%twoIndexArray(spi)%values(x,m)
               yn = CIcore_instance%twoIndexArray(spi)%values(y,n)
               xmyn = CIcore_instance%fourIndexArray(spi)%values(xm,yn)
 
@@ -570,9 +562,9 @@ contains
               xnmy_rdm = CIcore_two2one ( xn_rdm, my_rdm )
               xnym_rdm = CIcore_two2one ( xn_rdm, ym_rdm )
 
-              W_II(spi)%values( y, x ) = W_II(spi)%values( y, x ) + 2.0_8 * &
-                                                             CIcore_instance%fourCenterIntegrals(spi,spi)%values(xmyn,1) * &
-                                                           ( CI2RDM(spi,spi)%values(xnmy_rdm) + CI2RDM(spi,spi)%values(xnym_rdm) )
+              W_yxxy(spi)%values( x, y ) = W_yxxy(spi)%values( x, y ) + 2.0_8 * &
+                                           ( CI2RDM(spi,spi)%values(xnmy_rdm) + CI2RDM(spi,spi)%values(xnym_rdm) ) * &
+                                             CIcore_instance%fourCenterIntegrals(spi,spi)%values(xmyn,1) 
             enddo ! n
           enddo ! m
 
@@ -588,9 +580,8 @@ contains
 
                 mn_rdm = m + ( n - 1) * numberOfContractions_j
                 xymn_rdm = mn_rdm + ( xy_rdm - 1 ) * numberOfContractions_j * numberOfContractions_j
-                W_II(spi)%values( y, x ) = W_II(spi)%values( y, x ) + 2.0_8 * &
-                                                                   CIcore_instance%fourCenterIntegrals(spj,spi)%values(xymn,1) * &
-                                                                   CI2RDM(spj,spi)%values(xymn_rdm)
+                W_yxxy(spi)%values( x, y ) = W_yxxy(spi)%values( x, y ) + 2.0_8 * CI2RDM(spj,spi)%values(xymn_rdm) * &
+                                              CIcore_instance%fourCenterIntegrals(spi,spj)%values(xymn,1) 
               enddo ! n 
             enddo ! m
           enddo ! spj 
@@ -601,24 +592,194 @@ contains
             numberOfContractions_j = MolecularSystem_getTotalNumberOfContractions( spj )
             do m = 1, numberOfContractions_j
               do n = 1, numberOfContractions_j
-
                 mn = CIcore_instance%twoIndexArray(spj)%values( m, n )
                 xymn = xy_aux + mn
-
                 mn_rdm = m + ( n - 1) * numberOfContractions_j 
                 xymn_rdm = xy_rdm + ( mn_rdm - 1 ) * numberOfContractions_i * numberOfContractions_i 
-                W_II(spi)%values( y, x ) = W_II(spi)%values( y, x ) + 2.0_8 * &
-                                                                   CIcore_instance%fourCenterIntegrals(spi,spj)%values(xymn,1) * &
-                                                                   CI2RDM(spi,spj)%values(xymn_rdm)
+                W_yxxy(spi)%values( x, y ) = W_yxxy(spi)%values( x, y ) + 2.0_8 * CI2RDM(spi,spj)%values(xymn_rdm) * &
+                                            CIcore_instance%fourCenterIntegrals(spi,spj)%values(xymn,1) 
               enddo ! n 
             enddo ! m
           enddo ! spj 
 
         enddo ! y
 
-        W_II(spi)%values( x, x ) = W_II(spi)%values( x, x ) + 2.0_8 * fock(spi)%values( x, x )
-
+        do y = 1, numberOfContractions_i
+          W_yxxy(spi)%values( x, y ) = W_yxxy(spi)%values( x, y ) + 2.0_8 * fock(spi)%values( y, y )
+        enddo ! y
       enddo ! x
+    enddo ! spi
+
+    ! W_xyyx
+    do spi = 1, numberOfSpecies
+      numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
+      do x = 1, numberOfContractions_i
+
+        do y = 1, numberOfContractions_i
+
+          W_xyyx(spi)%values(x,y) = W_xyyx(spi)%values(x,y) + 2.0_8 * CI1RDM(spi,1)%values(x,y) * &
+                                                            CIcore_instance%twoCenterIntegrals(spi)%values(y,x)                                                 
+          yx_rdm = y + ( x - 1) * numberOfContractions_i 
+          yx = CIcore_instance%twoIndexArray(spi)%values(y,x)
+                                                                     
+          do m = 1, numberOfContractions_i
+
+            mx_rdm = m + ( x - 1) * numberOfContractions_i 
+            xm_rdm = x + ( m - 1) * numberOfContractions_i
+
+            do n = 1, numberOfContractions_i
+
+              mn_rdm = m + ( n - 1) * numberOfContractions_i 
+              yxmn_rdm = CIcore_two2one ( yx_rdm, mn_rdm )
+
+              mn = CIcore_instance%twoIndexArray(spi)%values(m,n)
+              yxmn = CIcore_instance%fourIndexArray(spi)%values(yx,mn)
+
+              W_xyyx(spi)%values( x, y ) = W_xyyx(spi)%values( x, y ) + 2.0_8 * CI2RDM(spi,spi)%values(yxmn_rdm) * &
+                                             CIcore_instance%fourCenterIntegrals(spi,spi)%values(yxmn,1)
+                                                            
+
+              xn = CIcore_instance%twoIndexArray(spi)%values(x,n)
+              ymxn = CIcore_instance%fourIndexArray(spi)%values(ym,xn)
+
+              yn_rdm = y + ( n - 1) * numberOfContractions_i
+              ynmx_rdm = CIcore_two2one ( yn_rdm, mx_rdm )
+              ynxm_rdm = CIcore_two2one ( yn_rdm, xm_rdm )
+
+              W_xyyx(spi)%values( x, y ) = W_xyyx(spi)%values( x, y ) + 2.0_8 * &
+                                           ( CI2RDM(spi,spi)%values(ynmx_rdm) + CI2RDM(spi,spi)%values(ynxm_rdm) ) * &
+                                             CIcore_instance%fourCenterIntegrals(spi,spi)%values(ymxn,1) 
+            enddo ! n
+          enddo ! m
+
+          do spj = 1, spi - 1
+
+            yx_aux = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( yx - 1_8 )
+            numberOfContractions_j = MolecularSystem_getTotalNumberOfContractions( spj )
+            do m = 1, numberOfContractions_j
+              do n = 1, numberOfContractions_j
+
+                mn = CIcore_instance%twoIndexArray(spj)%values( m, n )
+                yxmn = yx_aux + mn
+
+                mn_rdm = m + ( n - 1) * numberOfContractions_j
+                yxmn_rdm = mn_rdm + ( yx_rdm - 1 ) * numberOfContractions_j * numberOfContractions_j
+                W_xyyx(spi)%values( x, y ) = W_xyyx(spi)%values( x, y ) + 2.0_8 * CI2RDM(spj,spi)%values(yxmn_rdm) * &
+                                              CIcore_instance%fourCenterIntegrals(spi,spj)%values(yxmn,1) 
+              enddo ! n 
+            enddo ! m
+          enddo ! spj 
+
+          do spj = spi + 1, numberOfSpecies
+
+            yx_aux = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( yx - 1_8 )
+            numberOfContractions_j = MolecularSystem_getTotalNumberOfContractions( spj )
+            do m = 1, numberOfContractions_j
+              do n = 1, numberOfContractions_j
+                mn = CIcore_instance%twoIndexArray(spj)%values( m, n )
+                yxmn = yx_aux + mn
+                mn_rdm = m + ( n - 1) * numberOfContractions_j 
+                yxmn_rdm = yx_rdm + ( mn_rdm - 1 ) * numberOfContractions_i * numberOfContractions_i 
+                W_xyyx(spi)%values( x, y ) = W_xyyx(spi)%values( x, y ) + 2.0_8 * CI2RDM(spi,spj)%values(yxmn_rdm) * &
+                                            CIcore_instance%fourCenterIntegrals(spi,spj)%values(yxmn,1) 
+              enddo ! n 
+            enddo ! m
+          enddo ! spj 
+
+        enddo ! y
+
+        do y = 1, numberOfContractions_i
+          W_xyyx(spi)%values( x, y ) = W_xyyx(spi)%values( x, y ) + 2.0_8 * fock(spi)%values( x, x )
+        enddo ! y
+      enddo ! x
+    enddo ! spi
+
+    ! W_yxyx
+    do spi = 1, numberOfSpecies
+      numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
+      do x = 1, numberOfContractions_i
+
+        xx = CIcore_instance%twoIndexArray(spi)%values(x,x)
+
+        do y = 1, numberOfContractions_i
+
+          yy_rdm = ( y - 1) * numberOfContractions_i + y
+          W_yxyx(spi)%values(x,y) = W_yxyx(spi)%values(x,y) + 2.0_8 * CI1RDM(spi,1)%values(y,y) * &
+                                                              CIcore_instance%twoCenterIntegrals(spi)%values(x,x)
+                                                                
+          do m = 1, numberOfContractions_i
+
+            xm = CIcore_instance%twoIndexArray(spi)%values(x,m)
+            my_rdm = m + ( y - 1) * numberOfContractions_i 
+            ym_rdm = y + ( m - 1) * numberOfContractions_i 
+
+            do n = 1, numberOfContractions_i
+
+              mn_rdm = m + ( n - 1) * numberOfContractions_i 
+
+              yymn_rdm = CIcore_two2one ( yy_rdm, mn_rdm )
+
+              mn = CIcore_instance%twoIndexArray(spi)%values(m,n)
+              xxmn = CIcore_instance%fourIndexArray(spi)%values(xx,mn)
+
+              W_yxyx(spi)%values( x, y ) = W_yxyx(spi)%values( x, y ) + 2.0_8 * CI2RDM(spi,spi)%values(yymn_rdm) * &
+                                                            CIcore_instance%fourCenterIntegrals(spi,spi)%values(xxmn,1)
+
+              xn = CIcore_instance%twoIndexArray(spi)%values(x,n)
+              xmxn = CIcore_instance%fourIndexArray(spi)%values(xm,xn)
+
+              yn_rdm = y + ( n - 1) * numberOfContractions_i
+              ynmy_rdm = CIcore_two2one ( yn_rdm, my_rdm )
+              ynym_rdm = CIcore_two2one ( yn_rdm, ym_rdm )
+
+              W_yxyx(spi)%values( x, y ) = W_yxyx(spi)%values( x, y ) + 2.0_8 * &
+                                              ( CI2RDM(spi,spi)%values(ynmy_rdm) + CI2RDM(spi,spi)%values(ynym_rdm) ) * &
+                                              CIcore_instance%fourCenterIntegrals(spi,spi)%values(xmxn,1)
+            enddo ! n
+          enddo ! m
+
+          do spj = 1, spi - 1
+
+            xx_aux = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( xx - 1_8 )
+            numberOfContractions_j = MolecularSystem_getTotalNumberOfContractions( spj )
+            do m = 1, numberOfContractions_j
+              do n = 1, numberOfContractions_j
+
+                mn = CIcore_instance%twoIndexArray(spj)%values( m, n )
+                xxmn = xx_aux + mn
+
+                mn_rdm = m + ( n - 1) * numberOfContractions_j 
+                yymn_rdm = mn_rdm + ( yy_rdm - 1 ) * numberOfContractions_j * numberOfContractions_j 
+                W_yxyx(spi)%values( x, y ) = W_yxyx(spi)%values( x, y ) + 2.0_8 * CI2RDM(spj,spi)%values(yymn_rdm) * &
+                                                      CIcore_instance%fourCenterIntegrals(spi,spj)%values(xxmn,1) 
+                                                                   
+              enddo ! n 
+            enddo ! m
+          enddo ! spj 
+
+          do spj = spi + 1, numberOfSpecies
+
+            xx_aux = CIcore_instance%numberOfSpatialOrbitals2%values( spj ) * ( xx - 1_8 )
+            numberOfContractions_j = MolecularSystem_getTotalNumberOfContractions( spj )
+            do m = 1, numberOfContractions_j
+              do n = 1, numberOfContractions_j
+
+                mn = CIcore_instance%twoIndexArray(spj)%values( m, n )
+                xxmn = xx_aux + mn
+
+                mn_rdm = m + ( n - 1) * numberOfContractions_j 
+                yymn_rdm = yy_rdm + ( mn_rdm - 1 ) * numberOfContractions_i * numberOfContractions_i  
+                W_yxyx(spi)%values( x, y ) = W_yxyx(spi)%values( x, y ) + 2.0_8 * CI2RDM(spi,spj)%values(yymn_rdm) * &
+                                                  CIcore_instance%fourCenterIntegrals(spi,spj)%values(xxmn,1)
+              enddo ! n 
+            enddo ! m
+          enddo ! spj 
+
+        enddo ! y
+
+          W_yxyx(spi)%values( x, x ) = W_yxyx(spi)%values( x, x ) + fock(spi)%values( x, x ) + fock(spi)%values( x, x )
+      enddo ! x
+
     enddo ! spi
 
     !! building the hessian
@@ -626,20 +787,32 @@ contains
       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
       do p = 1, numberOfContractions_i
         do q = 1, numberOfContractions_i
-          hessian(spi)%values( p, q ) = hessian(spi)%values( p, q ) + W_I(spi)%values( p, q ) &
-                                                                    - W_II(spi)%values( q, p ) &
-                                                                    - W_II(spi)%values( p, q ) &
-                                                                    + W_I(spi)%values( q, p ) 
+          hessian(spi)%values( p, q ) = hessian(spi)%values( p, q ) + W_xyxy(spi)%values( p, q ) &
+                                                                    - W_yxxy(spi)%values( p, q ) &
+                                                                    - W_xyyx(spi)%values( p, q ) &
+                                                                    + W_xyxy(spi)%values( q, p ) 
         enddo ! q
       enddo ! p 
-  
-      !print *, "hessian for spi", spi
-      !call Matrix_show (hessian(spi))
 
+      !print *, "xyxy"
+      !call Matrix_show(W_xyxy(spi))
+      !print *, "yxxy"
+      !call Matrix_show(W_yxxy(spi))
+      !print *, "xyyx"
+      !call Matrix_show(W_xyyx(spi))
+      !print *, "yxyx"
+      !call Matrix_show(W_yxyx(spi))
     enddo ! spi
 
-    deallocate( W_II )
-    deallocate( W_I )
+    deallocate( W_yxyx )
+    deallocate( W_xyyx )
+    deallocate( W_yxxy )
+    deallocate( W_xyxy )
+
+    !do spi = 1, numberOfSpecies
+    !  print *, "hessian for spi", spi
+    !  call Matrix_show (hessian(spi))
+    !enddo ! spi
 
   end subroutine CIMCSCF_hessian
 
@@ -653,10 +826,11 @@ contains
     integer :: numberOfContractions_j, numberOfOccupiedOrbitals_j
     integer :: p, q
     real(8) :: epsilon
+    real(8) :: update
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
-    epsilon = 1.0E-2
+    epsilon = 1.0E-6
 
     allocate( rotations(numberOfSpecies) )
     do spi = 1, numberOfSpecies
@@ -667,17 +841,30 @@ contains
     !! rotations = - gradient / hessian
     do spi = 1, numberOfSpecies
       numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
+
       do p = 1, numberOfContractions_i
         do q = 1, numberOfContractions_i
-          rotations(spi)%values(p,q) = rotations(spi)%values(p,q) - gradient(spi)%values(p,q) / &
-                                                                    ( hessian(spi)%values(p,q) + epsilon) 
+          update = - gradient(spi)%values(p,q) * 0.5 / ( hessian(spi)%values(p,q) + epsilon) 
+          rotations(spi)%values(p,q) = update
         enddo ! q
       enddo ! p 
-  
-      print *, "rotations for spi", spi
-      call Matrix_show (rotations(spi))
-
     enddo ! spi
+
+    !! antisymmetrizing the orbital rotations
+    do spi = 1, numberOfSpecies
+      numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
+      do p = 1, numberOfContractions_i
+        do q = p + 1, numberOfContractions_i
+          rotations(spi)%values(q,p) = - rotations(spi)%values(p,q)
+        enddo ! q
+        rotations(spi)%values(p,p) = 0.0_8
+      enddo ! p
+    enddo ! spi
+
+    !do spi = 1, numberOfSpecies
+    !  print *, "rotations for spi", spi
+    !  call Matrix_show (rotations(spi))
+    !enddo ! spi
 
   end subroutine CIMCSCF_newtonRaphson 
 
@@ -688,10 +875,14 @@ contains
     integer :: spi, spj, numberOfSpecies
     integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
     integer :: numberOfContractions_j, numberOfOccupiedOrbitals_j
-    integer :: p, q
+    integer :: p, q, r
     real(8), allocatable :: A(:,:)  
+    real(8), allocatable :: B(:,:)  
+    real(8), allocatable :: work(:)  
     integer, allocatable :: IPIV(:)
     integer :: info
+    integer :: lwork
+    real(8) :: auxvalue
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -701,35 +892,32 @@ contains
       call Matrix_constructor ( unitaryMatrix( spi ), int( numberOfContractions_i, 8), int( numberOfContractions_i, 8), 0.0_8 ) 
     enddo
 
-    !! antisymmetrizing the orbital rotations
-    do spi = 1, numberOfSpecies
-      numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
-      do p = 1, numberOfContractions_i
-        do q = p + 1, numberOfContractions_i
-          rotations(spi)%values(q,p) = - rotations(spi)%values(p,q)
-        enddo ! q
-      enddo ! p
-    enddo ! spi
-
     !! Caley transformation ( exponential of a matrix)
     do spi = 1, numberOfSpecies
-      numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
 
-      !! building A = I - 0.5*rotations and B = I + 0.5*rotations. Keep B in unitary matrix U
+      numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
+      lwork = numberOfContractions_i 
+
+      !! building A = I - rotations and B = I + rotations. Keep B in unitary matrix U
       allocate ( A ( numberOfContractions_i, numberOfContractions_i ) )
-      allocate ( IPIV ( numberOfContractions_i ) )
+      allocate ( B ( numberOfContractions_i, numberOfContractions_i ) )
+      allocate ( work ( lwork ) )
+      allocate ( IPIV ( lwork ) )
+
       A = 0.0_8
+      B = 0.0_8
+      work = 0.0_8
       IPIV = 0
 
       do p = 1, numberOfContractions_i 
         A(p, p ) = 1.0_8
-        unitaryMatrix(spi)%values(p, p) = 1.0_8
+        B(p, p ) = 1.0_8
       enddo ! p 
 
       do q = 1, numberOfContractions_i
         do p = 1, numberOfContractions_i 
-          A(p, q) = A(p, q) - 0.5_8 * rotations(spi)%values(p, q)
-          unitaryMatrix(spi)%values(p, q) = unitaryMatrix(spi)%values(p, q) + 0.5_8 * rotations(spi)%values(p, q)
+          A(p, q) = A(p, q) - 1.0_8 * rotations(spi)%values(p, q)
+          B(p, q) = B(p, q) + 1.0_8 * rotations(spi)%values(p, q)
         enddo ! p 
       enddo ! q
 
@@ -737,7 +925,7 @@ contains
       !! DGETRF computes: A = P * L * U
       call dgetrf( numberOfContractions_i, &
                    numberOfContractions_i, &
-                   A, &
+                   B, &
                    numberOfContractions_i, &
                    IPIV, &
                    info)
@@ -746,23 +934,47 @@ contains
           write(*,*) 'Error in DGETRF during Cayley Transform! INFO = ', info
       end if
 
-      !! LAPACK Linear Solver
-      !! DGETRS solves A * U = B (where U holds B initially, and is overwritten with the solution U)
-      call dgetrs('N', & !! 'N' specifies no transpose on A.
-                  numberOfContractions_i, &
-                  numberOfContractions_i, &
-                  A, & 
-                  numberOfContractions_i, &
-                  IPIV, &
-                  unitaryMatrix(spi)%values, & 
-                  numberOfContractions_i, &
+      lwork = -1
+      call dgetri(numberOfContractions_i, &     ! N
+                  B, &                          ! A
+                  numberOfContractions_i, &     ! LDA
+                  IPIV, &                       ! IPIV
+                  work, &                       ! work 
+                  lwork, &
                   info)
+
+      lwork = work(1)
+      deallocate ( work )
+      allocate ( work ( lwork ) )
+      work = 0.0_8
+
+      call dgetri(numberOfContractions_i, &     ! N
+                  B                     , &     ! A
+                  numberOfContractions_i, &     ! LDA
+                  IPIV, &                       ! IPIV
+                  work, &                       ! work 
+                  lwork, &
+                  info)
+
+      !!U = A * B 
+      do q = 1, numberOfContractions_i
+        do p = 1, numberOfContractions_i 
+          auxvalue = 0.0_8
+          do r = 1, numberOfContractions_i 
+            auxvalue = auxvalue + A(p,r) * B(r,q) 
+          enddo
+          unitaryMatrix(spi)%values(p,q) = auxvalue
+        enddo
+      enddo
+
       if (info /= 0) then
           write(*,*) 'Error in DGETRS during Cayley Transform! INFO = ', info
       end if
 
+      deallocate ( work )
       deallocate ( IPIV )
       deallocate ( A )
+      deallocate ( B )
 
       !print *, "U"
       !call Matrix_show ( unitaryMatrix(spi) )
@@ -787,8 +999,10 @@ contains
     character(50) :: wfnfile
     character(100) :: arguments(2)
     type(Matrix), allocatable :: hcoreMatrix(:)
+    type(Matrix), allocatable :: densityMatrix(:), overlapMatrix(:)
     type(matrix), allocatable :: kineticMatrix(:), attractionMatrix(:), externalPotMatrix(:)
     real(8) :: auxvalue
+    real(8) :: n_particles
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -798,6 +1012,8 @@ contains
     allocate( kineticMatrix(numberOfSpecies) )
     allocate( attractionMatrix(numberOfSpecies) )
     allocate( externalPotMatrix(numberOfSpecies) )
+    allocate( densityMatrix(numberOfSpecies) )
+    allocate( overlapMatrix(numberOfSpecies) )
 
     wfnFile = "lowdin.wfn"
     wfnUnit = 20
@@ -837,24 +1053,36 @@ contains
       externalPotMatrix( spi ) = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions_i, 8), &
                                                        columns=int(numberOfContractions_i, 8), binary=.true., arguments=arguments(1:2))
 
-      print *, " old coefficients ", spi
-      call Matrix_show( coefficients_old(spi) )
+      arguments(1) = "OVERLAP"
+      overlapMatrix( spi ) = Matrix_getFromFile(unit=wfnUnit, rows=int(numberOfContractions_i, 8), &
+                                                     columns=int(numberOfContractions_i, 8), binary=.true., arguments=arguments(1:2))
 
       call Matrix_constructor( coefficients_new(spi), int(numberOfContractions_i, 8), int(numberOfContractions_i, 8), 0.0_8 )
 
-      do q = 1, numberOfContractions_i
-        do p = 1, numberOfContractions_i 
+      do p = 1, numberOfContractions_i
+        do q = 1, numberOfContractions_i 
           auxvalue = 0.0_8
           do r = 1, numberOfContractions_i 
             auxvalue = auxvalue + coefficients_old(spi)%values(p,r) * unitaryMatrix(spi)%values(r,q) 
           enddo
           coefficients_new(spi)%values(p,q) = auxvalue
-          !coefficients_new(spi)%values(p,q) = coefficients_old(spi)%values(p,q) 
+        enddo
+      enddo
+      call Matrix_constructor( densityMatrix(spi), int(numberOfContractions_i, 8), int(numberOfContractions_i, 8), 0.0_8 )
+
+      !print *, " new coefficients ", spi
+      !call Matrix_show ( coefficients_new(spi) )
+
+      do p = 1, numberOfContractions_i
+        do q = 1, numberOfContractions_i 
+          auxvalue = 0.0_8
+          do r = 1, CIcore_instance%numberOfOccupiedOrbitals%values( spi )
+            auxvalue = auxvalue + coefficients_new(spi)%values(p,r) * coefficients_new(spi)%values(q,r)
+          enddo
+          densityMatrix(spi)%values(p,q) = auxvalue
         enddo
       enddo
 
-      print *, " new coefficients ", spi
-      call Matrix_show ( coefficients_new(spi) )
     enddo ! spi
 
     close (wfnUnit)
@@ -884,6 +1112,12 @@ contains
       arguments(1) = "ATTRACTION"
       call Matrix_writeToFile ( attractionMatrix(spi), wfnUnit , arguments=arguments(1:2), binary=.true. )
 
+      arguments(1) = "OVERLAP"
+      call Matrix_writeToFile ( overlapMatrix(spi), wfnUnit , arguments=arguments(1:2), binary=.true. )
+
+      arguments(1) = "DENSITY"
+      call Matrix_writeToFile ( densityMatrix(spi), wfnUnit , arguments=arguments(1:2), binary=.true. )
+
       arguments(1) = "EXTERNAL-POTENTIAL"
       if( CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL) &
       call Matrix_writeToFile ( externalPotMatrix(spi), wfnUnit , arguments=arguments(1:2), binary=.true. )
@@ -902,6 +1136,8 @@ contains
     deallocate ( hcoreMatrix ) 
     deallocate ( coefficients_old ) 
     deallocate ( coefficients_new ) 
+    deallocate ( densityMatrix )
+    deallocate ( overlapMatrix )
 
   end subroutine CIMCSCF_rotateCoefficients
 

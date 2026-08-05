@@ -429,12 +429,12 @@ contains
           do k = 1, numberOfOccupiedOrbitals
 
             !!Occupied orbitals
-            ciDensityMatrix(spi,state)%values(k,k) = ciDensityMatrix(spi,state)%values(k,k) - CIcore_instance%eigenVectors%values(a,state)**2
+            !ciDensityMatrix(spi,state)%values(k,k) = ciDensityMatrix(spi,state)%values(k,k) - CIcore_instance%eigenVectors%values(a,state)**2
             orbital = occA(spi)%values(k) 
 
             !!Unoccupied orbitals
             ciDensityMatrix(spi,state)%values(orbital,orbital) = ciDensityMatrix(spi,state)%values(orbital,orbital) + CIcore_instance%eigenVectors%values(a,state)**2
-
+    
            end do
          end do
 
@@ -478,10 +478,11 @@ contains
                                                             factorA * & 
                                                             CIcore_instance%eigenVectors%values(a,state) * &
                                                             CIcore_instance%eigenVectors%values(b,state)
-           ciDensityMatrix(spi,state)%values( diffOrbi(3), diffOrbi(1) ) = ciDensityMatrix(spi,state)%values( diffOrbi(3), diffOrbi(1) ) + &
+           cidensitymatrix(spi,state)%values( difforbi(3), difforbi(1) ) = ciDensityMatrix(spi,state)%values( diffOrbi(3), diffOrbi(1) ) + &
                                                             factorA * &
                                                             CIcore_instance%eigenVectors%values(a,state) * &
                                                             CIcore_instance%eigenVectors%values(b,state)
+
            
           endif !! coupling 
         enddo !! b
