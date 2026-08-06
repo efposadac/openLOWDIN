@@ -89,7 +89,7 @@ contains
   !<
   subroutine CImod_run()
     implicit none 
-    integer :: i,j,m, numberOfSpecies
+    integer :: i, numberOfSpecies
     integer :: a, ms
     real(8) :: timeA, timeB
     real(8) :: ecorr
@@ -539,9 +539,7 @@ contains
     type(Matrix) :: coefficients
     real(8) :: charge
     real(8) :: otherSpeciesCharge
-
-    integer :: ssize1, ssize2
-
+    integer :: ssize1
     character(50) :: wfnFile
     character(50) :: arguments(20)
     integer :: wfnUnit
@@ -809,7 +807,6 @@ contains
   !<
   subroutine CImod_show()
     implicit none
-    type(CIcore) :: this
     integer :: i
     integer(8) :: a
     real(8) :: davidsonCorrection, HFcoefficient, CIcorrection, MR
@@ -882,16 +879,12 @@ contains
   subroutine CImod_showEigenVectors()
     implicit none
 
-    integer(8) :: a,b,c
-    integer :: u,v,p
+    integer(8) :: a,c
+    integer :: p
     integer :: ci
-    integer :: i, j, ii, jj
+    integer :: i
     integer :: s, numberOfSpecies, auxnumberOfSpecies
-    integer :: size1, size2
-    real(8) :: timeA, timeB
-    integer(1) :: coupling
     integer(8) :: numberOfConfigurations
-    real(8) :: CIenergy
     integer(8), allocatable :: indexConf(:)
     integer, allocatable :: cilevel(:)
 
@@ -1061,9 +1054,8 @@ contains
   !<
   subroutine CImod_destructor()
     implicit none
-    integer i,j,m,n,p,q,c
+    integer c
     integer numberOfSpecies
-    integer :: isLambdaEqual1
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 

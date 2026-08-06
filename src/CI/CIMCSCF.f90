@@ -24,11 +24,9 @@ contains
     type(matrix), allocatable :: rotations(:) ! species % numcontractions, numcontractions 
     type(matrix), allocatable :: unitaryMatrix(:) ! species % numcontractions, numcontractions 
     integer :: spi, spj, numberOfSpecies
-    integer :: numberOfContractions, numberOfOccupiedOrbitals
+    integer :: numberOfContractions
     integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
     integer :: numberOfContractions_j, numberOfOccupiedOrbitals_j
-    integer :: i, ii, iiii, ii_aux, k, kk, iikk
-    integer :: p,q,r,s, pqrs, pq, rs
     integer :: state
     integer(8) :: numberOfElements
     real(8) :: timeDA, timeDB
@@ -148,9 +146,8 @@ contains
     integer :: p,q,r,s, pqrs, pq, rs, pq_aux
     integer :: pqrs_rdm, pq_rdm, rs_rdm
     integer :: spi, spj, numberOfSpecies
-    integer :: numberOfContractions, numberOfOccupiedOrbitals
-    integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
-    integer :: numberOfContractions_j, numberOfOccupiedOrbitals_j
+    integer :: numberOfContractions_i
+    integer :: numberOfContractions_j
     real(8) :: energy_one, energy_two_aa, energy_two_ab, energy_total
     real(8) :: n_pairs
 
@@ -236,13 +233,10 @@ contains
     type(vector), allocatable, intent(in) :: CI2RDM(:,:) ! species, species % numcontractions, numcontractions, numcontractions, numcontractions
     type(matrix), allocatable, intent(inout) :: fock(:) ! species % numcontractions, numcontractions
     type(matrix), allocatable, intent(inout) :: gradient(:) ! species % numcontractions, numcontractions
-    integer :: p,q,r,s,t, pr, pr_rdm, qr, qr_aux, st, st_rdm, qrst, prst_rdm, st_aux
-    integer :: pq, rs, pqrs
-    integer :: ps, pp, qs, pqrr, pqst, prqr, psqt, qt, rr
-    integer :: pqpq_rdm, pq_rdm 
+    integer :: p,q,r,s,t, pr, pr_rdm, qr, qr_aux, st, st_rdm, qrst, prst_rdm
     integer :: spi, spj, numberOfSpecies
-    integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
-    integer :: numberOfContractions_j, numberOfOccupiedOrbitals_j
+    integer :: numberOfContractions_i
+    integer :: numberOfContractions_j
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
@@ -389,17 +383,13 @@ contains
     type(matrix), allocatable :: W_xyxy(:) ! species % numcontractions, numcontractions (diagonal)
     type(matrix), allocatable :: W_yxxy(:) ! species % numcontractions, numcontractions (diagonal)
     integer :: spi, spj, numberOfSpecies
-    integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
-    integer :: numberOfContractions_j, numberOfOccupiedOrbitals_j
+    integer :: numberOfContractions_i
+    integer :: numberOfContractions_j 
     integer :: x, y, m, n
     integer :: yy, yy_aux, mn, ym, yn, yymn, ymyn
     integer :: xx_rdm, mn_rdm, xn_rdm, mx_rdm, xm_rdm, xxmn_rdm, xnmx_rdm, xnxm_rdm
     integer :: xy, xy_aux, xm, xymn, xmyn
     integer :: xy_rdm, my_rdm, ym_rdm, xymn_rdm, xnmy_rdm, xnym_rdm
-    integer :: yx, yx_aux, xn, yxmn, ymxn
-    integer :: yx_rdm, yn_rdm, yxmn_rdm, ynmx_rdm, ynxm_rdm
-    integer :: xx, xx_aux, xxmn, xmxn
-    integer :: ynmy_rdm, ynym_rdm, yy_rdm, yymn_rdm
     integer :: p, q
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
@@ -637,9 +627,8 @@ contains
     type(matrix), allocatable, intent(in) :: gradient(:) ! species % numcontractions, numcontractions
     type(matrix), allocatable, intent(in) :: hessian(:) ! species % numcontractions, numcontractions (diagonal)
     type(matrix), allocatable, intent(inout) :: rotations(:) ! species % numcontractions, numcontractions 
-    integer :: spi, spj, numberOfSpecies
-    integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
-    integer :: numberOfContractions_j, numberOfOccupiedOrbitals_j
+    integer :: spi, numberOfSpecies
+    integer :: numberOfContractions_i
     integer :: p, q
     real(8) :: epsilon
     real(8) :: update
@@ -691,7 +680,7 @@ contains
     type(matrix), allocatable, intent(inout) :: rotations(:) ! species % numcontractions, numcontractions 
     type(matrix), allocatable, intent(inout) :: unitaryMatrix(:) ! species % numcontractions, numcontractions 
     integer :: spi, numberOfSpecies
-    integer :: numberOfContractions_i, numberOfOccupiedOrbitals_i
+    integer :: numberOfContractions_i
     integer :: p, q, r
     real(8), allocatable :: A(:,:)  
     real(8), allocatable :: B(:,:)  
