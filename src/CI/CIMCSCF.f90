@@ -54,10 +54,6 @@ contains
           call Matrix_constructor ( CI1RDM( spi, state) , &
                int( numberOfContractions_i, 8), &
                int( numberOfContractions_i, 8), 0.0_8 )
-          !! initializing with HF occupancy, although this is not really neccesary, but RDM subroutines asssume this 
-          !do i = 1, numberOfOccupiedOrbitals_i
-          !  CI1RDM( spi, state )%values( i, i ) = 1.0_8
-          !enddo ! i 
        enddo ! state
     enddo ! spi
 
