@@ -1,5 +1,4 @@
 Output: Core
-CI: Core
 MM: Core
 MBPT: Core
 PT: Core
@@ -7,6 +6,7 @@ Ints: Core
 Deriv: Core
 COSMO: Core Ints
 IntegralsTransformation: Core Ints
+CI: Core IntegralsTransformation
 CalcProp: Core Ints
 DFT: Core
 SCF: Core Ints DFT Output Deriv

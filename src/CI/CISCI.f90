@@ -510,7 +510,7 @@ contains
         m2 = m1 + CISCI_instance%targetSpaceSize / CIcore_instance%nproc - 1 !! number of conf added
 
         CISCI_instance%omp_target_iterator_m(n) = m2
-        CISCI_instance%buffer_amplitudeCore%values(m1:m2) = huge(0.0_8) !! big number to ensure this conf won't be discarded after sorting
+        CISCI_instance%buffer_amplitudeCore%values(m1:m2) = 1.0E+6 !! big number to ensure this conf won't be discarded after sorting
         do spi = 1, numberOfSpecies
 
           o1 = CISCI_instance%combinedOrbitalsPositions(1,spi) 
