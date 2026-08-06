@@ -667,6 +667,7 @@ contains
     !!
     do speciesID = 1, this%molSys%numberOfQuantumSpecies
       call DensityMatrixSCFGuess_getGuess(speciesID, wfObjects(speciesID)%HcoreMatrix, &
+                                          wfObjects(speciesID)%overlapMatrix, &
                                           wfObjects(speciesID)%transformationMatrix, &
                                           wfObjects(speciesID)%densityMatrix, &
                                           wfObjects(speciesID)%waveFunctionCoefficients, &
@@ -1248,6 +1249,7 @@ contains
     end if
 
     totalExternalPotentialEnergy = 0.0
+
     if (CONTROL_instance%IS_THERE_EXTERNAL_POTENTIAL .or. &
         sum(abs(CONTROL_instance%ELECTRIC_FIELD)) .ne. 0 .or. &
         CONTROL_instance%ARE_THERE_QDO_POTENTIALS) then

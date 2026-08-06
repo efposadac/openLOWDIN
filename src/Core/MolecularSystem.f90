@@ -200,6 +200,10 @@ contains
           MolecularSystem_instance%species(i)%ocupationNumber, "please check your input addParticles and multiplicity"
         call MolecularSystem_exception(ERROR, "Fractional ocupation number, imposible combination of charge and multiplicity", "MolecularSystem module at build function.")
       end if
+
+      !!Check if a harmonic potential was loaded
+      if (MolecularSystem_getOmega(i, MolecularSystem_instance) .ne. 0.0_8) CONTROL_instance%ARE_THERE_QDO_POTENTIALS = .true.
+
     end do
 
     do i = 1, MolecularSystem_instance%numberOfPointCharges
@@ -1510,7 +1514,9 @@ contains
     output = 0.0_8
 
     do i = 1, size(system%pointCharges)
+      if(system%pointCharges(i)%charge .eq. 0.0_8) cycle
       do j = i + 1, size(system%pointCharges)
+        if(system%pointCharges(j)%charge .eq. 0.0_8) cycle
 
         deltaOrigin = system%pointCharges(i)%origin &
                       - system%pointCharges(j)%origin

@@ -1,0 +1,122 @@
+SYSTEM_DESCRIPTION='Muon functional test - Double harmonic trap from 10.1103/PhysRevB.108.245155'
+!This calculation reproduces very well the results reported in the paper
+!Value		  paper	     openlowdin
+!E_ground	  -0.4547    -0.454704
+!T_e 		   0.4072     0.407225
+!V_ext_e 	   0.0007     0.000679
+!T_u 		   0.0213     0.021334
+!V_exc_u 	   0.0108     0.010775
+!J_eu 		  -0.8328    -0.832789
+!E_eu_c		  -0.0619    -0.061929
+!eps_e		  -0.47      -0.467260
+!eps_u		  -0.821     -0.820715
+
+GEOMETRY
+e-(H) 7S7P7D 0.0 0.0 0.0 multiplicity=2 omega = 0.02 
+u+ 7S7P7D 0.0 0.0 0.0 omega = 0.02 
+n0 dirac 0.0 0.0 0.0 qdoCenterOf=e-alpha
+n0 dirac 0.0 0.0 0.0 qdoCenterOf=e-beta
+n0 dirac 0.0 0.0 0.0 qdoCenterOf=u+
+END GEOMETRY
+
+TASKS
+method = "UKS"
+END TASKS
+
+CONTROL
+readCoefficients=.F.
+electronExchangeCorrelationFunctional="NONE"
+muonElectronCorrelationFunctional="EMUC-1"
+END CONTROL
+
+BASIS 7S7P7D
+O-U+ U+ (SPD) BASIS TYPE: 2
+21
+1 0 1
+15.8560 1.0
+2 0 1
+10.4040 1.0
+3 0 1
+7.0649 1.0
+4 0 1
+5.2960 1.0
+5 0 1
+4.1400 1.0
+6 0 1
+2.0700 1.0
+7 0 1
+1.0350 1.0
+1 1 1
+15.8560 1.0
+2 1 1
+10.4040 1.0
+3 1 1
+7.0649 1.0
+4 1 1
+5.2960 1.0
+5 1 1
+4.1400 1.0
+6 1 1
+2.0700 1.0
+7 1 1
+1.0350 1.0
+1 2 1
+15.8560 1.0
+2 2 1
+10.4040 1.0
+3 2 1
+7.0649 1.0
+4 2 1
+5.2960 1.0
+5 2 1
+4.1400 1.0
+6 2 1
+2.0700 1.0
+7 2 1
+1.0350 1.0
+O-HYDROGEN H (SPD) BASIS TYPE: 1
+21
+1 0 1
+7.2212 1.0
+2 0 1
+3.2589 1.0
+3 0 1
+0.6472 1.0
+4 0 1
+0.0574 1.0
+5 0 1
+1.4523 1.0
+6 0 1
+0.1287  1.0
+7 0 1
+0.2879 1.0
+1 1 1
+7.2212 1.0
+2 1 1
+3.2589 1.0
+3 1 1
+0.6472 1.0
+4 1 1
+0.0574 1.0
+5 1 1
+1.4523 1.0
+6 1 1
+0.1287  1.0
+7 2 1
+0.2879 1.0
+1 2 1
+7.2212 1.0
+2 2 1
+3.2589 1.0
+3 2 1
+0.6472 1.0
+4 2 1
+0.0574 1.0
+5 2 1
+1.4523 1.0
+6 2 1
+0.1287  1.0
+7 2 1
+0.2879 1.0
+END BASIS
+
