@@ -287,13 +287,13 @@ contains
   end subroutine CISCI_destructor
  
   !! main part
-  subroutine CISCI_run( numberOfConfigurations, eigenVectors, initialEnergy, initialStep, finalStep )
+  subroutine CISCI_run( numberOfConfigurations, eigenVectors, initialEnergy, initialStep, unboundReference, computePT2 )
     use sort_
     implicit none
     integer(8), intent(inout) :: numberOfConfigurations
     type(matrix), intent(inout) :: eigenVectors
     real(8), intent(in) :: initialEnergy 
-    logical, intent(in):: initialStep, finalStep
+    logical, intent(in):: initialStep, unboundReference, computePT2
     real(8) :: currentEnergy 
     integer(8) :: a, aa, i, j, ii, jj
     integer(8) :: o1, o2
@@ -345,10 +345,10 @@ contains
 
       case ("ASCI")
         !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
-        if ( CIcore_instance%level == "CISD-" .or. .not. finalStep ) then
+        if ( CIcore_instance%level == "CISD-" .or. unboundReference ) then
           call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
         endif
-        if ( CIcore_instance%level == "FCI" .and. finalStep ) then
+        if ( CIcore_instance%level == "FCI" .and. .not. unboundReference ) then
           call CISCI_core_amplitudes ( CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentenergy )
         endif
       case ("HBCI")
@@ -498,7 +498,7 @@ contains
     enddo
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
-    if ( finalStep ) then
+    if ( computePT2 ) then
 
       !! reset iterators
       call CISCI_resetBuffer()

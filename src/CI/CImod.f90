@@ -89,7 +89,7 @@ contains
   !<
   subroutine CImod_run()
     implicit none 
-    integer :: i, numberOfSpecies
+    integer :: i, k, numberOfSpecies
     integer :: a, ms
     real(8) :: timeA, timeB
     real(8) :: ecorr
@@ -188,16 +188,11 @@ contains
         write(*,*) "DSYEVR computes the eigenvalues and, optionally, the left and/or right eigenvectors for SY matrices"
         write (6,*) ""
 
-      case default
+    case default
 
-        call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented")
+      call CImod_exception( ERROR, "CImod run", "Diagonalization method not implemented")
 
-      end select
-
-    !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
-    write (*, *) "Getting transformed integrals..."
-    call CImod_getTransformedIntegrals()
-    write (*,*) ""
+    end select
 
     !! setting the requested CI level
     write (*, *) "Setting CI level..."
@@ -221,6 +216,11 @@ contains
         call CIJadamilu_buildCouplingMatrix()
         call CIJadamilu_buildCouplingOrderList()
       endif
+
+      !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
+      write (*, *) "Getting transformed integrals..."
+      call CImod_getTransformedIntegrals()
+      write (*,*) ""
 
       write (*, *) "Building diagonal..." !! and get number of configurations
       call CIDiag_buildDiagonal()
@@ -432,6 +432,46 @@ contains
     !! -------------------------------- SCI -------------------------------------
     else !if ( CONTROL_instance%CI_SELECTIVE_METHOD == "SCI" ) then
 
+      !! MCSCF
+      if ( CONTROL_instance%CI_MCSCF ) then
+
+        do k = 1, 20
+  
+          !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
+          write (*, *) "Getting transformed integrals..."
+          call CImod_getTransformedIntegrals()
+          write (*,*) ""
+
+          call CISCI_show()
+
+          write (*,*) "allocating arrays for sci ..."
+          call cisci_constructor( cicore_instance%numberofconfigurations )
+
+          call Vector_constructor(CIcore_instance%eigenValues, &
+                                int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
+
+          !! initial size, CISCI_run will increase it
+          call Matrix_constructor (CIcore_instance%eigenVectors, &
+            int(CIcore_instance%numberOfConfigurations,8), &
+            int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
+
+          call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
+                          initialEnergy = HartreeFock_instance%totalEnergy, &
+                          initialStep = .true., unboundReference = .false., computePT2 = .false. )
+
+          call CISCI_destructor()
+
+          call CIMCSCF_compute()
+
+        enddo ! MCSCF iter
+      endif ! MCSCF macro
+
+      !! single SCI ( or final SCI after MCSCF)
+
+      !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
+      write (*, *) "Getting transformed integrals..."
+      call CImod_getTransformedIntegrals()
+      write (*,*) ""
 
       call CISCI_show()
 
@@ -446,54 +486,24 @@ contains
            int(CIcore_instance%numberOfConfigurations,8), &
            int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
 
-      if ( .not. CONTROL_instance%CI_MCSCF ) then
       if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
-                        initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .false. ) ! do a cisd- first
+                        initialEnergy = HartreeFock_instance%totalEnergy, &
+                        initialStep = .true., unboundReference = .true., computePT2 = .false. ) ! do a cisd- first
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
-                        initialEnergy = CIcore_instance%eigenValues%values(1), initialStep = .false., finalStep = .true. ) ! fci
+                        initialEnergy = CIcore_instance%eigenValues%values(1), &
+                        initialStep = .false., unboundReference = .false., computePT2 = .true. ) ! fci
       else  
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
-                        initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
+                        initialEnergy = HartreeFock_instance%totalEnergy, &
+                        initialStep = .true., unboundReference = .false., computePT2 = .true. )
       endif
-      endif
 
-      if ( CONTROL_instance%CI_MCSCF ) then
-
-        call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
-                        initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
-
-        do i = 1, 20
-        call CISCI_destructor()
-
-        call CIMCSCF_compute()
-
-        write (*, *) "Getting transformed integrals..."
-        call CImod_getTransformedIntegrals()
-
-        call CISCI_show()
-
-        write (*,*) "Allocating arrays for SCI ..."
-        call CISCI_constructor( CIcore_instance%numberOfConfigurations )
-
-        call Vector_constructor(CIcore_instance%eigenValues, &
-                                int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
-
-        !! initial size, CISCI_run will increase it
-        call Matrix_constructor (CIcore_instance%eigenVectors, &
-           int(CIcore_instance%numberOfConfigurations,8), &
-           int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
-
-        call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
-                       initialEnergy = HartreeFock_instance%totalEnergy, initialStep = .true., finalStep = .true. )
-        enddo
-
-
-      endif
+      call CISCI_destructor()
 
       call CISCI_saveEigenVector ( CIcore_instance%eigenVectors )
 
-    end if
+    end if !! SCI or not SCI
 
     write(*,*) ""
     write(6,*) "-----------------------------------------------------------------------"
@@ -512,7 +522,6 @@ contains
 !       print *, ""
 !       ! call CIcore_getTransformedIntegrals()
 !       !call CIcore_printTransformedIntegralsToFile()
-!
 
   end subroutine CImod_run
 
@@ -564,7 +573,6 @@ contains
       numberOfContractions = MolecularSystem_getTotalNumberOfContractions( i )
       charge=MolecularSystem_getCharge(i)
 
-!        write (6,"(T10,A)")"ONE PARTICLE INTEGRALS TRANSFORMATION FOR: "//trim(nameOfSpecies)
       call Matrix_constructor (CIcore_instance%twoCenterIntegrals(i), &
         int(numberOfContractions,8), int(numberOfContractions,8), 0.0_8 )
 
