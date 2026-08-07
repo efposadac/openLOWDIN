@@ -388,6 +388,11 @@ contains
       enddo
 
       !! two body intra
+      !$omp parallel &
+      !$omp& private ( p, q, r, pr, pr_rdm, qr, s, t, st, st_rdm, qrst, prst_rdm, & 
+      !$omp            spj, numberOfContractions_j, qr_aux ) &  
+      !$omp& shared ( fock ) 
+      !$omp do schedule ( dynamic ) collapse(2)
       do p = 1, numberOfContractions_i
         do q = 1, numberOfContractions_i
 
@@ -468,6 +473,8 @@ contains
           enddo ! spj
         enddo ! q 
       enddo ! p
+      !$omp enddo
+      !$omp end parallel
 
     enddo ! spi
 
