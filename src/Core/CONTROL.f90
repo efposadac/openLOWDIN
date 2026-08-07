@@ -217,6 +217,8 @@ module CONTROL_
     logical :: CI_MCSCF
     logical :: CI_ONE_REDUCED_DENSITY_MATRIX
     logical :: CI_TWO_REDUCED_DENSITY_MATRIX
+    integer :: CI_MCSCF_MAX_ITER
+    real(8) :: CI_MCSCF_DAMPING_FACTOR_NR
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -578,6 +580,8 @@ module CONTROL_
   logical :: LowdinParameters_CIMCSCF 
   logical :: LowdinParameters_CIOneReducedDensityMatrix
   logical :: LowdinParameters_CITwoReducedDensityMatrix
+  integer :: LowdinParameters_CIMCSCFMaxIter
+  real(8) :: LowdinParameters_CIMCSCFDampingFactorNR
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -925,6 +929,8 @@ module CONTROL_
     LowdinParameters_CIMCSCF, &
     LowdinParameters_CIOneReducedDensityMatrix, &
     LowdinParameters_CITwoReducedDensityMatrix, &
+    LowdinParameters_CIMCSCFMaxIter, &
+    LowdinParameters_CIMCSCFDampingFactorNR, &
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1293,6 +1299,8 @@ contains
     LowdinParameters_CIMCSCF = .false.
     LowdinParameters_CIOneReducedDensityMatrix = .false.
     LowdinParameters_CITwoReducedDensityMatrix = .false.
+    LowdinParameters_CIMCSCFMaxIter = 20
+    LowdinParameters_CIMCSCFDampingFactorNR = 0.50_8
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1650,7 +1658,8 @@ contains
     CONTROL_instance%CI_MCSCF = .FALSE.
     CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX = .FALSE.
     CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX = .FALSE.
-
+    CONTROL_instance%CI_MCSCF_MAX_ITER = 20
+    CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR = 0.50_8
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2057,7 +2066,8 @@ contains
     CONTROL_instance%CI_MCSCF = LowdinParameters_CIMCSCF 
     CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX = LowdinParameters_CIOneReducedDensityMatrix
     CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX = LowdinParameters_CITwoReducedDensityMatrix
-
+    CONTROL_instance%CI_MCSCF_MAX_ITER = LowdinParameters_CIMCSCFMaxIter 
+    CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR = LowdinParameters_CIMCSCFDampingFactorNR 
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2438,7 +2448,8 @@ contains
     LowdinParameters_CIMCSCF = CONTROL_instance%CI_MCSCF
     LowdinParameters_CIOneReducedDensityMatrix = CONTROL_instance%CI_ONE_REDUCED_DENSITY_MATRIX
     LowdinParameters_CITwoReducedDensityMatrix = CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX
-
+    LowdinParameters_CIMCSCFMaxIter = CONTROL_instance%CI_MCSCF_MAX_ITER 
+    LowdinParameters_CIMCSCFDampingFactorNR = CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR
     !!***************************************************************************
     !! Non-orthogonal CI
     !!

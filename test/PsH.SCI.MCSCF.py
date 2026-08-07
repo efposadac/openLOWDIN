@@ -8,15 +8,14 @@ def setReferenceValues():
     refValues = {
 "HF energy" : [-0.666783059430,1E-8],
 "E_SCI+PT2" : [-0.743335409139,2E-5,2E-5],
--0.743333556464623
-"E_MCSCF initial" : [-0.743334059515,2E-5],
+"FINAL MCSCF Energy" : [-0.743334059515,2E-5],
 }
     return refValues
 
 def getTestValues(testValues,testName):
     testValues["HF energy"] = test.getSCFTotalEnergy(testName)
     testValues["E_SCI+PT2"] = test.getSCIPT2Energy(testName)
-    testValues["E_MCSCF initial"] = test.getMCSCFInitialEnergy(testName)
+    testValues["FINAL MCSCF Energy"] = test.getFinalMCSCFEnergy(testName)
     return
 
 if __name__ == '__main__':

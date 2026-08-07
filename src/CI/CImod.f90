@@ -89,6 +89,7 @@ contains
   !<
   subroutine CImod_run()
     implicit none 
+    type(MCSCF) :: MCSCF_instance
     integer :: i, k, numberOfSpecies
     integer :: a, ms
     real(8) :: timeA, timeB
@@ -435,8 +436,20 @@ contains
       !! MCSCF
       if ( CONTROL_instance%CI_MCSCF ) then
 
-        do k = 1, 20
-  
+        call CIMCSCF_show()
+
+        call Vector_constructor ( MCSCF_instance%energy, int(CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8), 0.0_8 )
+        call Vector_constructor ( MCSCF_instance%energyChange, int(CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8), 0.0_8 )
+        call Matrix_constructor ( MCSCF_instance%maxGradient, &
+                                   int( CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8 ), int(MolecularSystem_getNumberOfQuantumSpecies(), 8 ), 0.0_8 )
+        call Matrix_constructor ( MCSCF_instance%totalGradient, &
+                                  int ( CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8 ), int(MolecularSystem_getNumberOfQuantumSpecies(), 8 ), 0.0_8 )
+
+        MCSCF_instance%iter = 0
+        MCSCF_instance%energy%values(1) = HartreeFock_instance%totalEnergy
+        MCSCF_instance%iter = MCSCF_instance%iter + 1
+
+        do k = 1, CONTROL_instance%CI_MCSCF_MAX_ITER 
           !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
           write (*, *) "Getting transformed integrals..."
           call CImod_getTransformedIntegrals()
@@ -461,9 +474,14 @@ contains
 
           call CISCI_destructor()
 
-          call CIMCSCF_compute()
+          call CIMCSCF_compute( MCSCF_instance )
+
+          if ( abs ( MCSCF_instance%energyChange%values( k + 1 ) ) <= 1E-5 ) exit
 
         enddo ! MCSCF iter
+
+        call CIMCSCF_summary( MCSCF_instance )
+
       endif ! MCSCF macro
 
       !! single SCI ( or final SCI after MCSCF)
@@ -505,11 +523,11 @@ contains
 
     end if !! SCI or not SCI
 
-    write(*,*) ""
+    write(6,*) ""
     write(6,*) "-----------------------------------------------------------------------"
-    write(*,*) "          END ", trim(CIcore_instance%level)," CALCULATION"
+    write(6,*) "          END ", trim(CIcore_instance%level)," CALCULATION"
     write(6,*) "-----------------------------------------------------------------------"
-    write(*,*) ""
+    write(6,*) ""
          
 !    case ( "FCI-oneSpecie" )
 !

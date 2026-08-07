@@ -8,14 +8,125 @@ module CIMCSCF_
 
   implicit none
 
+  type, public :: MCSCF
+    type(vector) :: energy
+    type(vector) :: energyChange
+    type(matrix) :: maxGradient
+    type(matrix) :: totalGradient
+    integer :: iter
+  endtype MCSCF 
+
   public :: &
-    CIMCSCF_compute
+    CIMCSCF_compute, &
+    CIMCSCF_show, &
+    CIMCSCF_summary
+
+  private :: &
+    CIMCSCF_energy, &
+    CIMCSCF_gradient, &
+    CIMCSCF_hessian, &
+    CIMCSCF_newtonRaphson, &
+    CIMCSCF_buildUnitaryMatrix, &
+    CIMCSCF_rotateCoefficients 
 
 contains
-
-  subroutine CIMCSCF_compute()
+  subroutine CIMCSCF_show () 
     implicit none
+    integer(8) :: totalSize
+    integer :: spi, spj, numberOfSpecies
+    integer :: numberOfContractions_i
+    integer :: numberOfContractions_j
+    integer(8) :: sizeAA, sizeBB, sizeAAAA, sizeAABB
 
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+    totalSize = 0_8
+
+    do spi = 1, CIcore_instance%numberOfSpecies 
+      numberOfContractions_i = MolecularSystem_getTotalNumberOfContractions( spi )
+    
+      sizeAA = ( numberOfContractions_i * ( numberOfContractions_i + 1 ) ) / 2
+      sizeAAAA = ( sizeAA * sizeAA )
+
+      totalSize = totalSize + sizeAA * 8 * ( &
+                                              + 1 & ! 1-RDM
+                                              + 2 & ! AO2MO one-body, indexmap
+                                              + 2 & ! Generalized Fock + Gradient
+                                              + 3 & ! Hessian + W_xyxy + W_yxxy
+                                              + 4 & ! Rotations, unitary, old, new coeff
+                                              + 6 & ! hcore, kinetic, attraction, ext, overlap, density
+                                            ) 
+
+      totalSize = totalSize + sizeAAAA * 8 * ( &
+                                              + 2 & ! AO2MO two body, indexmap
+                                              + 1 & ! 2RDM 
+                                             )
+
+      do spj = spi + 1 , CIcore_instance%numberOfSpecies 
+        numberOfContractions_j = MolecularSystem_getTotalNumberOfContractions( spj )
+        sizeBB = ( numberOfContractions_j * ( numberOfContractions_j + 1 ) ) / 2
+        sizeAABB = ( sizeAA * sizeBB )
+
+        totalSize = totalSize + sizeAABB * 8 * ( &
+                                                + 1 & ! AO2MO 
+                                                + 1 & ! 2RDM
+                                               ) 
+      enddo ! spj
+
+      !! SCI conf
+      totalSize = totalSize + CISCI_instance%targetSpaceSize_max * &
+                                  ( 8 + 2*8 & !! coeff, eigenvectors, W per omp thread
+                                    + 1*CIcore_instance%numberOfActiveOrbitals%values(spi) + 4*CIcore_instance%numberOfActiveOrbitals%values(spi) )  !! conf_orb, conf_cc
+
+    enddo ! spi 
+
+    write (6,*) ""
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,"(T2,A62)") "       Multi-Configurational Self-Consistent Field (MCSCF)       " 
+    write (6,"(T2,A62)") "  Based on J. Chem. Phys. 74, 2384 (1981); doi: 10.1063/1.441359 "
+    write (6,"(T2,A62)") "                          J. Charry                              "
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) ""
+    write (6,"(T2,A,F14.3,A3 )") "Estimated memory needed       :", real( totalSize )/(1024**2) , " MB"
+    write (6,"(T2,A,F14.3,A3 )") "                               ", real( totalSize )/(1024**3) , " GB"
+    write (6,"(T2,A,I8 )")       "Maximum number of iterations  :", CONTROL_instance%CI_MCSCF_MAX_ITER 
+    write (6,"(T2,A,F14.3 )")    "Netwon-Raphson damping factor :", CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR
+    write (6,"(T2,A,F14.3 )")    "Convergence energy criteria   :", 1E-5  
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) ""
+    
+  end subroutine CIMCSCF_show
+
+  subroutine CIMCSCF_summary( MCSCF_instance )
+    implicit none
+    type(MCSCF), intent(in) :: MCSCF_instance
+    integer :: k
+
+    write (6,*) ""
+    write (6,*) "CONVERGED MCSCF!"
+    write (6,*) "____________________________________________________________________"
+    write (6,*) "| Iter |    Energy |    Δ Energy |  Max. Gradient |  Tot. Gradient |"
+    write (6,*) "____________________________________________________________________"
+    do k = 1, MCSCF_instance%iter 
+      write (6,"(T2,I6,F14.6,ES14.3,A3,ES14.3,A3,ES14.3)") k, MCSCF_instance%energy%values(k), MCSCF_instance%energyChange%values(k), &
+                  "  ", maxval(MCSCF_instance%maxGradient%values(k,:)), "   ", sum(MCSCF_instance%totalGradient%values(k,:))
+    enddo
+    write (6,*) "____________________________________________________________________"
+    write (6,"(A,F14.8)")  "FINAL MCSCF Energy        =", MCSCF_instance%energy%values( MCSCF_instance%iter )
+    write (6,"(A,ES14.3)") "FINAL MCSCF Delta Energy  =", MCSCF_instance%energyChange%values( MCSCF_instance%iter )
+    write (6,"(A,ES14.3)") "FINAL MCSCF Max. Gradient =", maxval(MCSCF_instance%maxGradient%values( MCSCF_instance%iter, :))
+    write (6,"(A,ES14.3)") "FINAL MCSCF Tot. Gradient =", sum(MCSCF_instance%totalGradient%values( MCSCF_instance%iter, :)) 
+
+    write (6,*) ""
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) "          END MCSCF CALCULATION"
+    write (6,*) "-----------------------------------------------------------------------"
+    write (6,*) ""
+
+  end subroutine CIMCSCF_summary 
+
+  subroutine CIMCSCF_compute( MCSCF_instance )
+    implicit none
+    type(MCSCF), intent(inout) :: MCSCF_instance
     type(matrix), allocatable :: CI1RDM(:,:) ! species, state % numcontractions, numcontractions
     type(vector), allocatable :: CI2RDM(:,:) ! species, species % numcontractions, numcontractions, numcontractions, numcontractions
     type(matrix), allocatable :: fock(:) ! species % numcontractions, numcontractions
@@ -37,7 +148,9 @@ contains
     write(6,*) "BUILDING MCSCF MATRICES "
     write(6,*) "-----------------------------------------------------------------------"
     write(6,*) ""
-  
+
+    MCSCF_instance%iter = MCSCF_instance%iter + 1
+
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
 
     !! constructor
@@ -91,10 +204,10 @@ contains
     call CIdensity_2RDM_SCI( CI2RDM )
 
     write (6,*) "Computing the MCSCF energy from 1- and 2-RDM ..."
-    call CIMCSCF_energy( CI1RDM, CI2RDM  )
+    call CIMCSCF_energy( MCSCF_instance, CI1RDM, CI2RDM  )
 
     write (6,*) "Building MCSCF gradient ..."
-    call CIMCSCF_gradient( CI1RDM, CI2RDM, fock, gradient )
+    call CIMCSCF_gradient( MCSCF_instance, CI1RDM, CI2RDM, fock, gradient )
 
     write (6,*) "Building MCSCF hessian (diagonal) ..."
     call CIMCSCF_hessian( CI1RDM, CI2RDM, fock, hessian, gradient )
@@ -139,8 +252,9 @@ contains
 
   end subroutine CIMCSCF_compute
 
-  subroutine CIMCSCF_energy( CI1RDM, CI2RDM  )
+  subroutine CIMCSCF_energy( MCSCF_instance, CI1RDM, CI2RDM  )
     implicit none
+    type(MCSCF), intent(inout) :: MCSCF_instance
     type(matrix), allocatable, intent(inout) :: CI1RDM(:,:) ! species, state % numcontractions, numcontractions
     type(vector), allocatable, intent(inout) :: CI2RDM(:,:) ! species, species % numcontractions, numcontractions, numcontractions, numcontractions
     integer :: p,q,r,s, pqrs, pq, rs, pq_aux
@@ -224,11 +338,15 @@ contains
     write (6,"(T2,A37,F25.12)") "MCSCF Initial two-body inter energy = ", energy_two_ab
     write (6,"(T2,A37,F25.12)") "MCSCF Initial total energy =          ", energy_total
     write (6,*) ""
+    MCSCF_instance%energy%values(MCSCF_instance%iter) = energy_total 
+    MCSCF_instance%energyChange%values(MCSCF_instance%iter) = MCSCF_instance%energy%values(MCSCF_instance%iter) - &
+                                                                MCSCF_instance%energy%values(MCSCF_instance%iter - 1) 
 
   end subroutine CIMCSCF_energy
 
-  subroutine CIMCSCF_gradient( CI1RDM, CI2RDM, fock, gradient )
+  subroutine CIMCSCF_gradient( MCSCF_instance, CI1RDM, CI2RDM, fock, gradient )
     implicit none
+    type(MCSCF), intent(inout) :: MCSCF_instance
     type(matrix), allocatable, intent(in) :: CI1RDM(:,:) ! species, state % numcontractions, numcontractions
     type(vector), allocatable, intent(in) :: CI2RDM(:,:) ! species, species % numcontractions, numcontractions, numcontractions, numcontractions
     type(matrix), allocatable, intent(inout) :: fock(:) ! species % numcontractions, numcontractions
@@ -367,6 +485,8 @@ contains
         enddo ! q 
       enddo ! p
 
+      MCSCF_instance%maxGradient%values(MCSCF_instance%iter,spi) = maxval(gradient(spi)%values)
+      MCSCF_instance%totalGradient%values(MCSCF_instance%iter,spi) = sum(abs(gradient(spi)%values))
       !call Matrix_show (gradient(spi))
 
     enddo ! spi
@@ -632,9 +752,10 @@ contains
     integer :: p, q
     real(8) :: epsilon
     real(8) :: update
+    real(8) :: dampingFactor
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
-
+    dampingFactor = CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR
     epsilon = 1.0E-6
 
     allocate( rotations(numberOfSpecies) )
@@ -649,7 +770,7 @@ contains
 
       do p = 1, numberOfContractions_i
         do q = 1, numberOfContractions_i
-          update = - gradient(spi)%values(p,q) * 0.50_8 / ( hessian(spi)%values(p,q) + epsilon) 
+          update = - gradient(spi)%values(p,q) * dampingFactor / ( hessian(spi)%values(p,q) + epsilon) 
           !if ( abs(update) > 0.50_8 ) update = sign(0.50_8, update ) 
           if ( abs(update) > 0.50_8 ) write (*,*) "Warning! large rotations detected"
           rotations(spi)%values(p,q) = update
