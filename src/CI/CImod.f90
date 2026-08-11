@@ -437,19 +437,9 @@ contains
       if ( CONTROL_instance%CI_MCSCF ) then
 
         call CIMCSCF_show()
+        call CIMCSCF_constructor( MCSCF_instance )
 
-        call Vector_constructor ( MCSCF_instance%energy, int(CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8), 0.0_8 )
-        call Vector_constructor ( MCSCF_instance%energyChange, int(CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8), 0.0_8 )
-        call Matrix_constructor ( MCSCF_instance%maxGradient, &
-                                   int( CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8 ), int(MolecularSystem_getNumberOfQuantumSpecies(), 8 ), 0.0_8 )
-        call Matrix_constructor ( MCSCF_instance%totalGradient, &
-                                  int ( CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8 ), int(MolecularSystem_getNumberOfQuantumSpecies(), 8 ), 0.0_8 )
-
-        MCSCF_instance%iter = 0
-        MCSCF_instance%energy%values(1) = HartreeFock_instance%totalEnergy
-        MCSCF_instance%iter = MCSCF_instance%iter + 1
-
-        do k = 1, CONTROL_instance%CI_MCSCF_MAX_ITER 
+          do k = 1, CONTROL_instance%CI_MCSCF_MAX_ITER 
           !! getting the transformed AO to MO integrals, and transforming the one-particle integrals
           write (*, *) "Getting transformed integrals..."
           call CImod_getTransformedIntegrals()
@@ -481,6 +471,8 @@ contains
         enddo ! MCSCF iter
 
         call CIMCSCF_summary( MCSCF_instance )
+
+        call CIMCSCF_destructor( MCSCF_instance )
 
       endif ! MCSCF macro
 

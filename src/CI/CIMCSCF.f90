@@ -17,6 +17,8 @@ module CIMCSCF_
   endtype MCSCF 
 
   public :: &
+    CIMCSCF_constructor, &
+    CIMCSCF_destructor, &
     CIMCSCF_compute, &
     CIMCSCF_show, &
     CIMCSCF_summary
@@ -30,6 +32,42 @@ module CIMCSCF_
     CIMCSCF_rotateCoefficients 
 
 contains
+
+  subroutine CIMCSCF_constructor ( MCSCF_instance ) 
+    implicit none
+    type(MCSCF), intent(inout) :: MCSCF_instance
+    integer :: spi, numberOfSpecies
+    integer :: numberOfContractions_i 
+
+    numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
+
+    call Vector_constructor ( MCSCF_instance%energy, int(CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8), 0.0_8 )
+    call Vector_constructor ( MCSCF_instance%energyChange, int(CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8), 0.0_8 )
+    call Matrix_constructor ( MCSCF_instance%maxGradient, &
+                               int( CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8 ), &
+                               int(MolecularSystem_getNumberOfQuantumSpecies(), 8 ), 0.0_8 )
+    call Matrix_constructor ( MCSCF_instance%totalGradient, & 
+                               int ( CONTROL_instance%CI_MCSCF_MAX_ITER + 1, 8 ), & 
+                               int(MolecularSystem_getNumberOfQuantumSpecies(), 8 ), 0.0_8 )
+
+    MCSCF_instance%iter = 0
+    MCSCF_instance%energy%values(1) = HartreeFock_instance%totalEnergy
+    MCSCF_instance%iter = MCSCF_instance%iter + 1
+
+  end subroutine CIMCSCF_constructor
+
+  subroutine CIMCSCF_destructor ( MCSCF_instance ) 
+    implicit none
+    type(MCSCF), intent(inout) :: MCSCF_instance
+
+    call Vector_destructor ( MCSCF_instance%energy )
+    call Vector_destructor ( MCSCF_instance%energyChange)
+    call Matrix_destructor ( MCSCF_instance%maxGradient)
+    call Matrix_destructor ( MCSCF_instance%totalGradient)
+
+
+  end subroutine CIMCSCF_destructor
+
   subroutine CIMCSCF_show () 
     implicit none
     integer(8) :: totalSize
@@ -196,6 +234,8 @@ contains
 
       enddo ! spj
     enddo ! spi
+
+
 
     write (6,*) "Building 1-RDM ..."
     call CIdensity_1RDM_SCI( CI1RDM )
@@ -728,17 +768,6 @@ contains
       enddo ! p 
     enddo ! spi
 
-    !do spi = 1, numberOfSpecies
-    !  print *, "xyxy"
-    !  call Matrix_show(W_xyxy(spi))
-    !  print *, "yxxy"
-    !  call Matrix_show(W_yxxy(spi))
-    !  print *, "xyyx"
-    !  call Matrix_show(W_xyyx(spi))
-    !  print *, "yxyx"
-    !  call Matrix_show(W_yxyx(spi))
-    !enddo ! spi
-
     deallocate( W_yxxy )
     deallocate( W_xyxy )
 
@@ -756,10 +785,11 @@ contains
     type(matrix), allocatable, intent(inout) :: rotations(:) ! species % numcontractions, numcontractions 
     integer :: spi, numberOfSpecies
     integer :: numberOfContractions_i
-    integer :: p, q
+    integer :: p, q, pq1
     real(8) :: epsilon
     real(8) :: update
     real(8) :: dampingFactor
+    integer(8) :: N
 
     numberOfSpecies = MolecularSystem_getNumberOfQuantumSpecies()
     dampingFactor = CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR
