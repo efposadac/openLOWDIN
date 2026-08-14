@@ -446,6 +446,7 @@ if [ $extFile="lowdin" ]; then
         cp $nameFile*.fchk $LOWDIN_SCRATCH/$nameFile &> /dev/null
         cp $nameFile*.gms.bs $LOWDIN_SCRATCH/$nameFile &> /dev/null
         mv $nameFile*.kin $LOWDIN_SCRATCH/$nameFile &> /dev/null
+        cp $nameFile*.Matrices.ci $LOWDIN_SCRATCH/$nameFile &> /dev/null
         cp $nameFile*.NOCI* $LOWDIN_SCRATCH/$nameFile &> /dev/null
         mv $nameFile.out $LOWDIN_SCRATCH/$nameFile
         mv $nameFile*.over $LOWDIN_SCRATCH/$nameFile &> /dev/null

@@ -129,11 +129,11 @@ contains
     write (6,*) ""
     write (6,"(T2,A,F14.3,A3 )") "Estimated memory needed : ", real( totalSize )/(1024**2) , " MB"
     write (6,"(T2,A,F14.3,A3 )") "                          ", real( totalSize )/(1024**3) , " GB"
-    write (6,"(T2,A,I8 )") "Length of core (search) space                          :",  CISCI_instance%coreSpaceSize
-    write (6,"(T2,A,I8 )") "Length of target (Full-CI subset) space per OMP thread :",  CISCI_instance%targetSpaceSize_max / CIcore_instance%nproc
-    write (6,"(T2,A,I8 )") "Length of buffer (auxiliary sort) space per OMP thread :",  CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
-    write (6,"(T2,A,I8 )") "Length of total target space                           :",  CISCI_instance%targetSpaceSize_max
-    write (6,"(T2,A,I8 )") "Length of total buffer space                           :",  CISCI_instance%buffer_amplitudeCoreSize 
+    write (6,"(T2,A,I10 )") "Length of core (search) space                          :",  CISCI_instance%coreSpaceSize
+    write (6,"(T2,A,I10 )") "Length of target (Full-CI subset) space per OMP thread :",  CISCI_instance%targetSpaceSize_max / CIcore_instance%nproc
+    write (6,"(T2,A,I10 )") "Length of buffer (auxiliary sort) space per OMP thread :",  CISCI_instance%buffer_amplitudeCoreSize / CIcore_instance%nproc
+    write (6,"(T2,A,I10 )") "Length of total target space                           :",  CISCI_instance%targetSpaceSize_max
+    write (6,"(T2,A,I10 )") "Length of total buffer space                           :",  CISCI_instance%buffer_amplitudeCoreSize 
     write (6,*) "-----------------------------------------------------------------------"
     
   end subroutine CISCI_show
@@ -656,8 +656,8 @@ contains
 
           !! single excitations
           do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
-            orbA(spi)%values(oi1) = orbA(spi)%values(oi1) - 1 
             oi1 = occA(spi)%values(pi)  
+            orbA(spi)%values(oi1) = orbA(spi)%values(oi1) - 1 
             do qi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi)
               vi1 = virA(spi)%values(qi)
               orbA(spi)%values(vi1) = orbA(spi)%values(vi1) + 1
@@ -764,7 +764,7 @@ contains
 
     !! loop to find all CI configurtions coupled to core space
     !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
-    !$omp do schedule (static)
+    !$omp do schedule (dynamic)
     do a = 1, nonzero  
 
       ! getting configuration A
@@ -1065,7 +1065,7 @@ contains
 
     !! loop to find all CI configurtions coupled to core space
     !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
-    !$omp do schedule (static)
+    !$omp do schedule (dynamic)
     do a = 1, nonzero  
       ! getting configuration A
       do spi = 1, numberOfSpecies 
@@ -1453,7 +1453,7 @@ contains
     call CISCI_orb2occ()
 
     !$omp parallel &
-    !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, diffOrbi, diffOrbj, spj, factorA, factorB )
+    !$omp& private(thread_id, aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplingS, coupling, i, diffOrbi, diffOrbj, spj, factorA, factorB )
     allocate ( occA ( numberOfSpecies ) )
     allocate ( occB ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
@@ -1470,7 +1470,7 @@ contains
     thread_id = omp_get_thread_num() + 1
 
     !!$omp do schedule (runtime) ! with OMP_SCHEDULE for testing
-    !$omp do schedule (static)
+    !$omp do schedule (dynamic)
     aloop: do aa = 1, NX
 
       !if ( abs(V(aa) ) <= tol) cycle ! this never happens
@@ -1651,7 +1651,7 @@ contains
       call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
     end do
     !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
-    !$omp do schedule (static)
+    !$omp do schedule (dynamic)
     aloop: do aa = 1, CISCI_instance%targetSpaceSize 
 
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -2081,7 +2081,7 @@ contains
     enddo
 
     write(6,"(T2,A31)") "Computing SCI-PT2 correction..."
-    write(6,"(T2,A26,ES10.2,A5,ES10.2,A9,I8)") "Buffer coefficients. Max: ", &
+    write(6,"(T2,A26,ES10.2,A5,ES10.2,A9,I10)") "Buffer coefficients. Max: ", &
                                        CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + 1), &
                                        " Min: ", CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + nonzero), &
                                        " Nonzero: ", nonzero
@@ -2117,7 +2117,7 @@ contains
     energyCorrection_errorCrumbs = 0.0_8
     
     !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
-    !$omp do schedule (static)
+    !$omp do schedule (dynamic)
     aloop: do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + nonzero
 
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -3059,7 +3059,7 @@ contains
 
     !! loop to find all CI configurtions coupled to core space
     !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
-    !$omp do schedule (static)
+    !$omp do schedule (dynamic)
     do a = 1, nonzero  
 
       ! getting configuration A
