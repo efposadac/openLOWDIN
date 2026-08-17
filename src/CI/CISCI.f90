@@ -45,6 +45,11 @@ module CISCI_
     !! auxiliary array to store the position of the target space for each omp thread 
     integer(8), allocatable :: omp_targetInterval(:,:) ! lower and upper position, n_threads
     integer(8), allocatable :: omp_target_iterator_m(:) ! n_threads
+    !! ci level per species renormalization
+    integer, allocatable :: maxCIexcitations(:)
+    integer, allocatable :: CIorder_list(:,:)
+    integer, allocatable :: CIorder_count(:)
+    real(8), allocatable :: CIorder_weight(:)
     !! In case of bit-masking representation
     !!store the orbitals for each target configurations, to avoid recomputing them 
     !!type (IVector), allocatable :: targetOrb(:,:) ! species, num of target configurations % num. of orbitals
@@ -142,7 +147,8 @@ contains
   subroutine CISCI_constructor( numberOfConfigurations )
     implicit none
     integer(8), intent(out) :: numberOfConfigurations
-    integer :: a,b,c,aa,bb,i, spi
+    integer :: a,b,c,aa,bb,i
+    integer :: spi, spj
     real(8) :: CIenergy
     integer :: nproc, n
     integer :: numberOfSpecies
@@ -189,7 +195,7 @@ contains
     if ( allocated ( CISCI_instance%confTarget_occ ) ) deallocate ( CISCI_instance%confTarget_occ )  
 
     allocate ( CISCI_instance%confCore ( numberOfSpecies ) ) 
-    allocate ( CISCI_instance%confTarget_orb ( numberOfSpecies ) ) 
+    allocate ( CISCI_instance%confTarget_orb ( numberOfSpecies ) )
     allocate ( CISCI_instance%confTarget_occ ( numberOfSpecies ) ) 
     do spi = 1, numberOfSpecies 
       call Matrix_constructorInteger1 ( CISCI_instance%confCore(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%coreSpaceSize,8), -1_1 )
@@ -198,6 +204,8 @@ contains
     enddo
     allocate ( CISCI_instance%confAmplitudeCore_orb (  CISCI_instance%combinedNumberOfOrbitals, CISCI_instance%buffer_amplitudeCoreSize ) ) 
     CISCI_instance%confAmplitudeCore_orb = -1_1
+
+    call CISCI_buildCIOrderList(  CISCI_instance%maxCIexcitations, CISCI_instance%CIorder_list, CISCI_instance%CIorder_count, CISCI_instance%CIorder_weight )
 
     !! this was replaced by a "vectorized" array to avoid using arrays of types inside a recursive function
     !!do spi = 1, numberOfSpecies
@@ -281,6 +289,12 @@ contains
     !! target space size per iteration
     deallocate ( CISCI_instance%targetSpaceSize_iter )
     deallocate ( CISCI_instance%canonicalOrder )
+
+    !! CIorder list
+    deallocate ( CISCI_instance%maxCIexcitations )
+    deallocate ( CISCI_instance%CIorder_list )
+    deallocate ( CISCI_instance%CIorder_count )
+    deallocate ( CISCI_instance%CIorder_weight )
 
     call CISort_destructor()
 
@@ -496,6 +510,8 @@ contains
       if (CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
       numberOfConfigurations = numberOfConfigurations + 1
     enddo
+
+    call CISCI_countSpeciesPairs()
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
     if ( computePT2 ) then
@@ -2066,6 +2082,8 @@ contains
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
 
+    energyCorrection = 0.0_8
+
     nonzeroTarget = 0
     do aa = 1, CISCI_instance%targetSpaceSize
       a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
@@ -2209,13 +2227,13 @@ contains
       diagonal = CISCI_calculateEnergyZero( occA )
       denominator = 1 / ( refEnergy - diagonal ) 
       !! PT2 correction, normal way
-      !!energyCorrection = energyCorrection + ( CIenergy**2) * denominator
-      !! Kahan summation way
-      energyIncrement = (CIenergy**2) * denominator
-      energyIncrement_corrected = energyIncrement - energyCorrection_errorCrumbs
-      energyCorrection_aux = energyCorrection + energyIncrement_corrected
-      energyCorrection_errorCrumbs = ( energyCorrection_aux - energyCorrection ) - energyIncrement_corrected
-      energyCorrection = energyCorrection_aux
+      energyCorrection = energyCorrection + ( CIenergy**2) * denominator
+      !! Kahan summation way. serial or omp static only
+      !energyIncrement = (CIenergy**2) * denominator
+      !energyIncrement_corrected = energyIncrement - energyCorrection_errorCrumbs
+      !energyCorrection_aux = energyCorrection + energyIncrement_corrected
+      !energyCorrection_errorCrumbs = ( energyCorrection_aux - energyCorrection ) - energyIncrement_corrected
+      !energyCorrection = energyCorrection_aux
 
     end do aloop !a 
    !$omp end do nowait
@@ -2234,10 +2252,11 @@ contains
     deallocate ( orbB  )
     !$omp end parallel
 
-    energyCorrection = energyCorrection - energyCorrection_errorCrumbs
+    !energyCorrection = energyCorrection - energyCorrection_errorCrumbs
 
 !$  timeB = omp_get_wtime()
-    write (6,"(T2,A,F25.12,A,ES10.2)") "CI-PT2 energy correction: ", energyCorrection, " Kahan's error crumbs: ", energyCorrection_errorCrumbs
+    write (6,"(T2,A,F25.12,A,ES10.2)") "CI-PT2 energy correction: ", energyCorrection
+    !write (6,"(T2,A,F25.12,A,ES10.2)") "CI-PT2 energy correction: ", energyCorrection, " Kahan's error crumbs: ", energyCorrection_errorCrumbs
 !$  write(*,"(A,ES10.2)") "Time for CI-PT2 correction: ", timeB -timeA
 
   end subroutine CISCI_PT2
@@ -2720,6 +2739,151 @@ contains
     enddo
 
   end subroutine CISCI_occ2orb
+
+  !! Generate a list of all possible species combinations for CI
+  subroutine CISCI_buildCIOrderList( maxCIexcitations, CIorder_list, CIorder_count, CIorder_weight )
+    implicit none
+    integer, allocatable, intent(inout) :: maxCIexcitations(:)
+    integer, allocatable, intent(inout) :: CIorder_list(:,:)
+    integer, allocatable, intent(inout) :: CIorder_count(:)
+    real(8), allocatable, intent(inout) :: CIorder_weight(:)
+    integer :: spi, numberOfSpecies
+    integer :: activeOrbitals
+    integer, allocatable :: CIlevel(:)
+    integer :: m1, m2
+    integer :: i, j
+    logical :: done
+    integer :: combination, totalCombinations
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
+    allocate ( CIlevel( numberOfSpecies )) 
+    allocate ( maxCIexcitations( numberOfSpecies )) 
+    CIlevel = 0
+
+    totalCombinations = 1
+    do spi = 1, numberOfSpecies 
+      maxCIexcitations( spi ) = CIcore_instance%numberOfOccupiedOrbitals%values(spi) - CIcore_instance%numberOfCoreOrbitals%values(spi)  
+      totalCombinations = totalCombinations * ( maxCIexcitations( spi ) + 1 )
+    enddo
+
+    allocate ( CIorder_list( numberOfSpecies, totalCombinations )) 
+    allocate ( CIorder_count( totalCombinations )) 
+    allocate ( CIorder_weight( totalCombinations )) 
+    CIorder_list = 0
+    CIorder_count = 0
+    CIorder_weight = 0.0_8
+
+    combination = 0
+    done = .false. 
+    do while (.not. done)
+      combination = combination + 1
+      CIorder_list(:, combination) = CIlevel(:)
+      !! increment the configuration from right to left 
+      do j = numberOfSpecies, 1, -1
+        if ( CIlevel(j) < maxCIexcitations(j) ) then 
+          CIlevel(j) = CIlevel(j) + 1
+          exit  
+        else
+          CIlevel(j) = 0  ! reset current position and carry over to the left
+        end if
+
+        if (j == 1) done = .true.
+      end do
+    end do
+
+    deallocate ( CIlevel ) 
+
+    write (6, "(T2,A)") "--------------------------"
+    write (6, "(T2,A)") "ID | CI level per species "
+    write (6, "(T2,A)") "--------------------------"
+    do j = 1, size( CIorder_list, dim = 2 )
+      write (6, "(T2,I2)", advance="no") j
+      write (6, "(A2)", advance="no") " |"
+      do spi = 1, numberOfSpecies
+        write (6, "(T2,I4)", advance="no") CIorder_list(spi, j)
+      end do
+      write (6, "(A)") ""
+    end do
+    write (6, "(T2,A)") "--------------------------"
+
+  end subroutine CISCI_buildCIOrderList
+
+  !! Given a CI excitation level per species, return the position in the list of all CI combinations
+  function CISCI_combinationIndex(CIlevel, maxCIexcitations ) result(idx)
+    implicit none
+    integer, dimension(:), intent(in) :: CIlevel, maxCIexcitations
+    integer :: idx
+    integer :: numberOfSpecies, i, j, multiplier
+
+    numberOfSpecies = size(CIlevel)
+    idx = 1  ! Start with 1 for Fortran 1-based indexing
+
+    do i = 1, numberOfSpecies
+       ! Calculate the product of bases for all species to the right of j
+       multiplier = 1
+       do j = i + 1, numberOfSpecies
+          multiplier = multiplier * ( maxCIexcitations(j) + 1 )
+       end do
+       
+       ! Add contribution of current species
+       idx = idx + CIlevel(i) * multiplier
+    end do
+
+  end function CISCI_combinationIndex
+
+  !! count number of configurations in the buffer space per species subspaces
+  subroutine CISCI_countSpeciesPairs()
+    implicit none
+    integer :: spi, numberOfSpecies
+    integer :: activeOrbitals
+    integer, allocatable :: CIlevel(:)
+    integer :: m1, m2
+    integer :: a, c
+    logical :: done
+    integer :: CIorder_index
+
+    write (6, "(T2,A)") "Counting number of configurations in the buffer space..."
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
+    allocate ( CIlevel( numberOfSpecies )) 
+    CIlevel = 0
+
+    do a = 1, CISCI_instance%buffer_amplitudeCoreSize
+      if ( CISCI_instance%confAmplitudeCore_orb(1, a) == -1 ) exit 
+
+      !! compare each orb for all species
+      do spi = 1, numberOfSpecies 
+        m1 = CISCI_instance%combinedOrbitalsPositions(1,spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+        m2 = CISCI_instance%combinedOrbitalsPositions(2,spi)
+    
+        CIlevel(spi) = sum( CISCI_instance%confAmplitudeCore_orb(m1:m2, a) )
+      enddo
+
+      CIorder_index = CISCI_combinationIndex(CIlevel, CISCI_instance%maxCIexcitations )
+      CISCI_instance%CIorder_count(CIorder_index) = CISCI_instance%CIorder_count(CIorder_index) + 1
+      !print *, i, CIlevel, CISCI_combinationIndex(CIlevel, CISCI_instance%maxCIexcitations )
+
+    enddo
+
+    deallocate ( CIlevel ) 
+
+    write (6, "(T2,A)") "--------------------------------------------------"
+    write (6, "(T2,A)") "ID | CI_tot | # config | CI level per species     "
+    write (6, "(T2,A)") "--------------------------------------------------"
+    do c = 1, size( CISCI_instance%CIorder_list, dim = 2 )
+      write (6, "(T2,I2,A2)", advance="no") c, " |"
+      write (6, "(T2,I6)", advance="no") sum(CISCI_instance%CIorder_list(:, c))
+      write (6, "(A2)", advance="no") " |"
+      write (6, "(T2,I8)", advance="no") CISCI_instance%CIorder_count(c) 
+      write (6, "(A2)", advance="no") " |"
+      do spi = 1, numberOfSpecies
+        write (6, "(T2,I4)", advance="no") CISCI_instance%CIorder_list(spi, c)
+      end do
+      write (6, "(A)") ""
+    end do
+    write (6, "(T2,A)") "--------------------------------------------------"
+
+  end subroutine CISCI_countSpeciesPairs
 
   !! Sort the two particles contributions according to HeatBath CI method
   !! Section II.A of 10.1021/acs.jctc.6b00407
@@ -3279,6 +3443,5 @@ contains
 !$  write(*,"(A,ES10.2,A4)") "** TOTAL Elapsed Time for generating HB-SCI configurations: ", timeB - timeA ," (s)"
 
   end subroutine CISCI_heatBathGenerate 
-
 
 end module CISCI_
