@@ -21,9 +21,10 @@ CONTROL
 	CINaturalOrbitals=T
 	CIStatesToPrint = 1
 	CIdiagonalizationMethod = "JADAMILU"
+	CISCIPT2Correction = True
 	CISCICoreSpace = 400
 	CISCITargetSpace = 800 
-	CISCIBufferFactor = 8
+	CISCIBufferFactor = 16
 	CISCITargetGrowthFactor = 1
 	CISCITargetGrowthSteps = 4
 	CISCIRefinementSteps = 0

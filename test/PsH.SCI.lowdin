@@ -10,25 +10,26 @@ TASKS
 END TASKS
 
 CONTROL
-	readCoefficients=F
-	buildTwoParticlesMatrixForOneParticle=T
+	readCoefficients = F
+	buildTwoParticlesMatrixForOneParticle = T
 	HFprintEigenVectors = "ALL"
-	CIselectiveMethod = "ASCI"
-	CInumberOfStates=1	
-	CINaturalOrbitals=T
+	CInumberOfStates = 1	
+	CINaturalOrbitals = T
 	CIStatesToPrint = 1
-	CIdiagonalizationMethod = "JADAMILU"
+	CIPrintThreshold = 5e-2
 	!CIPrintEigenVectorsFormat = "NONE"
 	!CIPrintEigenVectorsFormat = "OCCUPIED"
 	!CIPrintEigenVectorsFormat = "ORBITALS"
-	CIPrintThreshold = 5e-2
+	CIdiagonalizationMethod = "JADAMILU"
+	CIMatVecTolerance = 1e-10
+	CIselectiveMethod = "ASCI"
+	CISCIPT2Correction = True
 	CISCICoreSpace = 50
 	CISCITargetSpace = 50
 	CISCITargetGrowthFactor = 2
 	CISCITargetGrowthSteps = 4
 	CISCIRefinementSteps = 0
 	CISCIBufferFactor = 8
-	CIMatVecTolerance = 1e-10
 END CONTROL
 
 INPUT_CI

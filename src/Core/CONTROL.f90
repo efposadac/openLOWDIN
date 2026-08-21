@@ -219,6 +219,7 @@ module CONTROL_
     logical :: CI_TWO_REDUCED_DENSITY_MATRIX
     integer :: CI_MCSCF_MAX_ITER
     real(8) :: CI_MCSCF_DAMPING_FACTOR_NR
+    logical :: CI_SCI_PT2_CORRECTION
 
     !!***************************************************************************
     !! Non-orthogonal CI
@@ -582,6 +583,7 @@ module CONTROL_
   logical :: LowdinParameters_CITwoReducedDensityMatrix
   integer :: LowdinParameters_CIMCSCFMaxIter
   real(8) :: LowdinParameters_CIMCSCFDampingFactorNR
+  logical :: LowdinParameters_CISCIPT2Correction
 
   !!***************************************************************************
   !! Non-orthogonal CI
@@ -931,6 +933,7 @@ module CONTROL_
     LowdinParameters_CITwoReducedDensityMatrix, &
     LowdinParameters_CIMCSCFMaxIter, &
     LowdinParameters_CIMCSCFDampingFactorNR, &
+    LowdinParameters_CISCIPT2Correction, &
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1301,6 +1304,7 @@ contains
     LowdinParameters_CITwoReducedDensityMatrix = .false.
     LowdinParameters_CIMCSCFMaxIter = 20
     LowdinParameters_CIMCSCFDampingFactorNR = 0.50_8
+    LowdinParameters_CISCIPT2Correction = .false.
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1660,6 +1664,7 @@ contains
     CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX = .FALSE.
     CONTROL_instance%CI_MCSCF_MAX_ITER = 20
     CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR = 0.50_8
+    CONTROL_instance%CI_SCI_PT2_CORRECTION = .false.
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2068,6 +2073,7 @@ contains
     CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX = LowdinParameters_CITwoReducedDensityMatrix
     CONTROL_instance%CI_MCSCF_MAX_ITER = LowdinParameters_CIMCSCFMaxIter 
     CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR = LowdinParameters_CIMCSCFDampingFactorNR 
+    CONTROL_instance%CI_SCI_PT2_CORRECTION = LowdinParameters_CISCIPT2Correction
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2450,6 +2456,7 @@ contains
     LowdinParameters_CITwoReducedDensityMatrix = CONTROL_instance%CI_TWO_REDUCED_DENSITY_MATRIX
     LowdinParameters_CIMCSCFMaxIter = CONTROL_instance%CI_MCSCF_MAX_ITER 
     LowdinParameters_CIMCSCFDampingFactorNR = CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR
+    LowdinParameters_CISCIPT2Correction = CONTROL_instance%CI_SCI_PT2_CORRECTION 
     !!***************************************************************************
     !! Non-orthogonal CI
     !!

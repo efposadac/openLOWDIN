@@ -955,9 +955,6 @@ contains
             !! get double interspecies sustitutions energy
             do spj = spi + 1, numberOfSpecies 
 
-              renormalizationIJ = totalNumberOfParticles / & 
-                                  ( 1.0 * CIcore_instance%numberOfOccupiedOrbitals%values(spi) + 1.0 * CIcore_instance%numberOfOccupiedOrbitals%values(spj) )
-
               do rj = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spj)
                 oj2 = occA(spj)%values(rj)  
                 orbB(spj)%values(oj2) = orbB(spj)%values(oj2) - 1_8

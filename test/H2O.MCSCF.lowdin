@@ -19,6 +19,7 @@ CONTROL
 	CIselectiveMethod = "ASCI"
 	CInumberOfStates = 1	
 	CIPrintThreshold = 5e-2
+	CISCIPT2Correction = True
 	CISCICoreSpace = 50
 	CISCITargetSpace = 500
 	CISCITargetGrowthFactor = 1

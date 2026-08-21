@@ -15,11 +15,12 @@ END TASKS
 CONTROL
 	readCoefficients = F
 	integralsTransformationMethod = "C"
-	HFprintEigenVectors = "ALL"
-	CIselectiveMethod = "ASCI"
-	CIdiagonalizationMethod = "JADAMILU"
-	CInumberOfStates = 1	
 	CIPrintThreshold = 5e-2
+	HFprintEigenVectors = "ALL"
+	CInumberOfStates = 1	
+	CIdiagonalizationMethod = "JADAMILU"
+	CIselectiveMethod = "ASCI"
+	CISCIPT2Correction = True
 	CISCICoreSpace = 20
 	CISCITargetSpace = 100
 	CISCITargetGrowthFactor = 2
