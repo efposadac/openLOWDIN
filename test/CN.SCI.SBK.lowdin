@@ -1,0 +1,33 @@
+! Electronic test for ASCI method
+! Reference value from 10.1063/1.4955109
+! tubman_JCP_145_044112_2016
+
+GEOMETRY
+	e-(C)   sto-3g 	0.00	0.00 	0.00 	multiplicity=2
+	e-(N)   sto-3g 	0.00	0.00 	1.194 
+	C	dirac			0.00	0.00 	0.00
+	N	dirac			0.00	0.00 	1.194
+END GEOMETRY
+
+TASKS
+	method = "UHF"
+	configurationInteractionLevel ="FCI"
+END TASKS
+
+CONTROL
+	readCoefficients=F
+	CIselectiveMethod = "ASCI"
+	CInumberOfStates=1	
+	CINaturalOrbitals=T
+	CIStatesToPrint = 1
+	CIdiagonalizationMethod = "JADAMILU"
+	CIdressingShift = "SCI"
+	CISCIPT2Correction = False
+	CISCICoreSpace = 400
+	CISCITargetSpace = 800 
+	CISCIBufferFactor = 16
+	CISCITargetGrowthFactor = 1
+	CISCITargetGrowthSteps = 4
+	CISCIRefinementSteps = 0
+END CONTROL
+

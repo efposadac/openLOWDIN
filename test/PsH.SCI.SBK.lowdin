@@ -23,7 +23,8 @@ CONTROL
 	CIdiagonalizationMethod = "JADAMILU"
 	CIMatVecTolerance = 1e-10
 	CIselectiveMethod = "ASCI"
-	CISCIPT2Correction = True
+	CIdressingShift = "SCI"
+	CISCIPT2Correction = False
 	CISCICoreSpace = 20
 	CISCITargetSpace = 20
 	CISCITargetGrowthFactor = 2

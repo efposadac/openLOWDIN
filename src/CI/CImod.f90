@@ -262,13 +262,13 @@ contains
       end if 
 
       !! diagonal correction. See 10.1016/j.chemphys.2007.07.001
-      if ( CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT == "CISD") then
+      if ( CONTROL_instance%CI_DRESSING_SHIFT == "CISD") then
 
         call Vector_constructor(CIcore_instance%groundStateEnergies, 30_8, 0.0_8)
         call Vector_constructor(CIcore_instance%DDCISDTiming, 30_8, 0.0_8)
   
         write (6,*) ""
-        write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DIAGONAL_DRESSED_SHIFT
+        write (6,"(T2,A50, A12)") "          ITERATIVE DIAGONAL DRESSED CISD SHIFT:   " , CONTROL_instance%CI_DRESSING_SHIFT
         write (6,"(T2,A62)")     "               ( Size-extensive correction)                   "
         write (6,"(T2,A62)")     " Based on 10.1016/j.chemphys.2007.07.001 and 10.1063/5.0182498"
         write (6,*) ""
