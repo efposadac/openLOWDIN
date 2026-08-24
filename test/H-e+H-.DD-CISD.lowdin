@@ -18,7 +18,7 @@ CONTROL
 	CInumberOfStates=1
 	!CIdiagonalizationMethod = "DSYEVX"
 	CIdiagonalizationMethod = "JADAMILU"
-	CIdiagonalDressedShift = "CISD"
+	CIDressingShift = "CISD"
 END CONTROL
 
 INPUT_CI
