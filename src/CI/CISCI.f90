@@ -555,7 +555,7 @@ contains
         write(6,"(T2,A36)") "Computing SCI Dressing correction..."
         write(6,"(T2,A36)") "Shifted Bk (sBk) algorithm          "
         write(6,"(T2,A36)") "Based on: 10.1063/1.5044503         "
-        write(6,"(T2,A36)") "  J. Chem. Phys. 149, 064103 (2018) "
+        write(6,"(T2,A36)") "J. Chem. Phys. 149, 064103 (2018)   "
         write (6,*) "-----------------------------------------------------------------------"
         call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                  1_8, &
@@ -1377,6 +1377,8 @@ contains
     NEIG = numberOfeigenValues !    number of wanted eigenvalues
     MADSPACE = MAXSP !    desired size of the search space
     ITER = 30*NEIG !    maximum number of iteration steps
+    !if ( use_dressed_shift ) ITER = 1 * NEIG !    maximum number of iteration steps
+
     TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
     TOL = 1E-3 !1.0d-4 !    tolerance for the eigenvector residual, for ASCI this can be higher
     DROPTOL = 1E-3
@@ -1494,6 +1496,7 @@ contains
     type(Matrix), intent(in) :: eigenVectors
     real(8), intent(in) :: refEnergy
     real(8), allocatable :: dressedV(:)
+    real(8), allocatable :: auxCIenergy(:,:)
     real(8) :: diagonal, denominator
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
@@ -1656,11 +1659,21 @@ contains
        if ( abs(W(a) ) >= tol) nonzerow = nonzerow + 1
     end do
 
-!$    write(*,"(A,I2,A,ES10.2,A2,I12,I12)") "  ", iter, "  ", timeB -timeA ,"  ", nonzero, nonzerow
+!$  write(*,"(2X,I2,1X,ES10.2,1X,I12,1X,I12)") iter, timeB - timeA, nonzero, nonzerow
 
     if ( use_dressed_shift ) then
+
+!$    timeA= omp_get_wtime()
+
+      !! store matrix-vector product per omp thread
+      allocate ( W_nproc ( NX, CIcore_instance%nproc ) )
+      W_nproc = 0.0_8
+
       allocate ( dressedV ( CISCI_instance%buffer_amplitudeCoreSize ) )
       dressedV = 0.0_8
+
+      allocate ( auxCIenergy ( CISCI_instance%targetSpaceSize, CIcore_instance%nproc ) )
+      auxCIenergy = 0.0_8
 
       nonzeroTarget = 0
       do aa = 1, CISCI_instance%targetSpaceSize
@@ -1688,13 +1701,11 @@ contains
         return
       endif
   
-  !$  timeA = omp_get_wtime()
-  
       !! generate occupied orbital representation
       call CISCI_orb2occ()
   
       !$omp parallel &
-      !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, &
+      !$omp& private( thread_id, a, spi, oia, orbA, pi, occA, CIenergy, b, oib, orbB, occB, couplings, coupling, i, &
       !$omp&        diagonal, denominator, diffOrbi, diffOrbj, spj, factorA, factorB ) 
   
       allocate ( occA ( numberOfSpecies ) )
@@ -1710,18 +1721,15 @@ contains
         call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
       end do
   
+      thread_id = omp_get_thread_num() + 1
+
       !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
       !$omp do schedule (dynamic)
-      do aa = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + nonzero
-  
-        a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-        !a = aa ! if index_amplitude is sorted
-  
+      do a = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + nonzero
         ! getting configuration A
         do spi = 1, numberOfSpecies 
   
           oia = 0 
-  
           orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
   
           !! build auxiliary vectors of occupied and virtuals orbitals
@@ -1735,15 +1743,13 @@ contains
         enddo
   
         CIenergy = 0.0_8
-        do bb = 1,  nonzeroTarget
-  
-          !b = CISCI_instance%index_amplitudeCore%values(bb)
-          b = bb
+        auxCIenergy(:,thread_id) = 0.0_8
+        do b = 1,  nonzeroTarget
   
           ! getting configuration B
           do spi = 1, numberOfSpecies 
             orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,b)
-            occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:, b) 
+            occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:,b) 
           enddo
   
           !! determinate number of diff orbitals
@@ -1762,13 +1768,13 @@ contains
             end do
   
             diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
-            CIenergy = CIenergy + CISCI_calculateEnergyOne( spi, occA, occB, diffOrbi(1), diffOrbi(3)  ) * factorA * V(bb)
+            auxCIenergy(b, thread_id) = CISCI_calculateEnergyOne( spi, occA, occB, diffOrbi(1), diffOrbi(3)  ) * factorA
+            CIenergy = CIenergy + auxCIenergy(b, thread_id) * V(b)
   
           !! two orbital different
           case(2)
   
             select case ( maxval(couplingS) )
-  
             !! two orbital different, same species
             case (2)
               do i = 1, numberOfSpecies
@@ -1776,7 +1782,8 @@ contains
               end do
   
               diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
-              CIenergy = CIenergy + CISCI_calculateEnergyTwoSame( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  ) * factorA * V(bb) 
+              auxCIenergy(b, thread_id) = CISCI_calculateEnergyTwoSame( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  ) * factorA 
+              CIenergy = CIenergy + auxCIenergy(b, thread_id) * V(b)
             !! two orbital different, different species
             case (1)
               do i = 1, numberOfSpecies
@@ -1791,16 +1798,21 @@ contains
   
               diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
               diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj)%values, orbB(spj)%values, occA(spj)%values, occB(spj)%values, factorB )
-              CIenergy = CIenergy + CISCI_calculateEnergyTwoDiff( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  ) * factorA * factorB * V(bb)
+              auxCIenergy(b, thread_id) = CISCI_calculateEnergyTwoDiff( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  ) * factorA * factorB 
+              CIenergy = CIenergy + auxCIenergy(b, thread_id) * V(b)
             end select ! maxval(couplingS)  
           end select ! sum(couplingS) 
    
         end do !b
   
-        !! calculate diagonal term and denominator of Eq5 10.1063/1.4955109
+        !! calculate diagonal term and denominator f Eq5 10.1063/1.4955109
         diagonal = CISCI_calculateEnergyZero( occA )
         denominator = 1.0 / ( refEnergy - diagonal ) 
         dressedV(a) = CIenergy * denominator
+
+        do b = 1,  nonzeroTarget
+          W_nproc(b, thread_id) = W_nproc(b, thread_id) + auxCIenergy(b, thread_id) * dressedV(a)
+        enddo
 
       end do !a 
      !$omp end do nowait
@@ -1819,128 +1831,15 @@ contains
       deallocate ( orbB )
       !$omp end parallel
 
-      !$omp parallel &
-      !$omp& private(aa, a, spi, oia, orbA, pi, occA, CIenergy, bb, b, oib, orbB, occB, couplings, coupling, i, &
-      !$omp&         diffOrbi, diffOrbj, spj, factorA, factorB ) 
-      allocate ( occA ( numberOfSpecies ) )
-      allocate ( occB ( numberOfSpecies ) )
-      allocate ( orbA ( numberOfSpecies ) )
-      allocate ( orbB ( numberOfSpecies ) )
-      allocate ( couplingS ( numberOfSpecies ) )
-  
-      do spi = 1, numberOfSpecies
-        call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) 
-        call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
-        call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
-        call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
-      end do
-  
-      !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
-      !$omp do schedule (dynamic)
-      do bb = 1, nonzeroTarget
-  
-        b = bb
-        ! getting configuration B
-        do spi = 1, numberOfSpecies 
-          orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,b)
-          occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:,b) 
-        enddo
+!$    timeB = omp_get_wtime()
 
-        CIenergy = 0.0_8
-        do aa = CISCI_instance%targetSpaceSize + 1, CISCI_instance%targetSpaceSize + nonzero
-  
-          a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
-          ! getting configuration A
-          do spi = 1, numberOfSpecies 
-            oia = 0 
-            orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
-            !! build auxiliary vectors of occupied and virtuals orbitals
-            do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
-              if ( orbA(spi)%values(pi) == 1 ) then
-                oia = oia + 1
-                occA(spi)%values(oia) = pi
-              end if
-            enddo
-          enddo
-  
-          !! determinate number of diff orbitals
-          couplingS = 0
-          do spi = 1, numberOfSpecies
-            couplingS(spi) = couplingS(spi) + CIcore_instance%numberOfOccupiedOrbitals%values(spi) &
-                              - dot_product ( orbA(spi)%values(:), orbB(spi)%values(:) ) 
-          end do
-  
-          select case ( sum(couplingS) )
-      
-          !! one orbital different
-          case (1)
-            do i = 1, numberOfSpecies
-              if ( couplingS(i) == 1 ) spi = i
-            end do
-  
-            diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
-            CIenergy = CIenergy + CISCI_calculateEnergyOne( spi, occA, occB, diffOrbi(1), diffOrbi(3)  ) * factorA * dressedV(a)
-  
-          !! two orbital different
-          case(2)
-  
-            select case ( maxval(couplingS) )
-  
-            !! two orbital different, same species
-            case (2)
-              do i = 1, numberOfSpecies
-                if ( couplingS(i) == 2 ) spi = i
-              end do
-  
-              diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
-              CIenergy = CIenergy + CISCI_calculateEnergyTwoSame( spi, occA, occB, diffOrbi(1), diffOrbi(2), diffOrbi(3), diffOrbi(4)  ) * factorA * dressedV(a)
+      do thread_id = 1, CIcore_instance%nproc
+        W(:) = W(:) + W_nproc(:,thread_id) 
+      enddo
 
-            !! two orbital different, different species
-            case (1)
-              do i = 1, numberOfSpecies
-                if ( couplingS(i) == 1 ) then 
-                  spi = i
-                  exit
-                end if
-              end do
-              do i = spi+1, numberOfSpecies
-                if ( couplingS(i) == 1 ) spj = i
-              end do
-  
-              diffOrbi = CISCI_getDiffOrbitals ( spi, orbA(spi)%values, orbB(spi)%values, occA(spi)%values, occB(spi)%values, factorA )
-              diffOrbj = CISCI_getDiffOrbitals ( spj, orbA(spj)%values, orbB(spj)%values, occA(spj)%values, occB(spj)%values, factorB )
-              CIenergy = CIenergy + CISCI_calculateEnergyTwoDiff( spi, spj, diffOrbi(1), diffOrbj(1), diffOrbi(3), diffOrbj(3)  ) * factorA * factorB * dressedV(a)
+      deallocate ( W_nproc )
 
-            end select ! maxval(couplingS)  
-          end select ! sum(couplingS) 
-
-        enddo !a
-
-        !CIenergy = CIenergy * eigenVectors%values(bb,1) 
-        W(b) = W(b) + CIenergy 
-  
-      enddo !b
-     !$omp end do nowait
-  
-      do spi = 1, numberOfSpecies
-        call Vector_destructorInteger ( occA(spi) ) 
-        call Vector_destructorInteger ( occB(spi) )
-        call Vector_destructorInteger ( orbA(spi) ) 
-        call Vector_destructorInteger ( orbB(spi) ) 
-      end do
-  
-      deallocate ( couplingS )
-      deallocate ( occA )
-      deallocate ( occB )
-      deallocate ( orbA )
-      deallocate ( orbB )
-      !$omp end parallel
-
-      !! to check how dense is the W vector
-      do a = 1 , NX
-         if ( abs(W(a) ) >= tol) nonzerow = nonzerow + 1
-          !print *, "d", W(a)
-      end do
+!$    write(*,"(2X,A2,1X,ES10.2,1X,I12,1X,I12)") " S", timeB - timeA, nonzeroTarget, nonzero
 
     endif
 
