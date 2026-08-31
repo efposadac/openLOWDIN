@@ -144,9 +144,11 @@ contains
   end subroutine CISCI_show
 
   !! Allocating arrays 
-  subroutine CISCI_constructor( numberOfConfigurations )
+  subroutine CISCI_constructor( numberOfConfigurations, eigenValues, eigenVectors )
     implicit none
     integer(8), intent(out) :: numberOfConfigurations
+    type(matrix), intent(inout) :: eigenVectors
+    type(vector), intent(inout) :: eigenValues
     integer :: a,b,c,aa,bb,i
     integer :: spi, spj
     real(8) :: CIenergy
@@ -158,6 +160,9 @@ contains
 
     numberOfSpecies = CIcore_instance%numberOfSpecies 
     numberOfConfigurations = CISCI_instance%targetSpaceSize !! initial size
+
+    call Vector_constructor( eigenValues, &
+                            int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
 
     !! auxiliary variables to map orbitals from vector to array location
     CISCI_instance%combinedNumberOfOrbitals = sum(CIcore_instance%numberOfActiveOrbitals%values(:))
@@ -199,8 +204,6 @@ contains
     allocate ( CISCI_instance%confTarget_occ ( numberOfSpecies ) ) 
     do spi = 1, numberOfSpecies 
       call Matrix_constructorInteger1 ( CISCI_instance%confCore(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%coreSpaceSize,8), -1_1 )
-      call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1) !! this will be reallocated
-      call Matrix_constructorInteger ( CISCI_instance%confTarget_occ(spi), int(CIcore_instance%numberOfOccupiedOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_4) !! this will be reallocated
     enddo
     allocate ( CISCI_instance%confAmplitudeCore_orb (  CISCI_instance%combinedNumberOfOrbitals, CISCI_instance%buffer_amplitudeCoreSize ) ) 
     CISCI_instance%confAmplitudeCore_orb = -1_1
@@ -222,8 +225,9 @@ contains
     !!  enddo
     !!enddo
 
-    !! storing the CI diagonal matrix elements for Jadamilu preconditioner (moved to reset buffers)
-    !! call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
+    !! allocate target and eigenvectors
+    call CISCI_growTarget ( CISCI_instance%confTarget_orb, eigenVectors )
+
     call Vector_constructor ( CISCI_instance%diagonalCore, int(CISCI_instance%coreSpaceSize,8),  0.0_8)
 
     !! eigenvalues per SCI iteration
@@ -345,38 +349,156 @@ contains
       write (6,*)    ""
     endif
 
-    do k = 2, 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS
-        
-!$  timeA(k) = omp_get_wtime()
+    if ( .not. CONTROL_instance%CI_SCI_LOAD_TARGET_CONFIGURATIONS ) then
+      do k = 2, 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS + CONTROL_instance%CI_SCI_REFINEMENT_STEPS
+          
+!$    timeA(k) = omp_get_wtime()
 
-      CISCI_instance%targetSpaceSize_iter(k) = CISCI_instance%targetSpaceSize
+        CISCI_instance%targetSpaceSize_iter(k) = CISCI_instance%targetSpaceSize
 
-      !! computing the diagonal in the core space, for fast computation of core amplitudes
-      call CISCI_buildDiagonal ( CISCI_instance%diagonalCore, CISCI_instance%confCore, CISCI_instance%coreSpaceSize )
+        !! computing the diagonal in the core space, for fast computation of core amplitudes
+        call CISCI_buildDiagonal ( CISCI_instance%diagonalCore, CISCI_instance%confCore, CISCI_instance%coreSpaceSize )
 
-      !! search and select
-      select case ( CONTROL_instance%CI_SELECTIVE_METHOD )
+        !! search and select
+        select case ( CONTROL_instance%CI_SELECTIVE_METHOD )
 
-      case ("ASCI")
-        !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
-        if ( CIcore_instance%level == "CISD-" .or. unboundReference ) then
-          call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
-        endif
-        if ( CIcore_instance%level == "FCI" .and. .not. unboundReference ) then
-          call CISCI_core_amplitudes ( CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentenergy )
-        endif
-      case ("HBCI")
-          call CISCI_heatBathGenerate (  CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values,&
-          CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentenergy, VARIATIONAL )
-      end select
+        case ("ASCI")
+          !! calculating the amplitudes in core space. This is the pertubation guess of CI eigenvector
+          if ( CIcore_instance%level == "CISD-" .or. unboundReference ) then
+            call CISCI_core_amplitudes_cisd ( CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentEnergy )
+          endif
+          if ( CIcore_instance%level == "FCI" .and. .not. unboundReference ) then
+            call CISCI_core_amplitudes ( CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values, CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentenergy )
+          endif
+        case ("HBCI")
+            call CISCI_heatBathGenerate (  CISCI_instance%diagonalCore, CISCI_instance%coefficientCore%values,&
+            CISCI_instance%confCore, CISCI_instance%coreSpaceSize, currentenergy, VARIATIONAL )
+        end select
 
-      !! merge core space with the top amplitude to form a new target space, and save them in saved_conf with coefficients in eigenvectors
-      call CISCI_mergeCoreAndBuffer( CISCI_instance%confTarget_orb, eigenVectors )
+        !! merge core space with the top amplitude to form a new target space, and save them in saved_conf with coefficients in eigenvectors
+        call CISCI_mergeCoreAndBuffer( CISCI_instance%confTarget_orb, eigenVectors )
+
+        !! computing the diagonal in the target space, jadamilu requires the diagonal in advance
+        call CISCI_buildDiagonal ( CISCI_instance%diagonalTarget, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
+
+        !! eigenvalue guess
+        CISCI_instance%eigenValues(k)%values(1) = currentEnergy
+
+        !! diagonalize in target space
+        select case (trim(String_getUppercase(CONTROL_instance%CI_DIAGONALIZATION_METHOD)))
+
+        case ("DSYEVR")
+
+          if ( .not. use_guess ) eigenVectors%values = 0.0_8
+
+          !!build full matrix and use lapack...
+          call Matrix_constructor ( hamiltonianMatrix, int(CISCI_instance%targetSpaceSize,8), int(CISCI_instance%targetSpaceSize,8), 0.0_8 )
+          call CISCI_buildHamiltonian ( hamiltonianMatrix )
+          call Matrix_eigen_select ( hamiltonianMatrix, CISCI_instance%eigenValues(k), &
+                   int(1), int(CONTROL_instance%CI_NUMBER_OF_STATES), &  
+                   eigenVectors =eigenVectors, &
+                   flags = int(SYMMETRIC,4))
+
+        case ("JADAMILU")
+          call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
+                   1_8, &
+                   CISCI_instance%eigenValues(k), &
+                   eigenVectors, timeAA, timeBB, use_guess, use_dressed_shift = .False. )
+
+        end select
+  
+        write (6,"(T2,A10,I4,A8,F25.12)")    "SCI Iter: ", k-1 , " Energy: ", CISCI_instance%eigenValues(k)%values(1)
+
+        !! if the correlation energy is positive, then don't use the guess
+        if (  CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
+
+        !! reset auxindex arrary, for later use in sorting target coeff. global absolute index
+        do i = 1, CISCI_instance%buffer_amplitudeCoreSize
+          CISCI_instance%index_amplitudeCore%values( i ) = i
+        enddo
+
+        !! copy confTarget_orb to confTarget_occ ( same order)
+        call CISCI_orb2occ()
+
+        !! getting the core absolute largest coefficients
+        call CISort_quicksort_vector(  eigenVectors%values(:,1), &
+                                       CISCI_instance%index_amplitudeCore%values(1:CISCI_instance%targetSpaceSize), & 
+                                       1_8,  int(CISCI_instance%targetSpaceSize,8)  )
+      
+        !! just some diagnostics, average of last 5 coefficients
+        CISCI_instance%minCoeff(k) = sum(eigenVectors%values(CISCI_instance%targetSpaceSize-5:CISCI_instance%targetSpaceSize,1) ) / 5.0
+
+        !! copy confTarget_occ to confTarget_orb (sorted by index_amplitude)
+        call CISCI_occ2orb()
+
+        !! copy confTarget_orb to confTarget_occ ( now sortered)
+        call CISCI_orb2occ()
+
+!$    timeB(k) = omp_get_wtime()
+
+        finalk = k
+        !! convergence criteria. Exit here avoiding matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
+        if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .and. k > 2 ) then
+          write (6,"(T2,A30)") "Reached SCI Energy Convergence of 1E-5 "
+          exit
+        end if
+
+        !! don't grow anymore
+        if ( k == 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS ) then
+          write (6,"(T2,A30)") "Reached Max number of steps "
+          exit
+        end if
+
+        !! preparation for next iter
+
+        !! updating new reference
+        currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
+
+        !! adding again the reference to the core
+        call CISCI_initialConfigurations( CISCI_instance%coefficientCore, CISCI_instance%confCore )
+
+        !! storing only the largest coefficients, and target conf into the core conf space
+        call CISCI_mergeCoreAndTarget( CISCI_instance%confTarget_orb, eigenVectors )
+
+        !! set target space, either grow or refine
+        if ( k <= CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS ) then
+          CISCI_instance%targetSpaceSize = CISCI_instance%targetSpaceSize * int (CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR )
+        else
+          CISCI_instance%targetSpaceSize = CISCI_instance%targetSpaceSize
+        end if
+        numberOfConfigurations = CISCI_instance%targetSpaceSize
+
+        !! reallocate target arrays to the new size
+        call CISCI_growTarget ( CISCI_instance%confTarget_orb, eigenVectors )
+
+        !! reset iterators for next iter
+        call CISCI_resetBuffer()
+
+      enddo !k
+
+      !! summary of the macro iteration 
+      write (6,*)    ""
+      write (6,"(T2,A107 )")    "                                    Selected CI (SCI)  summary                                            "
+      write (6,"(T2,A6,A12,A25,A25,A20,A15,A12)")    "Iter", "TargetSize", "GS Energy", "Corr. Energy", "Delta E.", "Min coeff.","Time(s)"
+      do k = 2, finalk
+         write (6,"(T2,I6, I12, F25.12, F25.12, F20.12,  ES15.2, F12.2 )") k-1, CISCI_instance%targetSpaceSize_iter(k),  CISCI_instance%eigenValues(k)%values(1),  &
+                                                            CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy, &
+                                                            CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1), &
+                                                            CISCI_instance%minCoeff(k), &
+                                                            timeB(k) - timeA(k)
+      enddo !k
+    endif ! load
+
+    !! load target and diagonalize
+    if ( CONTROL_instance%CI_SCI_LOAD_TARGET_CONFIGURATIONS ) then
+
+      k = 2 
+      write (6,"(T2,A,ES12.4)") "Loading target space configurations from .target files"
+      call CISCI_loadTarget( CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, eigenVectors )
 
       !! computing the diagonal in the target space, jadamilu requires the diagonal in advance
       call CISCI_buildDiagonal ( CISCI_instance%diagonalTarget, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
 
-      !! eigenvalue guess
       CISCI_instance%eigenValues(k)%values(1) = currentEnergy
 
       !! diagonalize in target space
@@ -399,97 +521,12 @@ contains
                  1_8, &
                  CISCI_instance%eigenValues(k), &
                  eigenVectors, timeAA, timeBB, use_guess, use_dressed_shift = .False. )
-
       end select
-  
+
       write (6,"(T2,A10,I4,A8,F25.12)")    "SCI Iter: ", k-1 , " Energy: ", CISCI_instance%eigenValues(k)%values(1)
-
-      !! if the correlation energy is positive, then don't use the guess
-      if (  CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy < 0 ) use_guess = .true.
-
-      !! reset auxindex arrary, for later use in sorting target coeff. global absolute index
-      do i = 1, CISCI_instance%buffer_amplitudeCoreSize
-        CISCI_instance%index_amplitudeCore%values( i ) = i
-      enddo
-
-      !! copy confTarget_orb to confTarget_occ ( same order)
-      call CISCI_orb2occ()
-
-      !! getting the core absolute largest coefficients
-      call CISort_quicksort_vector(  eigenVectors%values(:,1), &
-                                     CISCI_instance%index_amplitudeCore%values(1:CISCI_instance%targetSpaceSize), & 
-                                     1_8,  int(CISCI_instance%targetSpaceSize,8)  )
-    
-      !! just some diagnostics, average of last 5 coefficients
-      CISCI_instance%minCoeff(k) = sum(eigenVectors%values(CISCI_instance%targetSpaceSize-5:CISCI_instance%targetSpaceSize,1) ) / 5.0
-
-      !! copy confTarget_occ to confTarget_orb (sorted by index_amplitude)
-      call CISCI_occ2orb()
-
-      !! copy confTarget_orb to confTarget_occ ( now sortered)
-      call CISCI_orb2occ()
-
-!$  timeB(k) = omp_get_wtime()
-
       finalk = k
-      !! convergence criteria. Exit here avoiding matrices reset if: the energy converged or reach max iter, and if at least 3 iterations were achieved  
-      if ( abs( CISCI_instance%eigenValues(k)%values(1) - currentEnergy ) < 1.0E-5 .and. k > 2 ) then
-        write (6,"(T2,A30)") "Reached SCI Energy Convergence of 1E-5 "
-        exit
-      end if
 
-      !! don't grow anymore
-      if ( k == 1 + CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS ) then
-        write (6,"(T2,A30)") "Reached Max number of steps "
-        exit
-      end if
-
-      !! preparation for next iter
-
-      !! adding again the reference to the core
-      call CISCI_initialConfigurations( CISCI_instance%coefficientCore, CISCI_instance%confCore )
-
-      !! storing only the largest coefficients, and target conf into the core conf space
-      call CISCI_mergeCoreAndTarget( CISCI_instance%confTarget_orb, eigenVectors )
-
-      !! set target space, either grow or refine
-      if ( k <= CONTROL_instance%CI_SCI_TARGET_GROWTH_STEPS ) then
-        CISCI_instance%targetSpaceSize = CISCI_instance%targetSpaceSize * int (CONTROL_instance%CI_SCI_TARGET_GROWTH_FACTOR )
-      else
-        CISCI_instance%targetSpaceSize = CISCI_instance%targetSpaceSize
-      end if
-      numberOfConfigurations = CISCI_instance%targetSpaceSize
-
-      !! growing eigenvector size
-      call Matrix_constructor (eigenVectors, &
-           int(CISCI_instance%targetSpaceSize, 8), &
-           int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
-
-      !! updating new reference
-      currentEnergy = CISCI_instance%eigenValues(k)%values(1) 
-
-      !! reallocate due to increased target size
-      do spi = 1, CIcore_instance%numberOfSpecies
-        call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
-        call Matrix_constructorInteger ( CISCI_instance%confTarget_occ(spi), int(CIcore_instance%numberOfOccupiedOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_4)
-      enddo
-
-      !! reset iterators for next iter
-      call CISCI_resetBuffer()
-
-    enddo !k
-
-    !! summary of the macro iteration 
-    write (6,*)    ""
-    write (6,"(T2,A107 )")    "                                    Selected CI (SCI)  summary                                            "
-    write (6,"(T2,A6,A12,A25,A25,A20,A15,A12)")    "Iter", "TargetSize", "GS Energy", "Corr. Energy", "Delta E.", "Min coeff.","Time(s)"
-    do k = 2, finalk
-       write (6,"(T2,I6, I12, F25.12, F25.12, F20.12,  ES15.2, F12.2 )") k-1, CISCI_instance%targetSpaceSize_iter(k),  CISCI_instance%eigenValues(k)%values(1),  &
-                                                          CISCI_instance%eigenValues(k)%values(1) - HartreeFock_instance%totalEnergy, &
-                                                          CISCI_instance%eigenValues(k)%values(1) - CISCI_instance%eigenValues(k-1)%values(1), &
-                                                          CISCI_instance%minCoeff(k), &
-                                                          timeB(k) - timeA(k)
-    enddo !k
+    endif
 
     !! save final eigenValues to CIcore instance
     CIcore_instance%eigenValues%values(1) = CISCI_instance%eigenValues(finalk)%values(1)
@@ -507,6 +544,11 @@ contains
     !! counting configurations per species, just for statistics 
     call CISCI_countSpeciesPairs()
     call CISCI_countSpeciesPairsTarget()
+
+    if ( CONTROL_instance%CI_SCI_SAVE_TARGET_CONFIGURATIONS ) then
+      write (6,"(T2,A,ES12.4)") "Saving target space configurations as .target per species "
+      call CISCI_saveTarget( CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
+    endif
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
     if ( computePT2 .or. CONTROL_instance%CI_DRESSING_SHIFT == "SCI") then
@@ -579,9 +621,6 @@ contains
     integer :: n, m, i
     integer :: spi
 
-    !! storing the CI diagonal matrix elements for Jadamilu preconditioner
-    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
-
     !! auxiliary arrays to store the position of the target space for each omp thread within the big arrays 
     !CISCI_instance%omp_targetInterval ! reminder: this one is fixed
     !CISCI_instance%omp_target_iterator_m ! reminder: this one is variable
@@ -616,6 +655,29 @@ contains
     enddo 
 
   end subroutine CISCI_resetBuffer
+
+  !! reallocate target arrays 
+  subroutine CISCI_growTarget( confTarget_orb, eigenVectors )
+    implicit none
+    type(IMatrix1), allocatable, intent(inout) :: confTarget_orb(:)
+    type(matrix), intent(inout) :: eigenVectors
+    integer :: spi
+
+    !! storing the CI diagonal matrix elements for Jadamilu preconditioner
+    call Vector_constructor ( CISCI_instance%diagonalTarget, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
+
+    !! growing eigenvector size
+    call Matrix_constructor (eigenVectors, &
+                             int(CISCI_instance%targetSpaceSize, 8), &
+                             int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
+
+    !! reallocate due to increased target size
+    do spi = 1, CIcore_instance%numberOfSpecies
+      call Matrix_constructorInteger1 ( CISCI_instance%confTarget_orb(spi), int(CIcore_instance%numberOfActiveOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_1)
+      call Matrix_constructorInteger ( CISCI_instance%confTarget_occ(spi), int(CIcore_instance%numberOfOccupiedOrbitals%values(spi),8) , int(CISCI_instance%targetSpaceSize,8), -1_4)
+    enddo
+
+  end subroutine CISCI_growTarget
 
   !! compute the reference configuration, the HF 
   subroutine CISCI_initialConfigurations ( coefficientCore, confCore )
@@ -3309,7 +3371,7 @@ contains
     CIlevel = 0
 
     do a = 1, CISCI_instance%targetSpaceSize
-      if ( CISCI_instance%confAmplitudeCore_orb(1, a) == -1 ) exit 
+      if ( CISCI_instance%confTarget_orb(1)%values(1, a) == -1 ) exit 
 
       !! compare each orb for all species
       do spi = 1, numberOfSpecies 
@@ -3354,8 +3416,98 @@ contains
       print *, spi, totalPerSpecies
     enddo
 
-
   end subroutine CISCI_countSpeciesPairsTarget
+
+  !! Save all target variational configurations into a file
+  subroutine CISCI_saveTarget( confTarget_orb, target_size )
+    implicit none
+    type(IMatrix1), allocatable, intent(in) :: confTarget_orb(:)
+    integer(8), intent(in) :: target_size
+    integer :: spi, numberOfSpecies, numberOfOrbitals
+    character(50) :: species_name
+    integer :: a
+    character(50) :: fileName
+    integer :: fileUnit
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
+
+    do spi = 1, numberOfSpecies 
+      species_name = MolecularSystem_getNameOfSpecies( spi )
+      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_name)//".target")
+      numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(spi)
+
+      fileUnit = 37
+      open( unit = fileUnit, file = trim(fileName), status="replace", form="unformatted")
+
+      write(fileUnit) target_size
+      do a = 1, target_size
+        write(fileUnit) confTarget_orb(spi)%values(1:numberOfOrbitals, a )
+      enddo ! a
+
+      close(fileUnit)
+    enddo ! spi
+
+  end subroutine CISCI_saveTarget
+
+  !! Save all target variational configurations into a file
+  subroutine CISCI_loadTarget( confTarget_orb, target_size, eigenVectors )
+    implicit none
+    type(IMatrix1), allocatable, intent(inout) :: confTarget_orb(:)
+    integer(8), intent(inout) :: target_size
+    type(matrix), intent(inout) :: eigenVectors
+    integer(8) :: target_auxsize
+    integer :: spi, numberOfSpecies, numberOfOrbitals
+    character(50) :: species_name
+    integer :: a
+    character(50) :: fileName
+    integer :: fileUnit
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
+
+    if ( allocated ( confTarget_orb ) ) deallocate ( confTarget_orb )
+    allocate ( confTarget_orb ( numberOfSpecies ) )
+
+    !! first read, to get target size
+    do spi = 1, numberOfSpecies 
+      species_name = MolecularSystem_getNameOfSpecies( spi )
+      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_name)//".target")
+      numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(spi)
+
+      fileUnit = 37
+      open( unit = fileUnit, file = trim(fileName), status="old", form="unformatted")
+
+      read(fileUnit) target_auxsize
+      target_size = target_auxsize 
+      close(fileUnit)
+    enddo ! spi
+
+    !! reallocate target arrays to the new size
+    call CISCI_growTarget ( confTarget_orb, eigenVectors )
+
+    !! reset iterators for next iter
+    call CISCI_resetBuffer()
+
+    !! second read, to load configurations
+    do spi = 1, numberOfSpecies 
+      species_name = MolecularSystem_getNameOfSpecies( spi )
+      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_name)//".target")
+      numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(spi)
+
+      fileUnit = 37
+      open( unit = fileUnit, file = trim(fileName), status="old", form="unformatted")
+
+      read(fileUnit) target_auxsize
+
+      do a = 1, target_auxsize
+        read(fileUnit) confTarget_orb(spi)%values(1:numberOfOrbitals, a )
+      enddo ! a
+
+      close(fileUnit)
+    enddo ! spi
+
+  end subroutine CISCI_loadTarget
+
+  !! Load from a file all target variational configurations
 
   !! Sort the two particles contributions according to HeatBath CI method
   !! Section II.A of 10.1021/acs.jctc.6b00407

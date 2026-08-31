@@ -22,8 +22,10 @@ echo "| ----------------------------------- | ------- | ------------------------
 
 RESULTS_LOG="testResults_$EXENAME/maketest_$date.log"
 
-# copy fchk files. All tests/*fchk will be deleted with make clean
+# copy auxiliary files. All auxiliary files tests/* will be deleted with make clean
 cp fchk/*fchk .
+cp target/*target .
+cp vec/*vec .
 
 #for testfile in `ls H2O*.py`; do
 for testfile in `ls *.py`; do

@@ -448,15 +448,9 @@ contains
           call CISCI_show()
 
           write (*,*) "allocating arrays for sci ..."
-          call cisci_constructor( cicore_instance%numberofconfigurations )
-
-          call Vector_constructor(CIcore_instance%eigenValues, &
-                                int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
-
-          !! initial size, CISCI_run will increase it
-          call Matrix_constructor (CIcore_instance%eigenVectors, &
-            int(CIcore_instance%numberOfConfigurations,8), &
-            int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
+          call CISCI_constructor( CIcore_instance%numberOfConfigurations, &
+                                  CIcore_instance%eigenValues, &
+                                  CIcore_instance%eigenVectors )
 
           call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
                           initialEnergy = HartreeFock_instance%totalEnergy, &
@@ -486,15 +480,9 @@ contains
       call CISCI_show()
 
       write (*,*) "Allocating arrays for SCI ..."
-      call CISCI_constructor( CIcore_instance%numberOfConfigurations )
-
-      call Vector_constructor(CIcore_instance%eigenValues, &
-                                int(CONTROL_instance%CI_NUMBER_OF_STATES, 8), 0.0_8)
-
-      !! initial size, CISCI_run will increase it
-      call Matrix_constructor (CIcore_instance%eigenVectors, &
-           int(CIcore_instance%numberOfConfigurations,8), &
-           int(CONTROL_instance%CI_NUMBER_OF_STATES,8), 0.0_8)
+      call CISCI_constructor( CIcore_instance%numberOfConfigurations, &
+                                  CIcore_instance%eigenValues, &
+                                  CIcore_instance%eigenVectors )
 
       if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &

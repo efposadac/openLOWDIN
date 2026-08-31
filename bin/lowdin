@@ -453,6 +453,7 @@ if [ $extFile="lowdin" ]; then
         cp $nameFile*.plainvec $LOWDIN_SCRATCH/$nameFile &> /dev/null
         cp $nameFile*.refNOCI* $LOWDIN_SCRATCH/$nameFile &> /dev/null
         cp $nameFile*.sup $LOWDIN_SCRATCH/$nameFile &> /dev/null
+        cp $nameFile*.target $LOWDIN_SCRATCH/$nameFile &> /dev/null
         cp $nameFile*.val $LOWDIN_SCRATCH/$nameFile &> /dev/null
         cp $nameFile*.vec $LOWDIN_SCRATCH/$nameFile &> /dev/null
 	
@@ -498,6 +499,7 @@ if [ $extFile="lowdin" ]; then
         mv $LOWDIN_SCRATCH/$nameFile/$nameFile*.plainvec $currentPath &> 2
         #mv $LOWDIN_SCRATCH/$nameFile/*.pot $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.txt $currentPath &> 2
+        mv $LOWDIN_SCRATCH/$nameFile/*.target $currentPath &> 2
         mv $LOWDIN_SCRATCH/$nameFile/*.sci $currentPath &> 2
         #mv $LOWDIN_SCRATCH/$nameFile/*.sys* $currentPath &> 2
         #mv $LOWDIN_SCRATCH/$nameFile/*.val $currentPath &> 2

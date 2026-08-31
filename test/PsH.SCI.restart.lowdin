@@ -10,7 +10,8 @@ TASKS
 END TASKS
 
 CONTROL
-	readCoefficients = F
+	readCoefficients = T
+	noSCF = t
 	buildTwoParticlesMatrixForOneParticle = T
 	HFprintEigenVectors = "ALL"
 	CInumberOfStates = 1	
@@ -30,8 +31,8 @@ CONTROL
 	CISCITargetGrowthSteps = 4
 	CISCIRefinementSteps = 0
 	CISCIBufferFactor = 16
-	!CISCIloadTargetConfigurations = T
-	CISCIsaveTargetConfigurations = T
+	CISCIloadTargetConfigurations = T
+	!CISCIsaveTargetConfigurations = T
 END CONTROL
 
 INPUT_CI
@@ -40,4 +41,3 @@ INPUT_CI
 	species="E+" core=0 active=0
 END INPUT_CI
 
-! This test requires to load the .vec (HF) and .target files from a previous SCI calculation

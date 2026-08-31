@@ -220,7 +220,8 @@ module CONTROL_
     integer :: CI_MCSCF_MAX_ITER
     real(8) :: CI_MCSCF_DAMPING_FACTOR_NR
     logical :: CI_SCI_PT2_CORRECTION
-
+    logical :: CI_SCI_SAVE_TARGET_CONFIGURATIONS
+    logical :: CI_SCI_LOAD_TARGET_CONFIGURATIONS
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -584,7 +585,8 @@ module CONTROL_
   integer :: LowdinParameters_CIMCSCFMaxIter
   real(8) :: LowdinParameters_CIMCSCFDampingFactorNR
   logical :: LowdinParameters_CISCIPT2Correction
-
+  logical :: LowdinParameters_CISCIsaveTargetConfigurations
+  logical :: LowdinParameters_CISCIloadTargetConfigurations
   !!***************************************************************************
   !! Non-orthogonal CI
   !!
@@ -934,6 +936,8 @@ module CONTROL_
     LowdinParameters_CIMCSCFMaxIter, &
     LowdinParameters_CIMCSCFDampingFactorNR, &
     LowdinParameters_CISCIPT2Correction, &
+    LowdinParameters_CISCIsaveTargetConfigurations, &
+    LowdinParameters_CISCIloadTargetConfigurations, &
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1305,6 +1309,8 @@ contains
     LowdinParameters_CIMCSCFMaxIter = 20
     LowdinParameters_CIMCSCFDampingFactorNR = 0.50_8
     LowdinParameters_CISCIPT2Correction = .false.
+    LowdinParameters_CISCIsaveTargetConfigurations = .false.
+    LowdinParameters_CISCIloadTargetConfigurations = .false.
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1665,6 +1671,8 @@ contains
     CONTROL_instance%CI_MCSCF_MAX_ITER = 20
     CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR = 0.50_8
     CONTROL_instance%CI_SCI_PT2_CORRECTION = .false.
+    CONTROL_instance%CI_SCI_SAVE_TARGET_CONFIGURATIONS = .false.
+    CONTROL_instance%CI_SCI_LOAD_TARGET_CONFIGURATIONS = .false.
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2074,6 +2082,8 @@ contains
     CONTROL_instance%CI_MCSCF_MAX_ITER = LowdinParameters_CIMCSCFMaxIter 
     CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR = LowdinParameters_CIMCSCFDampingFactorNR 
     CONTROL_instance%CI_SCI_PT2_CORRECTION = LowdinParameters_CISCIPT2Correction
+    CONTROL_instance%CI_SCI_SAVE_TARGET_CONFIGURATIONS = LowdinParameters_CISCIsaveTargetConfigurations 
+    CONTROL_instance%CI_SCI_LOAD_TARGET_CONFIGURATIONS = LowdinParameters_CISCIloadTargetConfigurations
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2457,6 +2467,8 @@ contains
     LowdinParameters_CIMCSCFMaxIter = CONTROL_instance%CI_MCSCF_MAX_ITER 
     LowdinParameters_CIMCSCFDampingFactorNR = CONTROL_instance%CI_MCSCF_DAMPING_FACTOR_NR
     LowdinParameters_CISCIPT2Correction = CONTROL_instance%CI_SCI_PT2_CORRECTION 
+    LowdinParameters_CISCIsaveTargetConfigurations = CONTROL_instance%CI_SCI_SAVE_TARGET_CONFIGURATIONS 
+    LowdinParameters_CISCIloadTargetConfigurations = CONTROL_instance%CI_SCI_LOAD_TARGET_CONFIGURATIONS 
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
