@@ -3424,8 +3424,8 @@ contains
     type(IMatrix1), allocatable, intent(in) :: confTarget_orb(:)
     integer(8), intent(in) :: target_size
     integer :: spi, numberOfSpecies, numberOfOrbitals
-    character(50) :: species_name
     integer :: a
+    character(50) :: species_name
     character(50) :: fileName
     integer :: fileUnit
 
@@ -3455,10 +3455,11 @@ contains
     type(IMatrix1), allocatable, intent(inout) :: confTarget_orb(:)
     integer(8), intent(inout) :: target_size
     type(matrix), intent(inout) :: eigenVectors
+    type(ivector1) :: orb 
     integer(8) :: target_auxsize
     integer :: spi, numberOfSpecies, numberOfOrbitals
-    character(50) :: species_name
     integer :: a
+    character(50) :: species_name
     character(50) :: fileName
     integer :: fileUnit
 
@@ -3493,17 +3494,33 @@ contains
       fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_name)//".target")
       numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(spi)
 
+      call Vector_constructorInteger1(orb, int(numberOfOrbitals,8), 0_1 )
+
       fileUnit = 37
       open( unit = fileUnit, file = trim(fileName), status="old", form="unformatted")
 
       read(fileUnit) target_auxsize
 
       do a = 1, target_auxsize
-        read(fileUnit) confTarget_orb(spi)%values(1:numberOfOrbitals, a )
+        read(fileUnit) orb%values(1:numberOfOrbitals)
+        CISCI_instance%confAmplitudeCore_orb( & 
+                                      CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) &
+        = orb%values(1:numberOfOrbitals)
+        CISCI_instance%buffer_amplitudeCore%values(a) = 1.0_8 ! just any value larger than 0
       enddo ! a
 
       close(fileUnit)
     enddo ! spi
+
+    !! sort buffer to remove duplicates
+    call CISCI_sortAmplitude( CIcore_instance%nproc + 1 ) 
+
+    do a = 1, target_auxsize
+      do spi = 1, CIcore_instance%numberOfSpecies 
+        confTarget_orb(spi)%values(:,a) = CISCI_instance%confAmplitudeCore_orb( &
+                            CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
+      enddo
+    enddo
 
   end subroutine CISCI_loadTarget
 
