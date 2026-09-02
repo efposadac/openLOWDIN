@@ -30,6 +30,7 @@
      type(vector) :: groundStateEnergies
      type(vector) :: DDCISDTiming
      type(vector) :: lambda !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
+     type(vector) :: kappa !!Number of particles per orbital, module only works for 1 or 2 particles per orbital
      type(matrix), allocatable :: fourCenterIntegrals(:,:)
      type(matrix), allocatable :: twoCenterIntegrals(:)
      type(imatrix8), allocatable :: twoIndexArray(:)
@@ -169,6 +170,7 @@ contains
     call Vector_constructorInteger8(CIcore_instance%numberOfActiveOrbitals, numberOfSpecies)
     call Vector_constructorInteger8(CIcore_instance%numberOfOrbitals, numberOfSpecies)
     call Vector_constructor (CIcore_instance%lambda, numberOfSpecies)
+    call Vector_constructor (CIcore_instance%kappa, numberOfSpecies)
     call Vector_constructor (CIcore_instance%numberOfSpatialOrbitals2, numberOfSpecies)
 
     if ( allocated ( CIcore_instance%totalNumberOfContractions ) ) &
@@ -192,6 +194,7 @@ contains
     do i=1, numberOfSpecies
        !! We are working in spin orbitals not in spatial orbitals!
        CIcore_instance%lambda%values(i) = MolecularSystem_getLambda( i )
+       CIcore_instance%kappa%values(i) = MolecularSystem_instance%species(i)%kappa
        CIcore_instance%numberOfOccupiedOrbitals%values(i) = int (MolecularSystem_getOcupationNumber( i )* &
                                                                               CIcore_instance%lambda%values(i))
        CIcore_instance%numberOfOrbitals%values(i) = MolecularSystem_getTotalNumberOfContractions( i )* &
