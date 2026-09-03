@@ -484,18 +484,18 @@ contains
                                   CIcore_instance%eigenValues, &
                                   CIcore_instance%eigenVectors )
 
-      if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
-        call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
-                        initialEnergy = HartreeFock_instance%totalEnergy, &
-                        initialStep = .true., unboundReference = .true., computePT2 = .false. ) ! do a cisd- first
-        call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
-                        initialEnergy = CIcore_instance%eigenValues%values(1), &
-                        initialStep = .false., unboundReference = .false., computePT2 = CONTROL_instance%CI_SCI_PT2_CORRECTION ) ! fci
-      else  
+      !if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
+      !  call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
+      !                  initialEnergy = HartreeFock_instance%totalEnergy, &
+      !                  initialStep = .true., unboundReference = .true., computePT2 = .false. ) ! do a cisd- first
+      !  call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
+      !                  initialEnergy = CIcore_instance%eigenValues%values(1), &
+      !                  initialStep = .false., unboundReference = .false., computePT2 = CONTROL_instance%CI_SCI_PT2_CORRECTION ) ! fci
+      !else  
         call CISCI_run( CIcore_instance%numberOfConfigurations, CIcore_instance%eigenVectors, &
                         initialEnergy = HartreeFock_instance%totalEnergy, &
                         initialStep = .true., unboundReference = .false., computePT2 = CONTROL_instance%CI_SCI_PT2_CORRECTION ) 
-      endif
+      !endif
 
       call CISCI_destructor()
 

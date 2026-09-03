@@ -700,13 +700,10 @@ contains
     do spi = 1, numberOfSpecies 
       CISCI_instance%confCore(spi)%values(:,:) = -1_1
     enddo
+
+    m = 0
   
-    !! Hartree-Fock reference coeff
-    m = 1
-    coefficientCore%values(m) = 0.50_8
-
     !! build orbitals references
-
     allocate ( occA ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
     allocate ( virA ( numberOfSpecies ) )
@@ -732,18 +729,25 @@ contains
           virA(spi)%values(via) = pi
         end if
       enddo !pi
+    enddo
 
-      confCore(spi)%values(:,m) = orbA(spi)%values(:)
+    !! Hartree-Fock reference
+    if ( .not. CONTROL_instance%CI_UNBOUND_REFERENCE ) then
+      m = m + 1
+      do spi = 1, numberOfSpecies 
+        confCore(spi)%values(:,m) = orbA(spi)%values(:)
+      enddo
+      coefficientCore%values(m) = 0.90_8
       !!call CISCI_binaryToDecimal ( orbA(spi)%values, indexConf )
       !!confCore(spi)%values(spi,m) = indexConf
-    enddo
+    endif
 
     !! add all single electron - single positronic states, useful for unbound HF references 
     if ( CONTROL_instance%CI_UNBOUND_REFERENCE ) then
-      coefficientCore%values(m) = 0.10_8 
       singles: do spi = 1, numberOfSpecies 
-        if ( trim(  MolecularSystem_getNameOfSpecies( spi ) ) == "E-ALPHA" .or. &
-             trim(  MolecularSystem_getNameOfSpecies( spi ) ) == "E-BETA" ) then
+        if ( trim(  MolecularSystem_getSymbolOfSpecies( spi ) ) == "E+" ) then
+        !if ( trim(  MolecularSystem_getSymbolOfSpecies( spi ) ) == "E-ALPHA" .or. &
+        !     trim(  MolecularSystem_getSymbolOfSpecies( spi ) ) == "E-BETA" ) then
 
           !! single excitations
           do pi = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1, CIcore_instance%numberOfOccupiedOrbitals%values(spi)
@@ -763,37 +767,37 @@ contains
                 confCore(spk)%values(:,m) = orbA(spk)%values(:)
               enddo
 
-              !! double excitations (interspecies) 
-              do spj = spi + 1, numberOfSpecies 
+              !!! double excitations (interspecies) 
+              !do spj = spi + 1, numberOfSpecies 
 
-                if ( trim(  MolecularSystem_getNameOfSpecies( spj ) ) == "E+" .or. &
-                     trim(  MolecularSystem_getNameOfSpecies( spj ) ) == "H_1" ) then
+              !  if ( trim(  MolecularSystem_getSymbolOfSpecies( spj ) ) == "E+" .or. &
+              !       trim(  MolecularSystem_getSymbolOfSpecies( spj ) ) == "H_1" ) then
 
-                  do rj = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spj)
-                    oj2 = occA(spj)%values(rj)  
-                    orbA(spj)%values(oj2) = orbA(spj)%values(oj2) - 1_8
+              !    do rj = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1_8, CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+              !      oj2 = occA(spj)%values(rj)  
+              !      orbA(spj)%values(oj2) = orbA(spj)%values(oj2) - 1_8
 
-                    do sj = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
-                      vj2 = virA(spj)%values(sj)
-                      orbA(spj)%values(vj2) = orbA(spj)%values(vj2) + 1_8
+              !      do sj = 1_8, CIcore_instance%numberOfActiveOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+              !        vj2 = virA(spj)%values(sj)
+              !        orbA(spj)%values(vj2) = orbA(spj)%values(vj2) + 1_8
 
-                      m = m + 1
-                      if ( m > CISCI_instance%coreSpaceSize ) exit singles
+              !        m = m + 1
+              !        if ( m > CISCI_instance%coreSpaceSize ) exit singles
 
-                      !! add the configuration
-                      coefficientCore%values(m) = 0.10_8
+              !        !! add the configuration
+              !        coefficientCore%values(m) = 0.10_8
 
-                      !! save all species
-                      do spk = 1, numberOfSpecies 
-                        confCore(spk)%values(:,m) = orbA(spk)%values(:)
-                      enddo
+              !        !! save all species
+              !        do spk = 1, numberOfSpecies 
+              !          confCore(spk)%values(:,m) = orbA(spk)%values(:)
+              !        enddo
 
-                      orbA(spj)%values(vj2) = orbA(spj)%values(vj2) - 1_8
-                    enddo ! sj
-                    orbA(spj)%values(oj2) = orbA(spj)%values(oj2) + 1_8
-                  enddo ! rj
-                endif 
-              enddo !spj
+              !        orbA(spj)%values(vj2) = orbA(spj)%values(vj2) - 1_8
+              !      enddo ! sj
+              !      orbA(spj)%values(oj2) = orbA(spj)%values(oj2) + 1_8
+              !    enddo ! rj
+              !  endif 
+              !enddo !spj
 
               orbA(spi)%values(vi1) = orbA(spi)%values(vi1) - 1
             enddo !qi
@@ -3361,7 +3365,6 @@ contains
 
       CIorder_index = CISCI_combinationIndex(CIlevel, CISCI_instance%maxCIexcitations )
       CISCI_instance%CIorder_count(CIorder_index) = CISCI_instance%CIorder_count(CIorder_index) + 1
-      !print *, i, CIlevel, CISCI_combinationIndex(CIlevel, CISCI_instance%maxCIexcitations )
 
     enddo
 
@@ -3383,6 +3386,7 @@ contains
     end do
     write (6, "(T2,A)") "--------------------------------------------------"
 
+    write (6, "(T2,A)") "Total per species:"
     do spi = 1, numberOfSpecies 
       totalPerSpecies = 0
       do c = 1, size( CISCI_instance%CIorder_list, dim = 2 )
@@ -3390,7 +3394,7 @@ contains
           totalPerSpecies = totalPerSpecies + CISCI_instance%CIorder_count(c) 
         endif 
       enddo
-      print *, spi, totalPerSpecies
+      write (6, "(T2,I2,1X,A,I8)" ) spi, MolecularSystem_getSymbolOfSpecies( spi ), totalPerSpecies
     enddo
 
 
@@ -3428,7 +3432,6 @@ contains
 
       CIorder_index = CISCI_combinationIndex(CIlevel, CISCI_instance%maxCIexcitations )
       CISCI_instance%CIorder_count(CIorder_index) = CISCI_instance%CIorder_count(CIorder_index) + 1
-      !print *, i, CIlevel, CISCI_combinationIndex(CIlevel, CISCI_instance%maxCIexcitations )
 
     enddo
 
@@ -3450,7 +3453,7 @@ contains
     end do
     write (6, "(T2,A)") "--------------------------------------------------"
 
-
+    write (6, "(T2,A)") "Total per species:"
     do spi = 1, numberOfSpecies 
       totalPerSpecies = 0
       do c = 1, size( CISCI_instance%CIorder_list, dim = 2 )
@@ -3458,7 +3461,7 @@ contains
           totalPerSpecies = totalPerSpecies + CISCI_instance%CIorder_count(c) 
         endif 
       enddo
-      print *, spi, totalPerSpecies
+      write (6, "(T2,I2,1X,A,I8)" ) spi, MolecularSystem_getSymbolOfSpecies( spi ), totalPerSpecies
     enddo
 
   end subroutine CISCI_countSpeciesPairsTarget
@@ -3470,15 +3473,15 @@ contains
     integer(8), intent(in) :: target_size
     integer :: spi, numberOfSpecies, numberOfOrbitals
     integer :: a
-    character(50) :: species_name
+    character(50) :: species_symbol
     character(50) :: fileName
     integer :: fileUnit
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
 
     do spi = 1, numberOfSpecies 
-      species_name = MolecularSystem_getNameOfSpecies( spi )
-      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_name)//".target")
+      species_symbol = MolecularSystem_getSymbolOfSpecies( spi )
+      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_symbol)//".target")
       numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(spi)
 
       fileUnit = 37
@@ -3504,7 +3507,7 @@ contains
     integer(8) :: target_auxsize
     integer :: spi, numberOfSpecies, numberOfOrbitals
     integer :: a
-    character(50) :: species_name
+    character(50) :: species_symbol
     character(50) :: fileName
     integer :: fileUnit
 
@@ -3515,8 +3518,8 @@ contains
 
     !! first read, to get target size
     do spi = 1, numberOfSpecies 
-      species_name = MolecularSystem_getNameOfSpecies( spi )
-      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_name)//".target")
+      species_symbol = MolecularSystem_getSymbolOfSpecies( spi )
+      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_symbol)//".target")
       numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(spi)
 
       fileUnit = 37
@@ -3535,8 +3538,8 @@ contains
 
     !! second read, to load configurations
     do spi = 1, numberOfSpecies 
-      species_name = MolecularSystem_getNameOfSpecies( spi )
-      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_name)//".target")
+      species_symbol = MolecularSystem_getSymbolOfSpecies( spi )
+      fileName = trim(trim(CONTROL_instance%INPUT_FILE)//trim(species_symbol)//".target")
       numberOfOrbitals = CIcore_instance%numberOfOrbitals%values(spi)
 
       call Vector_constructorInteger1(orb, int(numberOfOrbitals,8), 0_1 )
