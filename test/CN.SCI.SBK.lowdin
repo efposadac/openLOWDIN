@@ -25,7 +25,7 @@ CONTROL
 	CISCIPT2Correction = False
 	CISCICoreSpace = 400
 	CISCITargetSpace = 800 
-	CISCIBufferFactor = 16
+	CISCIBufferFactor = 32
 	CISCITargetGrowthFactor = 1
 	CISCITargetGrowthSteps = 4
 	CISCIRefinementSteps = 0

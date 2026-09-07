@@ -550,10 +550,7 @@ contains
 
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
     if ( computePT2 .or. CONTROL_instance%CI_DRESSING_SHIFT == "SCI") then
-      !! reset iterators
-      call CISCI_resetBuffer()
-  
-      call CISCI_copyTargetToBuffer()
+
 
       !! computing the diagonal in the target space, for fast computation of core amplitudes
       call CISCI_buildDiagonal ( CISCI_instance%diagonalTarget, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
@@ -562,12 +559,18 @@ contains
         case ("ASCI")
         !! recompute amplitudes, but now from target space not core, in this way all connected conf are saved in buffer
         if ( CIcore_instance%level == "CISD-" ) then
+         !! reset iterators
+          call CISCI_resetBuffer()
+          call CISCI_copyTargetToBuffer()
           call CISCI_core_amplitudes_cisd (  eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy )
         endif
         if ( CIcore_instance%level == "FCI" ) then
           call CISCI_core_amplitudes_PT ( CISCI_instance%diagonalTarget, eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy, eigenVectors  )
         endif
       case ("HBCI")
+          !! reset iterators
+          call CISCI_resetBuffer()
+          call CISCI_copyTargetToBuffer()
           call CISCI_heatBathGenerate ( CISCI_instance%diagonalTarget, eigenVectors%values(:,1), CISCI_instance%confTarget_orb, &
           CISCI_instance%targetSpaceSize, currentEnergy, PERTURBATIVE )
       end select
@@ -1181,6 +1184,8 @@ contains
     integer :: lowerActiveOrbitalJ, upperActiveOrbitalJ
     integer :: upperVirtualOrbitalJ
     integer :: batch_min, batch_max, batch_start, batch_end, batch_step, summedOrbitals
+    integer :: batch_min2, batch_max2
+    integer, allocatable :: batch_histogram(:)
 
 !$  timeA = omp_get_wtime()
     shift = 1E-8 !! to avoid divergence
@@ -1199,7 +1204,7 @@ contains
     !! generate occupied orbital representation
     call CISCI_orb2occ()
 
-    !! compute batches window
+    !! get the maximum possible orbital summ to define the batch range 
     batch_min = 0
     batch_max = 0
     do spk = 1, numberOfSpecies 
@@ -1212,11 +1217,81 @@ contains
                                  CIcore_instance%numberOfActiveOrbitals%values(spk) - CIcore_instance%numberOfOccupiedOrbitals%values(spk) + 1 ) / 2
  
     enddo
-    batch_step = ceiling( real( batch_max - batch_min + 1 ) / real( CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES ))
+    write (6,"(T2,A,I4,A,I4)") "Complete batch range from : ", batch_min, " to: ", batch_max
 
+    !! scanning old buffer to get the maximum orbital sum for a guided batch range
+    allocate ( batch_histogram ( batch_max - batch_min ) )
+    batch_histogram = 0
+    allocate ( occA ( numberOfSpecies ) )
+    allocate ( orbA ( numberOfSpecies ) )
+  
+    do spk = 1, numberOfSpecies
+      call Vector_constructorInteger ( occA(spk), CIcore_instance%numberOfOccupiedOrbitals%values(spk), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( orbA(spk), CIcore_instance%numberOfActiveOrbitals%values(spk),  0 ) 
+    end do
+
+    do a = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
+      if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(a)) <= 1E-8 ) exit
+
+      ! getting configuration A
+      summedOrbitals = 0
+      do spk = 1, numberOfSpecies 
+        oia = 0 
+        orbA(spk)%values(:) = CISCI_instance%confAmplitudeCore_orb(CISCI_instance%combinedOrbitalsPositions(1,spk) : CISCI_instance%combinedOrbitalsPositions(2,spk), a) 
+
+        !! build auxiliary vectors of occupied and virtuals orbitals
+        do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spk)
+          if ( orbA(spk)%values(pi) == 1 ) then
+            oia = oia + 1
+            occA(spk)%values(oia) = pi
+          end if
+        enddo
+        summedOrbitals = summedOrbitals + sum(occA(spk)%values(:))
+
+      enddo ! spk
+      !! counting counting
+      batch_histogram(summedOrbitals - batch_min ) = batch_histogram(summedOrbitals - batch_min ) + 1
+    enddo ! a
+
+    deallocate ( occA )
+    deallocate ( orbA )
+
+    !! if we want to know the distribution
+    !do batch_start = 1, batch_max - batch_min
+    !  print *, batch_start + batch_min, batch_histogram( batch_start ) 
+    !enddo
+
+    !! scanning the histogram to get the first non zero batch range. Assuming normal distribution
+    do batch_start = 1, batch_max - batch_min
+      if ( batch_histogram( batch_start )  > 0 ) then
+        batch_min2 = batch_start + batch_min  
+        exit
+      endif
+    enddo
+
+    !! scanning the histogram to get the last non zero batch range. Assuming normal distribution
+    do batch_start = batch_max - batch_min, 1, -1
+      if ( batch_histogram( batch_start )  > 0 ) then
+        batch_max2 = batch_start + batch_min
+        exit
+      endif
+    enddo
+
+    deallocate ( batch_histogram  )
+
+    !! define a step for each batch from input
+    batch_step = ceiling( real( batch_max2 - batch_min2 + 1 ) / real( CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES ))
+
+    !! clean buffer
+    call CISCI_resetBuffer()
+    !! copy target to first region of buffer
+    call CISCI_copyTargetToBuffer()
+
+    write (6,"(T2,A,I4,A,I4)") "Guided batch range from : ", batch_min2, " to: ", batch_max2
     write (6,"(T2,A,I4,A)") "Building PT2 external configuration in: ", CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES, " batches"
 
-    do batch_start = batch_min, batch_max, batch_step
+    !! generate connected external configuration per batches
+    do batch_start = batch_min2, batch_max2, batch_step
 
       batch_end = min(batch_start + batch_step - 1, batch_max)
       write (6,"(T2,A,I4,A,I4)") "Batch range from : ", batch_start, " to: ", batch_end
@@ -1331,12 +1406,12 @@ contains
               !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
               !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
   
-              if ( abs(cienergy) > 1.0e-12 ) then
-                summedorbitals = 0
+              if ( abs(cienergy) > 1.0e-6 ) then
+                summedOrbitals = 0
                 do spk = 1, numberofspecies 
-                  summedorbitals = summedorbitals + sum(occb(spk)%values(:))
+                  summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
                 enddo
-                if ( summedorbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
                   !! append the amplitude 
                   call cisci_appendamplitude ( n, cienergy, orbb )
                 endif 
@@ -1379,12 +1454,12 @@ contains
                   !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
                   !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
   
-                  if ( abs(cienergy) > 1.0e-12 ) then
-                    summedorbitals = 0
+                  if ( abs(cienergy) > 1.0e-6 ) then
+                    summedOrbitals = 0
                     do spk = 1, numberofspecies 
-                      summedorbitals = summedorbitals + sum(occb(spk)%values(:))
+                      summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
                     enddo
-                    if ( summedorbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                    if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
                       !! append the amplitude 
                       call cisci_appendamplitude ( n, cienergy, orbb )
                     endif 
@@ -1437,12 +1512,12 @@ contains
                     !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
                     !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
   
-                    if ( abs(cienergy) > 1.0e-12 ) then
-                      summedorbitals = 0
+                    if ( abs(cienergy) > 1.0e-6 ) then
+                      summedOrbitals = 0
                       do spk = 1, numberofspecies 
-                        summedorbitals = summedorbitals + sum(occb(spk)%values(:))
+                        summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
                       enddo
-                      if ( summedorbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                      if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
                         !! append the amplitude 
                         call cisci_appendamplitude ( n, cienergy, orbb )
                       endif 
