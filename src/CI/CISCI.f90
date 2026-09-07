@@ -1370,20 +1370,27 @@ contains
         do spk = 1, numberOfSpecies 
           summedOrbitals_max = summedOrbitals_max &
                                           - occA(spk)%values(1) &
-                                          - occA(spk)%values(2) & 
                                           + virA(spk)%values(CIcore_instance%numberOfActiveOrbitals%values(spk) - &
-                                                             CIcore_instance%numberOfOccupiedOrbitals%values(spk) ) &
+                                                             CIcore_instance%numberOfOccupiedOrbitals%values(spk) ) 
+          if ( CIcore_instance%numberOfOccupiedOrbitals%values(spk) > 1 ) then 
+            summedOrbitals_max = summedOrbitals_max &
+                                          - occA(spk)%values(2) & 
                                           + virA(spk)%values(CIcore_instance%numberOfActiveOrbitals%values(spk) - & 
                                                              CIcore_instance%numberOfOccupiedOrbitals%values(spk) - 1 ) 
+          endif
         enddo
         !! estimating the batch in the worst case scenario : exciting from HOMO to LUMO
         summedOrbitals_min = summedOrbitals
         do spk = 1, numberOfSpecies 
           summedOrbitals_min = summedOrbitals_min &
                                           - occA(spk)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spk) ) & 
+                                          + virA(spk)%values(1) 
+
+          if ( CIcore_instance%numberOfOccupiedOrbitals%values(spk) > 1 ) then 
+            summedOrbitals_min = summedOrbitals_min &
                                           - occA(spk)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spk) -1) & 
-                                          + virA(spk)%values(1) &
                                           + virA(spk)%values(2) 
+          endif
         enddo
 
         if ( summedOrbitals_min >= batch_end .or. summedOrbitals_max <= batch_start ) cycle
