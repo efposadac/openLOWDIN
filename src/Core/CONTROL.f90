@@ -222,6 +222,7 @@ module CONTROL_
     logical :: CI_SCI_PT2_CORRECTION
     logical :: CI_SCI_SAVE_TARGET_CONFIGURATIONS
     logical :: CI_SCI_LOAD_TARGET_CONFIGURATIONS
+    integer :: CI_SCI_PT2_NUMBER_OF_BATCHES
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -587,6 +588,7 @@ module CONTROL_
   logical :: LowdinParameters_CISCIPT2Correction
   logical :: LowdinParameters_CISCIsaveTargetConfigurations
   logical :: LowdinParameters_CISCIloadTargetConfigurations
+  integer :: LowdinParameters_CISCIPT2NumberOfBatches
   !!***************************************************************************
   !! Non-orthogonal CI
   !!
@@ -938,6 +940,7 @@ module CONTROL_
     LowdinParameters_CISCIPT2Correction, &
     LowdinParameters_CISCIsaveTargetConfigurations, &
     LowdinParameters_CISCIloadTargetConfigurations, &
+    LowdinParameters_CISCIPT2numberOfBatches, &
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1311,6 +1314,7 @@ contains
     LowdinParameters_CISCIPT2Correction = .false.
     LowdinParameters_CISCIsaveTargetConfigurations = .false.
     LowdinParameters_CISCIloadTargetConfigurations = .false.
+    LowdinParameters_CISCIPT2numberOfBatches = 1
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -1673,6 +1677,7 @@ contains
     CONTROL_instance%CI_SCI_PT2_CORRECTION = .false.
     CONTROL_instance%CI_SCI_SAVE_TARGET_CONFIGURATIONS = .false.
     CONTROL_instance%CI_SCI_LOAD_TARGET_CONFIGURATIONS = .false.
+    CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES = 1
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2084,6 +2089,7 @@ contains
     CONTROL_instance%CI_SCI_PT2_CORRECTION = LowdinParameters_CISCIPT2Correction
     CONTROL_instance%CI_SCI_SAVE_TARGET_CONFIGURATIONS = LowdinParameters_CISCIsaveTargetConfigurations 
     CONTROL_instance%CI_SCI_LOAD_TARGET_CONFIGURATIONS = LowdinParameters_CISCIloadTargetConfigurations
+    CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES = LowdinParameters_CISCIPT2numberOfBatches
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
@@ -2320,7 +2326,6 @@ contains
     LowdinParameters_exchangeOrbitalsInSCF = CONTROL_instance%EXCHANGE_ORBITALS_IN_SCF
     LowdinParameters_forceClosedShell = CONTROL_instance%FORCE_CLOSED_SHELL
     LowdinParameters_debugScfs = CONTROL_instance%DEBUG_SCFS
-
     LowdinParameters_scfGhostSpecies = CONTROL_instance%SCF_GHOST_SPECIES
 
     !!*****************************************************
@@ -2469,6 +2474,7 @@ contains
     LowdinParameters_CISCIPT2Correction = CONTROL_instance%CI_SCI_PT2_CORRECTION 
     LowdinParameters_CISCIsaveTargetConfigurations = CONTROL_instance%CI_SCI_SAVE_TARGET_CONFIGURATIONS 
     LowdinParameters_CISCIloadTargetConfigurations = CONTROL_instance%CI_SCI_LOAD_TARGET_CONFIGURATIONS 
+    LowdinParameters_CISCIPT2numberOfBatches = CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES 
     !!***************************************************************************
     !! Non-orthogonal CI
     !!
