@@ -1184,6 +1184,7 @@ contains
     integer :: lowerActiveOrbitalJ, upperActiveOrbitalJ
     integer :: upperVirtualOrbitalJ
     integer :: batch_min, batch_max, batch_start, batch_end, batch_step, summedOrbitals
+    integer :: summedOrbitals_max, summedOrbitals_min
     integer :: batch_min2, batch_max2
     integer, allocatable :: batch_histogram(:)
 
@@ -1220,7 +1221,7 @@ contains
     write (6,"(T2,A,I4,A,I4)") "Complete batch range from : ", batch_min, " to: ", batch_max
 
     !! scanning old buffer to get the maximum orbital sum for a guided batch range
-    allocate ( batch_histogram ( batch_max - batch_min ) )
+    allocate ( batch_histogram ( batch_max - batch_min + 1) )
     batch_histogram = 0
     allocate ( occA ( numberOfSpecies ) )
     allocate ( orbA ( numberOfSpecies ) )
@@ -1250,16 +1251,16 @@ contains
 
       enddo ! spk
       !! counting counting
-      batch_histogram(summedOrbitals - batch_min ) = batch_histogram(summedOrbitals - batch_min ) + 1
+      batch_histogram(summedOrbitals - batch_min ) = batch_histogram(summedOrbitals - batch_min + 1 ) + 1
     enddo ! a
-
-    deallocate ( occA )
-    deallocate ( orbA )
 
     !! if we want to know the distribution
     !do batch_start = 1, batch_max - batch_min
     !  print *, batch_start + batch_min, batch_histogram( batch_start ) 
     !enddo
+
+    deallocate ( occA )
+    deallocate ( orbA )
 
     !! scanning the histogram to get the first non zero batch range. Assuming normal distribution
     do batch_start = 1, batch_max - batch_min
@@ -1305,7 +1306,7 @@ contains
       !$omp&           factor1, factor2i, factor2ii, factor2j, &
       !$omp&           lowerActiveOrbitalI, upperActiveOrbitalI, upperVirtualOrbitalI, &
       !$omp&           lowerActiveOrbitalJ, upperActiveOrbitalJ, upperVirtualOrbitalJ, &
-      !$omp&           summedOrbitals, &
+      !$omp&           summedOrbitals, summedOrbitals_min, summedOrbitals_max, &
       !$omp&           CIenergy, diagEnergy, diagEnergy_a, diagEnergy_ao1, diagEnergy_ao1o2 ) 
   
       !! allocating auxiliary arrays (omp) for working with conf and orbitals
@@ -1358,6 +1359,34 @@ contains
           !CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
   
         enddo
+
+        !! calculate the batch window
+        summedOrbitals = 0
+        do spk = 1, numberOfSpecies 
+          summedOrbitals = summedOrbitals + sum(occA(spk)%values(:)) ! original configuration
+        enddo
+        summedOrbitals_max = summedOrbitals
+        !! estimating the batch in the worst case scenario : exciting from LOMO to HUMO
+        do spk = 1, numberOfSpecies 
+          summedOrbitals_max = summedOrbitals_max &
+                                          - occA(spk)%values(1) &
+                                          - occA(spk)%values(2) & 
+                                          + virA(spk)%values(CIcore_instance%numberOfActiveOrbitals%values(spk) - &
+                                                             CIcore_instance%numberOfOccupiedOrbitals%values(spk) ) &
+                                          + virA(spk)%values(CIcore_instance%numberOfActiveOrbitals%values(spk) - & 
+                                                             CIcore_instance%numberOfOccupiedOrbitals%values(spk) - 1 ) 
+        enddo
+        !! estimating the batch in the worst case scenario : exciting from HOMO to LUMO
+        summedOrbitals_min = summedOrbitals
+        do spk = 1, numberOfSpecies 
+          summedOrbitals_min = summedOrbitals_min &
+                                          - occA(spk)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spk) ) & 
+                                          - occA(spk)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spk) -1) & 
+                                          + virA(spk)%values(1) &
+                                          + virA(spk)%values(2) 
+        enddo
+
+        if ( summedOrbitals_min >= batch_end .or. summedOrbitals_max <= batch_start ) cycle
   
         do spi = 1, numberOfSpecies 
           !! Use diagonal(a) as the reference energy for the diagonal elements in b
@@ -1383,35 +1412,36 @@ contains
               vi1 = virA(spi)%values(qi)
               orbB(spi)%values(vi1) = 1_8
               occB(spi)%values(pi) = vi1
-  
-              !CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
-  
-              !! bit mapping from orbital to decimal num
-              !call CISCI_binaryToDecimal ( orbB(spi)%values, confCoreConfB(spi) )
-              !confCoreConfB(spi)%values = orbB(spi)%values ! save the indexconfB to use later in double inter, because double intra will overwritten it 
-  
-              !! get spingle sustitutions energy, H_ab C_a
-              CIenergy = CISCI_calculateEnergyOne( spi, occA, occB, oi1, vi1  )
-              CIenergy = CIenergy * coefficientCore(a) 
-  
+
               !! calculate the sign factor for canonical order of the configuration
               factor2i = CISCI_canonicalOrderFactor( spi, orbB(spi), occB(spi) )
-              CIenergy = CIenergy * factor1 * factor2i
   
-              !! add energy of the excited orbital to diagonal, H_bb
-              !diagEnergy = diagEnergy_ao1 + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
-              !! alternative way (slower)
-              !!diagEnergy = CISCI_calculateEnergyZero( occB )
+              summedOrbitals = 0
+              do spk = 1, numberofspecies 
+                summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
+              enddo
+              if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                !CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
   
-              !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
-              !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
+                !! bit mapping from orbital to decimal num
+                !call CISCI_binaryToDecimal ( orbB(spi)%values, confCoreConfB(spi) )
+                !confCoreConfB(spi)%values = orbB(spi)%values ! save the indexconfB to use later in double inter, because double intra will overwritten it 
   
-              if ( abs(cienergy) > 1.0e-6 ) then
-                summedOrbitals = 0
-                do spk = 1, numberofspecies 
-                  summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
-                enddo
-                if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                !! get spingle sustitutions energy, H_ab C_a
+                CIenergy = CISCI_calculateEnergyOne( spi, occA, occB, oi1, vi1  )
+                CIenergy = CIenergy * coefficientCore(a) 
+  
+                CIenergy = CIenergy * factor1 * factor2i
+  
+                !! add energy of the excited orbital to diagonal, H_bb
+                !diagEnergy = diagEnergy_ao1 + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
+                !! alternative way (slower)
+                !!diagEnergy = CISCI_calculateEnergyZero( occB )
+  
+                !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
+                !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
+  
+                if ( abs(cienergy) > 1.0e-6 ) then
                   !! append the amplitude 
                   call cisci_appendamplitude ( n, cienergy, orbb )
                 endif 
@@ -1430,38 +1460,39 @@ contains
                   vi2 = virA(spi)%values(si)
                   orbB(spi)%values(vi2) = 1_8
                   occB(spi)%values(ri) = vi2
+
+                  summedOrbitals = 0
+                  do spk = 1, numberofspecies 
+                    summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
+                  enddo
+                  if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
   
-                  !! bit mapping from orbital to decimal num
-                  !call CISCI_binaryToDecimal ( orbB(spi)%values, confCoreConfB(spi) )
+                    !! bit mapping from orbital to decimal num
+                    !call CISCI_binaryToDecimal ( orbB(spi)%values, confCoreConfB(spi) )
   
-                  !CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
+                    !CIlevel(spi) = sum(orbB(spi)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spi)+1:) )
   
-                  !! get double intraspecies sustitutions energy
-                  CIenergy = CISCI_calculateEnergyTwoSame( spi, occA, occB, oi1, oi2, vi1,  vi2 )
-                  CIenergy = CIenergy * coefficientCore(a)
+                    !! get double intraspecies sustitutions energy
+                    CIenergy = CISCI_calculateEnergyTwoSame( spi, occA, occB, oi1, oi2, vi1,  vi2 )
+                    CIenergy = CIenergy * coefficientCore(a)
   
-                  !! calculate the sign factor for canonical order of the configuration
-                  factor2ii = CISCI_canonicalOrderFactor( spi, orbB(spi), occB(spi) )
-                  CIenergy = CIenergy * factor1 * factor2ii
+                    !! calculate the sign factor for canonical order of the configuration
+                    factor2ii = CISCI_canonicalOrderFactor( spi, orbB(spi), occB(spi) )
+                    CIenergy = CIenergy * factor1 * factor2ii
   
-                  !! add energy of the 1st and 2nd excited orbital to the diagonal H_bb
-                  !diagEnergy = diagEnergy_ao1o2 + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
-                  !diagEnergy = diagEnergy + CISCI_calculateEnergyOne( spi, occB, occB, vi2, vi2 )
-                  !diagEnergy = diagEnergy - CISCI_calculateEnergyTwoSame( spi, occB, occB, vi1, vi2, vi1, vi2 )
-                  !!alternative way (slower)
-                  !!diagEnergy = CISCI_calculateEnergyZero( occB )
+                    !! add energy of the 1st and 2nd excited orbital to the diagonal H_bb
+                    !diagEnergy = diagEnergy_ao1o2 + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
+                    !diagEnergy = diagEnergy + CISCI_calculateEnergyOne( spi, occB, occB, vi2, vi2 )
+                    !diagEnergy = diagEnergy - CISCI_calculateEnergyTwoSame( spi, occB, occB, vi1, vi2, vi1, vi2 )
+                    !!alternative way (slower)
+                    !!diagEnergy = CISCI_calculateEnergyZero( occB )
   
-                  !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
-                  !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
+                    !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
+                    !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
   
-                  if ( abs(cienergy) > 1.0e-6 ) then
-                    summedOrbitals = 0
-                    do spk = 1, numberofspecies 
-                      summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
-                    enddo
-                    if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
-                      !! append the amplitude 
-                      call cisci_appendamplitude ( n, cienergy, orbb )
+                    if ( abs(cienergy) > 1.0e-6 ) then
+                        !! append the amplitude 
+                        call cisci_appendamplitude ( n, cienergy, orbb )
                     endif 
                   endif
   
@@ -1488,39 +1519,40 @@ contains
                     vj2 = virA(spj)%values(sj)
                     orbB(spj)%values(vj2) = 1_8
                     occB(spj)%values(rj) = vj2
+
+                    summedOrbitals = 0
+                    do spk = 1, numberofspecies 
+                      summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
+                    enddo
+                    if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
   
-                    !! bit mapping from orbital to decimal num
-                    !call CISCI_binaryToDecimal ( orbB(spj)%values, confCoreConfB(spj) )
+                      !! bit mapping from orbital to decimal num
+                      !call CISCI_binaryToDecimal ( orbB(spj)%values, confCoreConfB(spj) )
   
-                    !CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
+                      !CIlevel(spj) = sum(orbB(spj)%values(CIcore_instance%numberOfOccupiedOrbitals%values(spj)+1:) )
   
-                    !! get double interspecies sustitutions energy
-                    CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, vi1, vj2 )
-                    CIenergy = CIenergy * coefficientCore(a) 
+                      !! get double interspecies sustitutions energy
+                      CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, vi1, vj2 )
+                      CIenergy = CIenergy * coefficientCore(a) 
   
-                    !! calculate the sign factor for canonical order of the configuration
-                    factor2j = CISCI_canonicalOrderFactor( spj, orbB(spj), occB(spj) )
-                    CIenergy = CIenergy * factor1 * factor2i * factor2j
+                      !! calculate the sign factor for canonical order of the configuration
+                      factor2j = CISCI_canonicalOrderFactor( spj, orbB(spj), occB(spj) )
+                      CIenergy = CIenergy * factor1 * factor2i * factor2j
   
-                    !! add energy of the 1st and 2nd excited orbital to the diagonal H_bb
-                    !diagEnergy = diagEnergy_ao1o2 + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
-                    !diagEnergy = diagEnergy + CISCI_calculateEnergyOne( spj, occB, occB, vj2, vj2 )
-                    !diagEnergy = diagEnergy - CISCI_calculateEnergyTwoDiff( spi, spj, vi1, vj2, vi1, vj2 )
-                    !! alternative way (slower)
-                    !!diagEnergy = CISCI_calculateEnergyZero( occB )
+                      !! add energy of the 1st and 2nd excited orbital to the diagonal H_bb
+                      !diagEnergy = diagEnergy_ao1o2 + CISCI_calculateEnergyOne( spi, occB, occB, vi1, vi1 )
+                      !diagEnergy = diagEnergy + CISCI_calculateEnergyOne( spj, occB, occB, vj2, vj2 )
+                      !diagEnergy = diagEnergy - CISCI_calculateEnergyTwoDiff( spi, spj, vi1, vj2, vi1, vj2 )
+                      !! alternative way (slower)
+                      !!diagEnergy = CISCI_calculateEnergyZero( occB )
   
-                    !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
-                    !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
+                      !! Amplitude estimation A_b = H_ab C_a / ( H_bb - E_ref )
+                      !CIenergy = CIenergy / ( diagEnergy - oldEnergy + shift)
   
-                    if ( abs(cienergy) > 1.0e-6 ) then
-                      summedOrbitals = 0
-                      do spk = 1, numberofspecies 
-                        summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
-                      enddo
-                      if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
-                        !! append the amplitude 
-                        call cisci_appendamplitude ( n, cienergy, orbb )
-                      endif 
+                      if ( abs(cienergy) > 1.0e-6 ) then
+                          !! append the amplitude 
+                          call cisci_appendamplitude ( n, cienergy, orbb )
+                      endif
                     endif
   
                     !! reset the confB
