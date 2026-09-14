@@ -25,7 +25,7 @@ CONTROL
 	CISCIPT2numberOfBatches = 4
 	CISCICoreSpace = 400
 	CISCITargetSpace = 800 
-	CISCIBufferFactor = 32
+	CISCIBufferFactor = 16
 	CISCITargetGrowthFactor = 1
 	CISCITargetGrowthSteps = 4
 	CISCIRefinementSteps = 0
