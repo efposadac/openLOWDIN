@@ -2538,8 +2538,8 @@ contains
     !! For dressed hamiltonian only
     type(Matrix), intent(in) :: eigenVectors
     real(8), intent(in) :: refEnergy
-    real(8), allocatable :: dressedV(:)
     real(8), allocatable :: auxCIenergy(:,:)
+    real(8) :: dressedV
     real(8) :: diagonal, denominator
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
@@ -2581,8 +2581,6 @@ contains
     !!$omp do schedule (runtime) ! with OMP_SCHEDULE for testing
     !$omp do schedule (dynamic)
     aloop: do aa = 1, NX
-
-      !if ( abs(V(aa) ) <= tol) cycle ! this never happens
 
       !a = CISCI_instance%index_amplitudeCore%values(aa) ! if index_amplitude is unsortered
       a = aa ! if index_amplitude is sorted
@@ -2711,9 +2709,6 @@ contains
       !! store matrix-vector product per omp thread
       allocate ( W_nproc ( NX, CIcore_instance%nproc ) )
       W_nproc = 0.0_8
-
-      allocate ( dressedV ( CISCI_instance%buffer_amplitudeCoreSize ) )
-      dressedV = 0.0_8
 
       allocate ( auxCIenergy ( CISCI_instance%targetSpaceSize, CIcore_instance%nproc ) )
       auxCIenergy = 0.0_8
@@ -2851,10 +2846,10 @@ contains
         !! calculate diagonal term and denominator f Eq5 10.1063/1.4955109
         diagonal = CISCI_calculateEnergyZero( occA )
         denominator = 1.0 / ( refEnergy - diagonal ) 
-        dressedV(a) = CIenergy * denominator
+        dressedV = CIenergy * denominator
 
         do b = 1,  nonzeroTarget
-          W_nproc(b, thread_id) = W_nproc(b, thread_id) + auxCIenergy(b, thread_id) * dressedV(a)
+          W_nproc(b, thread_id) = W_nproc(b, thread_id) + auxCIenergy(b, thread_id) * dressedV
         enddo
 
       end do !a 
