@@ -7,7 +7,7 @@ import lowdinTestFunctions as test
 def setReferenceValues():
     refValues = {
 "HF energy" : [-91.024425042955,1E-8],
-"E_SCI+PT2" : [-91.177612697209,1E-5],
+"E_SCI+PT2" : [-91.17763100,1E-5],
 }
     return refValues
 
