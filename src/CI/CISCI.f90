@@ -611,6 +611,11 @@ contains
       CIcore_instance%eigenValues%values(1) = CISCI_instance%eigenValues(finalk)%values(1)
       write(6,"(T2,A26,F25.12)") "Final SCI dressed energy: ", CIcore_instance%eigenValues%values(1) 
 
+      if ( CONTROL_instance%CI_SCI_SAVE_TARGET_CONFIGURATIONS ) then
+        write (6,"(T2,A,ES12.4)") "Saving target space configurations as .target per species "
+        call CISCI_saveTarget( CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
+      endif
+
     endif
 
   end subroutine CISCI_run
@@ -1175,7 +1180,7 @@ contains
     integer :: summedOrbitals, summedOrbitals_max, summedOrbitals_min
     integer :: batch_min, batch_max, batch_step
     integer :: batch_start, batch_end
-    real(8) :: energyCorrection
+    real(8) :: energyCorrection, previousEnergyCorrection
     real(8) :: diagonal, denominator
     !! Dressed shift
     !! For dressed hamiltonian only
@@ -1354,7 +1359,7 @@ contains
                 CIenergy = CISCI_calculateEnergyOne( spi, occA, oi1, vi1  )
                 CIenergy = CIenergy * coefficientCore(a) 
 
-                if ( abs(cienergy) > 1.0e-6 ) then
+                if ( abs(cienergy) > 1.0e-10 ) then
 
                   !! computing the phase only for nonzero elements
                   call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
@@ -1387,7 +1392,7 @@ contains
                     CIenergy = CISCI_calculateEnergyTwoSame( spi, oi1, oi2, vi1,  vi2 )
                     CIenergy = CIenergy * coefficientCore(a) 
   
-                    if ( abs(cienergy) > 1.0e-6 ) then
+                    if ( abs(cienergy) > 1.0e-10 ) then
 
                       call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
                       factor2i = CISCI_getPairOrbitalsPhase ( spi, orbA(spi), orbB(spi), occA(spi), occBB(spi) ) 
@@ -1428,7 +1433,7 @@ contains
                       CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, vi1, vj2 )
                       CIenergy = CIenergy * coefficientCore(a) 
 
-                      if ( abs(cienergy) > 1.0e-6 ) then
+                      if ( abs(cienergy) > 1.0e-10 ) then
 
                         call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
                         call CISCI_1orbS2occS( spj, orbB(spj), occBB(spj) ) !! to get occb in the canonical order
@@ -1486,7 +1491,7 @@ contains
   
       nonzeroBuffer = 0
       do a = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
-        if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(a)) <= 1E-6 ) exit
+        if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(a)) <= 1E-5 ) exit
         nonzeroBuffer = nonzeroBuffer + 1
       enddo
 
@@ -1543,6 +1548,10 @@ contains
 
         !! accumulating over batches
         CISCI_instance%PT2energy = CISCI_instance%PT2energy + energyCorrection
+
+        !! exit the batch computation if the energy correction change is too small and we if already passed half of the batches, so we are on the tail. 
+        if ( abs(energyCorrection ) <= 1E-6 .and. batch_start > batch_max/2 ) exit
+
       endif
 
       !! -------------------------------------------------------------------------------
@@ -1644,6 +1653,9 @@ contains
   
       call CISCI_resetBuffer()
       call CISCI_copyTargetToBuffer()
+
+      !! exit the batch computation if the energy correction change is too small and we if already passed half of the batches, so we are on the tail. 
+      if ( abs( energyCorrection ) <= 1E-6 .and. batch_start > batch_max/2 ) exit
 
     enddo ! batches
 
