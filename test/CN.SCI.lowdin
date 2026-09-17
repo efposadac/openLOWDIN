@@ -22,7 +22,7 @@ CONTROL
 	CIStatesToPrint = 1
 	CIdiagonalizationMethod = "JADAMILU"
 	CISCIPT2Correction = True
-	CISCIPT2numberOfBatches = 4
+	CISCIPT2numberOfBatches = 6
 	CISCICoreSpace = 400
 	CISCITargetSpace = 800 
 	CISCIBufferFactor = 16

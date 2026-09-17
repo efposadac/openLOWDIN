@@ -1178,6 +1178,7 @@ contains
     integer :: lowerActiveOrbitalJ, upperActiveOrbitalJ
     integer :: upperVirtualOrbitalJ
     integer :: summedOrbitals, summedOrbitals_max, summedOrbitals_min
+    integer, allocatable :: batchWindow_max(:,:), batchWindow_min(:,:)
     integer :: batch_min, batch_max, batch_step
     integer :: batch_start, batch_end
     real(8) :: energyCorrection, previousEnergyCorrection
@@ -1188,6 +1189,7 @@ contains
     real(8), allocatable :: W_nproc(:,:)
     real(8) :: dressedV
     integer(1), allocatable :: couplingS(:)
+    integer :: error
 
 !$  timeA = omp_get_wtime()
     shift = 1E-8 !! to avoid divergence
@@ -1224,7 +1226,6 @@ contains
 
     !! generate connected external configuration per batches
     do batch_start = batch_min, batch_max, batch_step
-
       batch_end = min(batch_start + batch_step - 1, batch_max)
 
       !$ timeAA = omp_get_wtime()
@@ -1238,6 +1239,7 @@ contains
       !$omp&           lowerActiveOrbitalI, upperActiveOrbitalI, upperVirtualOrbitalI, &
       !$omp&           lowerActiveOrbitalJ, upperActiveOrbitalJ, upperVirtualOrbitalJ, &
       !$omp&           summedOrbitals, summedOrbitals_min, summedOrbitals_max, &
+      !$omp&           batchWindow_min, batchWindow_max, &
       !$omp&           CIenergy ) 
   
       !! allocating auxiliary arrays (omp) for working with conf and orbitals
@@ -1247,6 +1249,8 @@ contains
       allocate ( orbB ( numberOfSpecies ) )
       allocate ( occB ( numberOfSpecies ) )
       allocate ( occBB ( numberOfSpecies ) ) !! canonical ordered B conf
+      allocate ( batchWindow_max ( numberOfSpecies, numberOfSpecies ) )
+      allocate ( batchWindow_min ( numberOfSpecies, numberOfSpecies ) )
   
       do spi = 1, numberOfSpecies
         call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi), 0 ) 
@@ -1293,42 +1297,9 @@ contains
         enddo
 
         !! calculate the batch window
-        summedOrbitals = 0
-        do spk = 1, numberOfSpecies 
-          summedOrbitals = summedOrbitals + sum(occA(spk)%values(:)) ! original configuration
-        enddo
-        summedOrbitals_max = summedOrbitals
-        !! estimating the batch in the worst case scenario : exciting from LOMO to HUMO
-        do spk = 1, numberOfSpecies 
-          !if ( CIcore_instance%numberOfOccupiedOrbitals%values(spk) > 0 ) then
-          summedOrbitals_max = summedOrbitals_max &
-                                          - occA(spk)%values(1) &
-                                          + virA(spk)%values(CIcore_instance%numberOfActiveOrbitals%values(spk) - &
-                                                             CIcore_instance%numberOfOccupiedOrbitals%values(spk) ) 
-          !endif
-          if ( CIcore_instance%numberOfOccupiedOrbitals%values(spk) > 1 ) then 
-            summedOrbitals_max = summedOrbitals_max &
-                                          - occA(spk)%values(2) & 
-                                          + virA(spk)%values(CIcore_instance%numberOfActiveOrbitals%values(spk) - & 
-                                                             CIcore_instance%numberOfOccupiedOrbitals%values(spk) - 1 ) 
-          endif
-        enddo
-        !! estimating the batch in the worst case scenario : exciting from HOMO to LUMO
-        summedOrbitals_min = summedOrbitals
-        do spk = 1, numberOfSpecies 
-          !if ( CIcore_instance%numberOfOccupiedOrbitals%values(spk) > 0 ) then
-          summedOrbitals_min = summedOrbitals_min &
-                                          - occA(spk)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spk) ) & 
-                                          + virA(spk)%values(1) 
-          !endif
-          if ( CIcore_instance%numberOfOccupiedOrbitals%values(spk) > 1 ) then 
-            summedOrbitals_min = summedOrbitals_min &
-                                          - occA(spk)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spk) -1) & 
-                                          + virA(spk)%values(2) 
-          endif
-        enddo
+        call CISCI_predictBatchWindow( batchWindow_min, batchWindow_max, occA, virA, numberOfSpecies, summedOrbitals_min, summedOrbitals_max )
 
-        if ( summedOrbitals_min >= batch_end .or. summedOrbitals_max <= batch_start ) cycle
+        if ( summedOrbitals_min > batch_end .or. summedOrbitals_max < batch_start ) cycle
   
         do spi = 1, numberOfSpecies 
   
@@ -1352,7 +1323,6 @@ contains
               do spk = 1, numberofspecies 
                 summedOrbitals = summedOrbitals + sum(occb(spk)%values(:))
               enddo
-
               if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
 
                 !! get spingle sustitutions energy, H_ab C_a
@@ -1477,6 +1447,8 @@ contains
       end do
   
       !deallocate ( CIlevel )
+      deallocate ( batchWindow_min )
+      deallocate ( batchWindow_max )
       deallocate ( occBB )
       deallocate ( occB  )
       deallocate ( orbB  )
@@ -1491,13 +1463,9 @@ contains
   
       nonzeroBuffer = 0
       do a = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
-        if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(a)) <= 1E-5 ) exit
+        if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(a)) <= 1E-8 ) exit
         nonzeroBuffer = nonzeroBuffer + 1
       enddo
-
-      if ( nonzeroBuffer == 0 ) then
-        cycle
-      endif
 
       !! -------------------------------------------------------------------------------
       !! PT2 energy correction
@@ -1549,10 +1517,7 @@ contains
         !! accumulating over batches
         CISCI_instance%PT2energy = CISCI_instance%PT2energy + energyCorrection
 
-        !! exit the batch computation if the energy correction change is too small and we if already passed half of the batches, so we are on the tail. 
-        if ( abs(energyCorrection ) <= 1E-6 .and. batch_start > batch_max/2 ) exit
-
-      endif
+      endif !! pt2
 
       !! -------------------------------------------------------------------------------
       if ( use_dressed_shift ) then 
@@ -1640,7 +1605,7 @@ contains
 
         deallocate ( W_nproc )
 
-      endif
+      endif !! sbk
 
       !$ timeBB = omp_get_wtime()
 
@@ -1655,7 +1620,7 @@ contains
       call CISCI_copyTargetToBuffer()
 
       !! exit the batch computation if the energy correction change is too small and we if already passed half of the batches, so we are on the tail. 
-      if ( abs( energyCorrection ) <= 1E-6 .and. batch_start > batch_max/2 ) exit
+      if ( abs( energyCorrection ) <= 1E-8 .and. batch_start > batch_max/2 ) exit
 
     enddo ! batches
 
@@ -1732,12 +1697,15 @@ contains
     deallocate ( orbA )
 
     !! scanning the histogram to get the first non zero batch range. Assuming normal distribution
-    do batch_start = 1, batch_max0 - batch_min0
-      if ( batch_histogram( batch_start )  > 0 ) then
-        batch_min = batch_start + batch_min0
-        exit
-      endif
-    enddo
+    !do batch_start = 1, batch_max0 - batch_min0
+    !  if ( batch_histogram( batch_start )  > 0 ) then
+    !    batch_min = batch_start + batch_min0
+    !    exit
+    !  endif
+    !enddo
+
+    ! Let's not reduce the first batch, using the lowest minimum 
+    batch_min = batch_min0
 
     !! scanning the histogram to get the last non zero batch range. Assuming normal distribution
     do batch_start = batch_max0 - batch_min0, 1, -1
@@ -1746,6 +1714,7 @@ contains
         exit
       endif
     enddo
+    batch_max = batch_max0
 
     deallocate ( batch_histogram  )
 
@@ -1757,6 +1726,95 @@ contains
 
 
   end subroutine CISCI_getOrbitalBatches
+
+  !! This subroutine computes the batch window which will be used for PT2 to group the external determinants generation.
+  subroutine CISCI_predictBatchWindow( batchWindow_min, batchWindow_max, occA, virA, numberOfSpecies, summedOrbitals_min, summedOrbitals_max )
+    implicit none
+    integer, allocatable, intent(inout) :: batchWindow_min(:,:), batchWindow_max(:,:)
+    type (ivector), allocatable, intent(in) :: occA(:)
+    type (ivector), allocatable, intent(in) :: virA(:)
+    integer, intent(in) :: numberOfSpecies
+    integer, intent(inout) :: summedOrbitals_min, summedOrbitals_max 
+    integer :: spi, spj
+    integer :: summedOrbitals
+
+    summedOrbitals = 0
+    do spi = 1, numberOfSpecies 
+      summedOrbitals = summedOrbitals + sum(occA(spi)%values(:)) ! original configuration
+    enddo
+
+    batchWindow_max(:,:) = summedOrbitals
+    !! estimating the batch in the worst case scenario : exciting from LOMO to HUMO
+    do spi = 1, numberOfSpecies 
+      !! excite from the LOMO to HUMO if LOMO < LOMO
+      if ( occA(spi)%values(1) < virA(spi)%values( CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) ) ) then 
+        batchWindow_max(spi,:) = batchWindow_max(spi,:) &
+                                        - occA(spi)%values(1) &
+                                        + virA(spi)%values(CIcore_instance%numberOfActiveOrbitals%values(spi) - &
+                                                         CIcore_instance%numberOfOccupiedOrbitals%values(spi) ) 
+      endif
+      !! double intra
+      if ( CIcore_instance%numberOfOccupiedOrbitals%values(spi) > 1 ) then 
+        !! excite from the LOMO to HUMO if LOMO < LOMO
+        if ( occA(spi)%values(2) < virA(spi)%values( CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) - 1 ) ) then 
+          batchWindow_max(spi,spi) = batchWindow_max(spi,spi) &
+                                        - occA(spi)%values(2) & 
+                                        + virA(spi)%values(CIcore_instance%numberOfActiveOrbitals%values(spi) - & 
+                                                           CIcore_instance%numberOfOccupiedOrbitals%values(spi) - 1 ) 
+        endif
+      endif
+
+      !! double inter
+      do spj = 1, numberOfSpecies
+        if ( spi == spj ) cycle
+          !! excite from the LOMO to HUMO if LOMO < LOMO
+          if ( occA(spj)%values(1) < virA(spj)%values( CIcore_instance%numberOfActiveOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj) ) ) then 
+            batchWindow_max(spi,spj) = batchWindow_max(spi,spj) &
+                                          - occA(spj)%values(1) & 
+                                          + virA(spj)%values(CIcore_instance%numberOfActiveOrbitals%values(spj) - & 
+                                                             CIcore_instance%numberOfOccupiedOrbitals%values(spj)  ) 
+
+          endif
+      enddo
+
+    enddo
+    !! estimating the batch in the worst case scenario : exciting from HOMO to LUMO
+    batchWindow_min(:,:) = summedOrbitals
+    do spi = 1, numberOfSpecies 
+      !! excite from the HOMO to LUMO if HOMO > LUMO
+      if ( occA(spi)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spi) ) > virA(spi)%values(1) ) then
+        batchWindow_min(spi,:) = batchWindow_min(spi,:) &
+                                        - occA(spi)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spi) ) & 
+                                        + virA(spi)%values(1) 
+      endif
+      !! double intra
+      if ( CIcore_instance%numberOfOccupiedOrbitals%values(spi) > 1 ) then 
+        !! excite from the HOMO to LUMO if HOMO > LUMO
+        if ( occA(spi)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spi) - 1 ) > virA(spi)%values(2) ) then
+          batchWindow_min(spi,spi) = batchWindow_min(spi,spi) &
+                                      - occA(spi)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spi) -1) & 
+                                      + virA(spi)%values(2) 
+
+        endif
+      endif
+
+      !! double inter
+      do spj =  1, numberOfSpecies
+        if ( spi == spj ) cycle
+          !! excite from the HOMO to LUMO if HOMO > LUMO
+          if ( occA(spj)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spj) ) > virA(spj)%values(1) ) then
+            batchWindow_min(spi,spj) = batchWindow_min(spi,spj) &
+                                        - occA(spj)%values( CIcore_instance%numberOfOccupiedOrbitals%values(spj) ) & 
+                                        + virA(spj)%values(1) 
+
+        endif
+      enddo
+    enddo
+
+    summedOrbitals_min = minval( batchWindow_min(:,:) )
+    summedOrbitals_max = maxval( batchWindow_max(:,:) )
+
+  end subroutine CISCI_predictBatchWindow
 
   !! compute the estimated amplitude to form the target space from the core space
   subroutine CISCI_compute_PT_tripleLoop ( diagonalTarget,  coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, eigenVectors )

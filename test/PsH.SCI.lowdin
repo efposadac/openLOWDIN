@@ -24,6 +24,7 @@ CONTROL
 	CIMatVecTolerance = 1e-10
 	CIselectiveMethod = "ASCI"
 	CISCIPT2Correction = True
+	CISCIPT2numberOfBatches = 4
 	CISCICoreSpace = 20
 	CISCITargetSpace = 20
 	CISCITargetGrowthFactor = 2
