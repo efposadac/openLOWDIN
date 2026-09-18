@@ -59,7 +59,7 @@ module CISCI_
     type(IMatrix8), allocatable :: heatBathDoubleExcitations_index(:,:)
     type(IMatrix8), allocatable :: heatBathDoubleExcitations_size(:,:)
     !! For PT2 batch algorithm
-    integer :: batch_min, batch_max, batch_step
+    integer :: batch_min, batch_max, batch_step, batch_mid
 
   end type CISCI
 
@@ -557,7 +557,7 @@ contains
       call CISCI_buildDiagonal ( CISCI_instance%diagonalTarget, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
 
       !! get the batch windows to group the excitations
-      call CISCI_getOrbitalBatches(  CISCI_instance%batch_min,  CISCI_instance%batch_max, CISCI_instance%batch_step )
+      call CISCI_getOrbitalBatches(  CISCI_instance%batch_min,  CISCI_instance%batch_max, CISCI_instance%batch_step, CISCI_instance%batch_mid )
 
     endif
   
@@ -1179,9 +1179,9 @@ contains
     integer :: upperVirtualOrbitalJ
     integer :: summedOrbitals, summedOrbitals_max, summedOrbitals_min
     integer, allocatable :: batchWindow_max(:,:), batchWindow_min(:,:)
-    integer :: batch_min, batch_max, batch_step
+    integer :: batch_min, batch_max, batch_step, batch_mid
     integer :: batch_start, batch_end
-    real(8) :: energyCorrection, previousEnergyCorrection
+    real(8) :: energyCorrection, energyCorrection_min
     real(8) :: diagonal, denominator
     !! Dressed shift
     !! For dressed hamiltonian only
@@ -1194,6 +1194,7 @@ contains
 !$  timeA = omp_get_wtime()
     shift = 1E-8 !! to avoid divergence
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+    energyCorrection_min = 0.0_8
 
     !! work only with non-zero conf
     nonzeroTarget = 0
@@ -1211,8 +1212,9 @@ contains
     !! get the global batch windows to group the excitations. 
     !! obtained from call CISCI_getOrbitalBatches
     batch_min = CISCI_instance%batch_min
-    batch_max = CISCI_instance%batch_max
-    batch_step = CISCI_instance%batch_step
+    batch_max = CISCI_instance%batch_max 
+    batch_step = 1!CISCI_instance%batch_step
+    batch_mid = CISCI_instance%batch_mid
 
     !! clean buffer
     call CISCI_resetBuffer()
@@ -1222,7 +1224,7 @@ contains
     write (6, "(T2,A,I10)") "Max Buffer size: ", CISCI_instance%buffer_amplitudeCoreSize
 
     write (6,"(T2,A,I4,A)") "Building PT2 external configuration in: ", CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES, " batches"
-    write (6,"(T2,A)") " Start   | End   | Max coef.  | Min coef. | Nonzero  | Partial PT2    | Time (s) "
+    write (6,"(T2,A)") " Start   | End   | Max coef.  | Mid coef. | Min coef. | Nonzero  | Partial PT2    | Time (s) "
 
     !! generate connected external configuration per batches
     do batch_start = batch_min, batch_max, batch_step
@@ -1609,8 +1611,9 @@ contains
 
       !$ timeBB = omp_get_wtime()
 
-      write (6,"(T2,I8,I8, ES12.2,ES12.2,I10,F18.12, ES10.2)") batch_start, batch_end, &
+      write (6,"(T2,I8,I8, ES12.2,ES12.2,ES12.2,I10,F18.12, ES10.2)") batch_start, batch_end, &
                              CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + 1), &       ! max coeff 
+                             CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%buffer_amplitudeCoreSize/2), & ! min coeff
                              CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + nonzeroBuffer), & ! min coeff
                              nonzeroBuffer, &
                              energyCorrection, &
@@ -1620,7 +1623,7 @@ contains
       call CISCI_copyTargetToBuffer()
 
       !! exit the batch computation if the energy correction change is too small and we if already passed half of the batches, so we are on the tail. 
-      if ( abs( energyCorrection ) <= 1E-8 .and. batch_start > batch_max/2 ) exit
+      if ( abs( energyCorrection ) <= 1E-8 .and. batch_start > batch_mid  ) exit
 
     enddo ! batches
 
@@ -1634,9 +1637,9 @@ contains
   end subroutine CISCI_core_amplitudes_PT
 
   !! This subroutine computes the batch window which will be used for PT2 to group the external determinants generation.
-  subroutine CISCI_getOrbitalBatches( batch_min, batch_max, batch_step )
+  subroutine CISCI_getOrbitalBatches( batch_min, batch_max, batch_step, batch_mid )
     implicit none
-    integer, intent(out) :: batch_min, batch_max, batch_step
+    integer, intent(out) :: batch_min, batch_max, batch_step, batch_mid
     integer :: spi, spj, spk, numberOfSpecies
     integer :: batch_min0, batch_max0, batch_start, batch_end,  summedOrbitals
     integer, allocatable :: batch_histogram(:)
@@ -1697,15 +1700,12 @@ contains
     deallocate ( orbA )
 
     !! scanning the histogram to get the first non zero batch range. Assuming normal distribution
-    !do batch_start = 1, batch_max0 - batch_min0
-    !  if ( batch_histogram( batch_start )  > 0 ) then
-    !    batch_min = batch_start + batch_min0
-    !    exit
-    !  endif
-    !enddo
-
-    ! Let's not reduce the first batch, using the lowest minimum 
-    batch_min = batch_min0
+    do batch_start = 1, batch_max0 - batch_min0
+      if ( batch_histogram( batch_start )  > 0 ) then
+        batch_min = batch_start + batch_min0
+        exit
+      endif
+    enddo
 
     !! scanning the histogram to get the last non zero batch range. Assuming normal distribution
     do batch_start = batch_max0 - batch_min0, 1, -1
@@ -1714,6 +1714,11 @@ contains
         exit
       endif
     enddo
+
+    batch_mid = batch_min + ( batch_max - batch_min ) / 2
+
+    ! Let's not reduce the first batch, using the lowest minimum 
+    batch_min = batch_min0
     batch_max = batch_max0
 
     deallocate ( batch_histogram  )
@@ -1921,6 +1926,8 @@ contains
     !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
     !$omp do schedule (dynamic)
     targetloop: do a = 1, nonzeroTarget
+
+      print *, a
   
       ! getting configuration A
       do spk = 1, numberOfSpecies 
