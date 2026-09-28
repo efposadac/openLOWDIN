@@ -9,7 +9,9 @@ module CISort_
 
   type, public :: CISort
     integer(1), allocatable :: tmp_Vector (:,:) ! species, n threads
+    integer(4), allocatable :: tmp_Vector4 (:) 
     integer(1), allocatable :: pivot (:,:) ! species, orbs
+    integer(4), allocatable :: pivot4 (:) 
     integer :: numberOfSpecies
     integer(8) :: combinedNumberOfOrbitals
   end type CISort
@@ -34,9 +36,13 @@ contains
   
     allocate ( CISort_instance%tmp_Vector(  CISort_instance%combinedNumberOfOrbitals, nproc + 1 ) )
     allocate ( CISort_instance%pivot( CISort_instance%combinedNumberOfOrbitals, nproc + 1 ) )
+    allocate ( CISort_instance%tmp_Vector4( 3 ) )
+    allocate ( CISort_instance%pivot4( 3 ) )
 
     CISort_instance%tmp_Vector = 0_1
+    CISort_instance%tmp_Vector4 = 0
     CISort_instance%pivot = -1_1
+    CISort_instance%pivot4 = -1
 
   end subroutine CISort_constructor
 
@@ -44,6 +50,8 @@ contains
   subroutine CISort_destructor()
     implicit none
    
+    deallocate ( CISort_instance%pivot4 )
+    deallocate ( CISort_instance%tmp_Vector4 )
     deallocate ( CISort_instance%pivot )
     deallocate ( CISort_instance%tmp_Vector )
 
@@ -88,9 +96,20 @@ contains
     integer(8) :: i, j
     integer :: spi, orb
     logical :: is_more    
+    integer(8) :: tmp_index
     integer(8) :: mid_index
+    real(8) :: random
 
     ! select the midpoint as pivot to avoid worst case sceneario
+    !mid_index = ( left_end + right_end ) /2
+    ! select a random position as pivot to avoid worst case sceneario
+    call random_number(random)
+    mid_index = left_end + floor((right_end - left_end + 1) * random)
+    tmp_index = ( left_end + right_end ) /2
+
+    call CISort_swapVector( matrix(:,mid_index), matrix(:,tmp_index), n )
+    call CISort_swapIndex( indices(mid_index), indices(tmp_index) )
+
     mid_index = ( left_end + right_end ) /2
     CISort_instance%pivot(:,n) = matrix(:, mid_index )
 
@@ -165,7 +184,7 @@ contains
     do j = left_end, right_end - 1
       is_more = .false.
 
-      if ( matrix(1,j) == -1_1 ) cycle !! avoid zero, it means no configuration
+      !if ( matrix(1,j) == -1_1 ) cycle !! avoid zero, it means no configuration
 
        do orb = 1, CISort_instance%combinedNumberOfOrbitals 
           if ( matrix(orb,j) > CISort_instance%pivot(orb,n) ) then
@@ -524,5 +543,138 @@ contains
     enddo
 
   endsubroutine CISort_sortVectorByIndex
+
+  !! Modified Recursive Quicksort routine
+  recursive subroutine CISort_quicksort_matrix4(matrix, dim1, left_end, right_end)
+    implicit none
+    integer(4), intent(inout) :: matrix(:,:)
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: left_end, right_end
+    integer(8) :: pivot_index
+    integer, parameter :: max_simple_sort_size = 6
+
+    if (right_end < left_end + max_simple_sort_size) THEN
+      !! Use interchange sort for small lists
+      call CISort_interchange_sort_matrix4(matrix, dim1, left_end, right_end )
+
+    else
+
+      if ( left_end < right_end ) then
+          !! Partition using the indexed version
+          call CISort_partition_hoare_matrix4(matrix, dim1, left_end, right_end, pivot_index)
+  
+          !! Recursively sort the sub-arrays
+          call CISort_quicksort_matrix4(matrix, dim1, left_end, pivot_index )
+          call CISort_quicksort_matrix4(matrix, dim1, pivot_index + 1, right_end )
+      end if
+    endif
+
+  end subroutine CISort_quicksort_matrix4
+
+  !! Sorting for small arrays, no more pivot
+  subroutine CISort_interchange_sort_matrix4(matrix, dim1, left_end, right_end ) 
+    implicit none
+    integer(4), intent(inout) :: matrix(:,:)
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: left_end, right_end
+    integer :: i, j
+    logical :: is_more    
+    integer :: orb
+
+    do i = left_end, right_end - 1
+      !if ( matrix(1,i) == -1_1 ) cycle !! avoid zero, it means no configuration
+      do j = i+1, right_end
+        is_more = .false.
+
+        do orb = 1, dim1
+          if ( matrix(orb,j) < matrix(orb,i) ) then
+            is_more = .true.
+            exit
+          else if ( matrix(orb,j) > matrix(orb,i) ) then
+            is_more = .false. 
+            exit
+          endif
+       enddo
+        
+        if ( is_more ) then
+          !! Swap both the vector and the index
+          call CISort_swapVector4( matrix(:,i), matrix(:,j) )
+        end if
+
+      enddo 
+    enddo 
+
+  end subroutine CISort_interchange_sort_matrix4
+
+  !! Swap both data and index elements
+  subroutine CISort_swapVector4(A, B )
+    implicit none
+    integer(4), intent(inout) :: A(:), B(:)
+
+    !! Swap data
+    CISort_instance%tmp_Vector4(:) = A(:)
+    A(:) = B(:)
+    B(:) = CISort_instance%tmp_Vector4(:)
+
+  end subroutine CISort_swapVector4
+
+  !! Modified Partition scheme to use swap_both
+  subroutine CISort_partition_hoare_matrix4(matrix, dim1, left_end, right_end, pivot_index )
+    implicit none
+    integer(4), intent(inout) :: matrix(:,:) ! original array
+    integer(8), intent(in) :: dim1
+    integer(8), intent(in) :: left_end, right_end
+    integer(8), intent(out) :: pivot_index
+    integer(8) :: i, j
+    integer :: spi, orb
+    logical :: is_more    
+    integer(8) :: mid_index
+
+    ! select the midpoint as pivot to avoid worst case sceneario
+    mid_index = ( left_end + right_end ) /2
+    CISort_instance%pivot4(:) = matrix(:, mid_index )
+
+    i = left_end - 1 ! Index of the smaller element
+    j = right_end + 1 ! Index of the higher element
+
+    do 
+      do 
+        i = i + 1
+        is_more = .false.
+        do orb = 1, dim1
+          if ( CISort_instance%pivot4(orb) > matrix(orb,i) ) then
+            is_more = .true.
+            exit
+          else if ( CISort_instance%pivot4(orb) < matrix(orb,i) ) then
+            is_more = .false. 
+            exit
+          endif
+        enddo
+        if ( .not. is_more ) exit
+      enddo
+
+      do 
+        j = j - 1
+        is_more = .false.
+        do orb = 1, dim1
+          if ( CISort_instance%pivot4(orb) < matrix(orb,j) ) then
+            is_more = .true.
+            exit
+          else if ( CISort_instance%pivot4(orb) > matrix(orb,j) ) then
+            is_more = .false. 
+            exit
+          endif
+        enddo
+        if ( .not. is_more ) exit
+      enddo
+
+      if ( i >= j ) exit 
+
+      !! Swap both the vector and the index
+      call CISort_swapVector4( matrix(:,i), matrix(:,j) )
+    enddo
+    pivot_index = j 
+
+  end subroutine CISort_partition_hoare_matrix4
 
 end module CISort_
