@@ -60,8 +60,8 @@ contains
   !! Modified Recursive Quicksort routine
   recursive subroutine CISort_quicksort_matrix(matrix, indices, left_end, right_end, n)
     implicit none
-    integer(1), intent(inout) :: matrix(:,:)
-    integer(8), intent(inout) :: indices(:) ! The index array
+    integer(1), intent(inout), contiguous :: matrix(:,:)
+    integer(8), intent(inout), contiguous :: indices(:) ! The index array
     integer(8), intent(in) :: left_end, right_end
     integer, intent(in) :: n
     integer(8) :: pivot_index
@@ -88,8 +88,8 @@ contains
   !! Modified Partition scheme to use swap_both
   subroutine CISort_partition_hoare_matrix(matrix, indices, left_end, right_end, pivot_index, n )
     implicit none
-    integer(1), intent(inout) :: matrix(:,:) ! original array
-    integer(8), intent(inout) :: indices(:) ! The index array
+    integer(1), intent(inout), contiguous :: matrix(:,:) ! original array
+    integer(8), intent(inout), contiguous :: indices(:) ! The index array
     integer(8), intent(in) :: left_end, right_end
     integer(8), intent(out) :: pivot_index
     integer, intent(in) :: n
@@ -160,8 +160,8 @@ contains
   !! Lomuto partition scheme
   subroutine CISort_partition_lomuto(matrix, indices, left_end, right_end, pivot_index, n )
     implicit none
-    integer(1), intent(inout) :: matrix(:,:) ! original array
-    integer(8), intent(inout) :: indices(:) ! The index array
+    integer(1), intent(inout), contiguous :: matrix(:,:) ! original array
+    integer(8), intent(inout), contiguous :: indices(:) ! The index array
     integer(8), intent(in) :: left_end, right_end
     integer(8), intent(out) :: pivot_index
     integer, intent(in) :: n
@@ -215,8 +215,8 @@ contains
   !! Sorting for small arrays, no more pivot
   subroutine CISort_interchange_sort_matrix(matrix, indices, left_end, right_end, n) 
     implicit none
-    integer(1), intent(inout) :: matrix(:,:)
-    integer(8), intent(inout) :: indices(:) ! The index array
+    integer(1), intent(inout), contiguous :: matrix(:,:)
+    integer(8), intent(inout), contiguous :: indices(:) ! The index array
     integer(8), intent(in) :: left_end, right_end
     integer, intent(in) :: n
     integer :: i, j
@@ -279,7 +279,7 @@ contains
   function CISort_is_more(A, B ) result (is_more)
     implicit none
     logical :: is_more
-    real(8), intent(in) :: A(:), B(:)
+    real(8), intent(in), contiguous :: A(:), B(:)
     integer :: i
 
     !! logic for lexicographical comparison
@@ -301,7 +301,7 @@ contains
   function CISort_is_equal(A, B ) result (is_equal)
     implicit none
     logical :: is_equal
-    real(8), intent(in) :: A(:), B(:)
+    real(8), intent(in), contiguous :: A(:), B(:)
     integer :: i
 
     is_equal = .true.
@@ -321,8 +321,8 @@ contains
   !! Modified Recursive Quicksort routine
   recursive subroutine CISort_quicksort_vector(vector, indices, left_end, right_end)
     implicit none
-    real(8), intent(inout) :: vector(:)
-    integer(8), intent(inout) :: indices(:) ! The index array
+    real(8), intent(inout), contiguous :: vector(:)
+    integer(8), intent(inout), contiguous :: indices(:) ! The index array
     integer(8), intent(in) :: left_end, right_end
     integer(8) :: pivot_index
     integer, parameter :: max_simple_sort_size = 6
@@ -348,8 +348,8 @@ contains
   !! Modified Partition scheme to use swap_both
   subroutine CISort_partition_hoare_vector(vector, indices, left_end, right_end, pivot_index )
     implicit none
-    real(8), intent(inout) :: vector(:) ! original array
-    integer(8), intent(inout) :: indices(:) ! The index array
+    real(8), intent(inout), contiguous :: vector(:) ! original array
+    integer(8), intent(inout), contiguous :: indices(:) ! The index array
     integer(8), intent(in) :: left_end, right_end
     integer(8), intent(out) :: pivot_index
     integer(8) :: i, j
@@ -400,8 +400,8 @@ contains
   !! Sorting for small arrays, no more pivot
   subroutine CISort_interchange_sort_vector(vector, indices, left_end, right_end) 
     implicit none
-    real(8), intent(inout) :: vector(:)
-    integer(8), intent(inout) :: indices(:) ! The index array
+    real(8), intent(inout), contiguous :: vector(:)
+    integer(8), intent(inout), contiguous :: indices(:) ! The index array
     integer(8), intent(in) :: left_end, right_end
     integer :: i, j
     logical :: is_less
@@ -444,9 +444,9 @@ contains
   !! Modified Recursive Quicksort routine
   subroutine CISort_mergeDuplicates( amplitudes, matrix, indices, arraySize )
     implicit none
-    real(8), intent(inout) :: amplitudes(:)
-    integer(1), intent(inout) :: matrix(:,:)
-    integer(8), intent(inout) :: indices(:) ! The index array
+    real(8), intent(inout), contiguous:: amplitudes(:)
+    integer(1), intent(inout), contiguous :: matrix(:,:)
+    integer(8), intent(inout), contiguous :: indices(:) ! The index array
     integer(8), intent(in) :: arraySize
     integer :: i
     integer :: spi, orb
@@ -486,8 +486,8 @@ contains
 
   subroutine CISort_sortArrayByIndex( matrix, auxindex_array, dim1, dim2, n  )
     implicit none
-    integer(1), intent(inout) :: matrix(:,:)
-    integer(8), intent(inout) :: auxindex_array(:)
+    integer(1), intent(inout), contiguous :: matrix(:,:)
+    integer(8), intent(inout), contiguous :: auxindex_array(:)
     integer(8), intent(in) :: dim1
     integer(8), intent(in) :: dim2
     integer, intent(in) :: n
@@ -519,8 +519,8 @@ contains
 
   subroutine CISort_sortVectorByIndex( targetVector, auxindex_array, vectorSize  )
     implicit none
-    real(8), intent(inout) :: targetVector(:)
-    integer(8), intent(inout) :: auxindex_array(:)
+    real(8), intent(inout), contiguous :: targetVector(:)
+    integer(8), intent(inout), contiguous :: auxindex_array(:)
     integer(8) :: vectorSize
     real(8) :: temp
     integer :: i, x, y
@@ -547,7 +547,7 @@ contains
   !! Modified Recursive Quicksort routine
   recursive subroutine CISort_quicksort_matrix4(matrix, dim1, left_end, right_end)
     implicit none
-    integer(4), intent(inout) :: matrix(:,:)
+    integer(4), intent(inout), contiguous :: matrix(:,:)
     integer(8), intent(in) :: dim1
     integer(8), intent(in) :: left_end, right_end
     integer(8) :: pivot_index
@@ -574,7 +574,7 @@ contains
   !! Sorting for small arrays, no more pivot
   subroutine CISort_interchange_sort_matrix4(matrix, dim1, left_end, right_end ) 
     implicit none
-    integer(4), intent(inout) :: matrix(:,:)
+    integer(4), intent(inout), contiguous :: matrix(:,:)
     integer(8), intent(in) :: dim1
     integer(8), intent(in) :: left_end, right_end
     integer :: i, j
@@ -609,7 +609,7 @@ contains
   !! Swap both data and index elements
   subroutine CISort_swapVector4(A, B )
     implicit none
-    integer(4), intent(inout) :: A(:), B(:)
+    integer(4), intent(inout), contiguous :: A(:), B(:)
 
     !! Swap data
     CISort_instance%tmp_Vector4(:) = A(:)
@@ -621,7 +621,7 @@ contains
   !! Modified Partition scheme to use swap_both
   subroutine CISort_partition_hoare_matrix4(matrix, dim1, left_end, right_end, pivot_index )
     implicit none
-    integer(4), intent(inout) :: matrix(:,:) ! original array
+    integer(4), intent(inout), contiguous :: matrix(:,:) ! original array
     integer(8), intent(in) :: dim1
     integer(8), intent(in) :: left_end, right_end
     integer(8), intent(out) :: pivot_index

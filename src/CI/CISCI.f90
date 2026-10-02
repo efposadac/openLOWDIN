@@ -62,6 +62,8 @@ module CISCI_
     !! For PT2 batch algorithm
     integer :: batch_sum_min, batch_sum_max, batch_sum_step, batch_sum_mid
     integer :: batch_mid_min, batch_mid_max, batch_mid_step, batch_mid_mid
+    integer, allocatable :: batch_window(:,:)
+    integer :: nonzeroBatches
 
   end type CISCI
 
@@ -562,7 +564,8 @@ contains
       call CISCI_getOrbitalBatches( CISCI_instance%batch_sum_min, CISCI_instance%batch_sum_max, &
                                     CISCI_instance%batch_sum_step, CISCI_instance%batch_sum_mid, & 
                                     CISCI_instance%batch_mid_min, CISCI_instance%batch_mid_max, &
-                                    CISCI_instance%batch_mid_step, CISCI_instance%batch_mid_mid )
+                                    CISCI_instance%batch_mid_step, CISCI_instance%batch_mid_mid, &
+                                    CISCI_instance%batch_window, CISCI_instance%nonzeroBatches )
     endif
   
     !! calculating PT2 correction. A pertuberd estimation of configurations not include in the target space
@@ -585,6 +588,11 @@ contains
                                           CISCI_instance%targetSpaceSize, & 
                                           currentEnergy, &
                                           use_dressed_shift = .false. )
+          !call CISCI_compute_PT_orbitalBlock ( eigenVectors%values(:,1), &
+          !                                CISCI_instance%confTarget_orb, &
+          !                                CISCI_instance%targetSpaceSize, & 
+          !                                currentEnergy, &
+          !                                use_dressed_shift = .false. )
           !call CISCI_compute_PT_tripleConstraints ( eigenVectors%values(:,1), &
           !                                CISCI_instance%confTarget_orb, &
           !                                CISCI_instance%targetSpaceSize, & 
@@ -1158,7 +1166,7 @@ contains
 
     implicit none
     real(8), intent(in) :: coefficientCore ( SCICoreSpaceSize )
-    type(IMatrix1), intent(in) :: confCore(:)
+    type(IMatrix1), intent(in), contiguous :: confCore(:)
     integer(8), intent(in) :: SCICoreSpaceSize
     real(8), intent(in) :: oldEnergy
     logical, intent(in) :: use_dressed_shift 
@@ -1190,7 +1198,7 @@ contains
     integer, allocatable :: batchWindow(:,:)
     integer, allocatable :: speciesWeight(:)
     integer :: batch_min, batch_max, batch_step
-    integer :: batch_start, batch_mid, batch_end
+    integer :: batch, batch_start, batch_mid, batch_end
     real(8) :: energyCorrection, previousEnergyCorrection
     real(8) :: diagonal, denominator
     integer :: nskip
@@ -1420,8 +1428,8 @@ contains
 
       enddo !spi
 
-      batchWindow (1, a ) = summedOrbitals_min
-      batchWindow (2, a ) = summedOrbitals_max
+      !batchWindow (1, a ) = summedOrbitals_min
+      !batchWindow (2, a ) = summedOrbitals_max
       
     enddo !enddo a
     !$omp enddo 
@@ -1448,8 +1456,11 @@ contains
     write (6,"(T2,A)") " Start   | End   | Max coef.  | Mid coef. | Min coef. | # Nonzero  | Partial PT2  | # skipped | Time (s)  "
 
     !! generate connected external configuration per batches
-    do batch_start = batch_min, batch_max, batch_step
-      batch_end = min(batch_start + batch_step - 1, batch_max)
+    do batch = 1, CISCI_instance%nonzeroBatches
+
+      batch_start = CISCI_instance%batch_window(1, batch )
+      batch_end = CISCI_instance%batch_window(2, batch)
+      !batch_end = min(batch_start + batch_step - 1, batch_max)
 
       !$ timeAA(1) = omp_get_wtime()
 
@@ -1511,16 +1522,16 @@ contains
   
         enddo
 
-        summedOrbitals_min = batchWindow (1, a ) 
-        summedOrbitals_max = batchWindow (2, a ) 
+        !summedOrbitals_min = batchWindow (1, a ) 
+        !summedOrbitals_max = batchWindow (2, a ) 
 
-        if ( summedOrbitals_min > batch_end .or. summedOrbitals_max < batch_start ) then
-          nskip = nskip +1 
-          cycle
-        endif
+        !if ( summedOrbitals_min > batch_end .or. summedOrbitals_max < batch_start ) then
+        !  nskip = nskip +1 
+        !  cycle
+        !endif
 
         do spk = 1, numberOfSpecies
-          summedOrbitals_aux(spk) = sum(occB(spk)%values(:)) 
+          summedOrbitals_aux(spk) = sum(occB(spk)%values(:) * occB(spk)%values(:) )
         enddo
 
         do spi = 1, numberOfSpecies 
@@ -1541,7 +1552,7 @@ contains
               occB(spi)%values(pi) = vi1
 
               !! checking if this configuration belongs to the current batch  
-              summedOrbitals_aux(spi) = summedOrbitals_aux(spi) - oi1 + vi1
+              summedOrbitals_aux(spi) = summedOrbitals_aux(spi) - oi1 * oi1 + vi1 * vi1
               summedOrbitals = 0
               do spk = 1, numberofspecies 
                   summedOrbitals = summedOrbitals + summedOrbitals_aux(spk) * speciesWeight(spk)
@@ -1574,7 +1585,7 @@ contains
                   occB(spi)%values(ri) = vi2 
   
                   !! checking if this configuration belongs to the current batch  
-                  summedOrbitals_aux(spi) = summedOrbitals_aux(spi) - oi2 + vi2
+                  summedOrbitals_aux(spi) = summedOrbitals_aux(spi) - oi2 * oi2 + vi2 * vi2
                   summedOrbitals = 0
                   do spk = 1, numberofspecies 
                     summedOrbitals = summedOrbitals + summedOrbitals_aux(spk) * speciesWeight(spk)
@@ -1595,7 +1606,7 @@ contains
                       call CISCI_appendAmplitude ( n, CIenergy, orbB )
                     endif 
                   endif
-                  summedOrbitals_aux(spi) = summedOrbitals_aux(spi) + oi2 - vi2
+                  summedOrbitals_aux(spi) = summedOrbitals_aux(spi) + oi2 * oi2 - vi2 * vi2
   
                   occB(spi)%values(ri) = occA(spi)%values(ri)  
                   orbB(spi)%values(vi2) = 0_8 ! reset orbital 
@@ -1618,7 +1629,7 @@ contains
                     occB(spj)%values(rj) = vj2 
 
                     !! checking if this configuration belongs to the current batch  
-                    summedOrbitals_aux(spj) = summedOrbitals_aux(spj) - oj2 + vj2
+                    summedOrbitals_aux(spj) = summedOrbitals_aux(spj) - oj2 * oj2 + vj2 * vj2
                     summedOrbitals = 0
                     do spk = 1, numberOfSpecies 
                       summedOrbitals = summedOrbitals + summedOrbitals_aux(spk) * speciesWeight(spk)
@@ -1642,7 +1653,7 @@ contains
                         call CISCI_appendAmplitude ( n, cienergy, orbb )
                       endif
                     endif
-                    summedOrbitals_aux(spj) = summedOrbitals_aux(spj) + oj2 - vj2
+                    summedOrbitals_aux(spj) = summedOrbitals_aux(spj) + oj2 * oj2 - vj2 * vj2
   
                     !! reset the confB
                     occB(spj)%values(rj) = occA(spj)%values(rj)  
@@ -1653,7 +1664,7 @@ contains
 
               enddo !spj
 
-              summedOrbitals_aux(spi) = summedOrbitals_aux(spi) + oi1 - vi1
+              summedOrbitals_aux(spi) = summedOrbitals_aux(spi) + oi1 * oi1 - vi1 * vi1
 
               !! reset the confB
               occB(spi)%values(pi) = occA(spi)%values(pi)  
@@ -1838,22 +1849,22 @@ contains
 
       !$ timeBB(1) = omp_get_wtime()
 
-      write (6,"(T2,I8,I8, ES12.2,ES12.2,ES12.2,I10,F18.12, I8, ES10.2)") batch_start, batch_end, &
+      write (6,"(T2,I8,I8,I8, ES12.2,ES12.2,ES12.2,I10,F18.12, ES10.2)") &
+                             batch, batch_start, batch_end, &
                              CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + 1), &       ! max coeff 
                              CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%buffer_amplitudeCoreSize/2), &       ! max coeff 
                              CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + nonzeroBuffer), & ! min coeff
                              nonzeroBuffer, &
                              energyCorrection, &
-                             nskip, &
                              timeBB(1) - timeAA(1)
 
       call CISCI_resetBuffer()
       call CISCI_copyTargetToBuffer()
 
       !! exit the batch computation if the energy correction change is too small and we if already passed half of the batches, so we are on the tail. 
-      if ( abs( energyCorrection ) <= 1E-10 .and. batch_start > batch_min + ( batch_mid - batch_min) * 2 ) then 
-        exit
-      endif
+      !if ( abs( energyCorrection ) <= 1E-10 .and. batch_start > batch_min + ( batch_mid - batch_min) * 2 ) then 
+      !  exit
+      !endif
 
     enddo ! batches
 
@@ -1870,7 +1881,8 @@ contains
 
   !! This subroutine computes the batch window which will be used for PT2 to group the external determinants generation.
   subroutine CISCI_getOrbitalBatches( batch_sum_min, batch_sum_max, batch_sum_step, batch_sum_mid, & 
-                                      batch_mid_min, batch_mid_max, batch_mid_step, batch_mid_mid )
+                                      batch_mid_min, batch_mid_max, batch_mid_step, batch_mid_mid, &
+                                      batch_window, nonzeroBatches )
     implicit none
     integer, intent(out) :: batch_sum_min, batch_sum_max, batch_sum_step, batch_sum_mid
     integer, intent(out) :: batch_mid_min, batch_mid_max, batch_mid_step, batch_mid_mid
@@ -1880,6 +1892,12 @@ contains
     integer, allocatable :: batch_sum_histogram(:)
     integer, allocatable :: batch_mid_histogram(:)
     integer, allocatable :: speciesWeight(:)
+    integer, allocatable, intent(inout) :: batch_window(:,:)
+    integer, intent(out) :: nonzeroBatches
+    integer :: batch, previousBatch
+    integer :: cumulativeSum, targetSum
+    integer :: totalSum
+    integer :: batch_sum_histogram_total
     type (ivector), allocatable :: occA(:)
     type (ivector), allocatable :: orbA(:)
     integer(8) :: a,b
@@ -1898,7 +1916,7 @@ contains
     speciesWeight = 0
     speciesWeight(1) = 1
     do spk = 2, numberOfSpecies
-      speciesWeight(spk) = speciesWeight(spk-1) * spk 
+      speciesWeight(spk) = speciesWeight(spk-1) * spk  
     enddo
 
     allocate ( occA ( numberOfSpecies ) )
@@ -1916,15 +1934,15 @@ contains
         occA(spk)%values(pi) = pi
       enddo
 
-      batch_sum_min0 = batch_sum_min0 + sum(occA(spk)%values(:)) * speciesWeight(spk)
+      batch_sum_min0 = batch_sum_min0 + sum(occA(spk)%values(:) * occA(spk)%values(:)   ) * speciesWeight(spk)
 
       !batch_sum_min0 = batch_sum_min0 + CIcore_instance%numberOfOccupiedOrbitals%values(spk) * &
       !                         ( CIcore_instance%numberOfOccupiedOrbitals%values(spk)**2 + 1 ) / 2
 
 
       batch_sum_max0 = batch_sum_max0 + speciesWeight(spk) * CIcore_instance%numberOfOccupiedOrbitals%values(spk) * &
-                               ( CIcore_instance%numberOfActiveOrbitals%values(spk) + &
-                                 (CIcore_instance%numberOfActiveOrbitals%values(spk) - CIcore_instance%numberOfOccupiedOrbitals%values(spk)) + 1 ) / 2
+                               ( CIcore_instance%numberOfActiveOrbitals%values(spk)**2 + &
+                                 (CIcore_instance%numberOfActiveOrbitals%values(spk) - CIcore_instance%numberOfOccupiedOrbitals%values(spk))**2 + 1 ) / 2
 
     enddo
     do spk = 1, 1!numberOfSpecies 
@@ -1959,7 +1977,7 @@ contains
       summedOrbitals = 0
       midOrbitals = 1
       do spk = 1, numberOfSpecies 
-        summedOrbitals = summedOrbitals + sum(occA(spk)%values(:) ) * speciesWeight(spk) 
+        summedOrbitals = summedOrbitals + sum(occA(spk)%values(:) * occA(spk)%values(:) ) * speciesWeight(spk) 
       enddo ! spk
       midOrbitals = sum(occA(1)%values(:) ) 
 
@@ -2017,6 +2035,34 @@ contains
     ! if ( batch_mid_histogram(batch_mid_start) > 0 ) print *, batch_mid_start + batch_mid_min - 1, batch_mid_histogram(batch_mid_start) 
     !enddo
 
+    !! transforming from normal to uniform distribution to get equally populated batches  
+    allocate ( batch_window ( 2, CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES ) )
+    batch_window = 0
+    batch_sum_histogram_total = sum(batch_sum_histogram(:))
+    batch = 1
+    cumulativeSum = 0.0_8
+    batch_window(1,batch) = batch_sum_min0
+    do batch_sum_start = 1, batch_sum_max0 - batch_sum_min0
+      cumulativeSum = cumulativeSum + batch_sum_histogram( batch_sum_start ) 
+      totalSum = totalSum + batch_sum_histogram( batch_sum_start ) 
+      batch_window(2,batch) = batch_sum_start + batch_sum_min0 -1
+      targetSum = real(batch) * ( batch_sum_histogram_total / real( CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES ) )
+      if ( cumulativeSum > targetSum .and. batch < CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES  ) then
+        batch = batch + 1
+        batch_window(1,batch) = batch_sum_start + batch_sum_min0  
+      endif
+      if ( batch == CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES  ) exit
+    enddo
+    batch_window(2,batch) = batch_sum_max0
+    nonzeroBatches = batch
+    !! fixed batch size distribution
+    !do batch = 1, CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES
+    !  batch_window(1,batch) = ( batch - 1) * ( real( batch_sum_max0 - batch_sum_min0 + 1 ) / real( CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES )) + batch_sum_min0  + 1
+    !  batch_window(2,batch) = min( (batch * real( batch_sum_max0 - batch_sum_min0 + 1 ) / real( CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES )) , real( batch_sum_max0 - batch_sum_min0 + 1 ) ) + batch_sum_min0 
+    !enddo
+
+    !deallocate ( batch_window )
+
     deallocate ( batch_sum_histogram  )
     deallocate ( batch_mid_histogram  )
     deallocate ( speciesWeight )
@@ -2036,10 +2082,790 @@ contains
     !write (6,"(T2,A,I4,1X,I4,1X,I4)") "Guided mid orbitals batch range   : ", batch_mid_min, batch_mid_mid, batch_mid_max
 
     ! Let's not cap the last batch
-    batch_sum_max = batch_sum_max0
-    batch_mid_max = batch_mid_max0
+    !batch_sum_max = batch_sum_max0
+    !batch_mid_max = batch_mid_max0
 
   end subroutine CISCI_getOrbitalBatches
+
+  !! compute the estimated amplitude to form the target space from the core space
+  subroutine CISCI_compute_PT_orbitalBlock ( coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, use_dressed_shift, W )
+
+    implicit none
+    real(8), intent(in) :: coefficientCore ( SCICoreSpaceSize )
+    type(IMatrix1), intent(in) :: confCore(:)
+    integer(8), intent(in) :: SCICoreSpaceSize
+    real(8), intent(in) :: oldEnergy
+    logical, intent(in) :: use_dressed_shift 
+    real(8), intent(inout), optional :: W( SCICoreSpaceSize )
+    real(8) :: CIEnergy, auxCIenergy
+    integer(8) :: i, j, ia, ib, ii, jj, iii, jjj, oi, ti
+    integer(4) :: nproc, n, nn
+    real(8) :: timeA, timeB
+    real(8) :: timeAA(5), timeBB(5)
+    integer(4) :: iter, size1, size2
+    integer :: ci
+    integer :: auxSize
+    integer(8) :: a,b,c, aa
+    integer :: spi, spj, spk, numberOfSpecies
+    real(8) :: shift
+    type (ivector), allocatable :: occA(:), occB(:), virA(:), occBB(:)
+    type (ivector), allocatable :: orbA(:), orbB(:)
+    integer(8) :: pi, qi, ri, si, pj, qj, rj, sj
+    integer(8) :: oia, oja, via, vja, aaa
+    integer(8) :: oi1, vi1, oi2, vi2, oj2, vj2
+    integer :: factor1i, factor2i, factor2j
+    integer :: nonzeroTarget, nonzeroBuffer
+    integer :: lowerActiveOrbitalI, upperActiveOrbitalI
+    integer :: upperVirtualOrbitalI
+    integer :: lowerActiveOrbitalJ, upperActiveOrbitalJ
+    integer :: upperVirtualOrbitalJ
+    integer :: summedOrbitals, summedOrbitals_max, summedOrbitals_min
+    integer, allocatable :: summedOrbitals_aux(:)
+    integer, allocatable :: batchWindow(:,:)
+    integer, allocatable :: speciesWeight(:)
+    integer :: batch_min, batch_max, batch_step
+    integer :: batch, batch_start, batch_mid, batch_end
+    real(8) :: energyCorrection, previousEnergyCorrection
+    real(8) :: diagonal, denominator
+    integer :: nskip
+    integer(8) :: nonzeroElements
+    !! orbital block
+    integer, allocatable :: block_id(:) 
+    integer, allocatable :: block_cap(:) 
+    integer, allocatable :: block_triplets(:,:) 
+    integer :: block_triplet_core(2) 
+    integer :: block_triplet_A(2) 
+    integer :: block_triplet_B(2) 
+    integer :: block_i
+    integer :: n_blocks
+    integer :: n_block_triplets
+    integer :: difference
+    integer(8) :: t1, t2, t3, t4, t5, t6, count
+    integer :: CIlevel1_max 
+    integer :: block_min, block_max, block_step
+    integer :: block_start, block_mid, block_end
+    !! Dressed shift
+    !! For dressed hamiltonian only
+    integer :: thread_id
+    real(8), allocatable :: W_nproc(:,:)
+    real(8) :: dressedV
+    integer(1), allocatable :: couplingS(:)
+    integer :: error
+
+    !$ timeA = omp_get_wtime()
+    shift = 1E-8 !! to avoid divergence
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+
+    !! work only with non-zero conf
+    nonzeroTarget = 0
+    do a = 1, SCICoreSpaceSize  
+      if ( confCore(1)%values(1,a) == -1_1 .or. abs(coefficientCore(a)) <= 1E-10 ) exit
+      nonzeroTarget = nonzeroTarget + 1
+    enddo
+
+    !! initialization
+    CISCI_instance%PT2energy = 0.0_8
+
+    !! generate occupied orbital representation
+    call CISCI_orb2occ()
+
+    !! generate virtual orbital representation
+    if ( allocated ( CISCI_instance%confTarget_vir ) ) deallocate ( CISCI_instance%confTarget_vir )  
+    allocate ( CISCI_instance%confTarget_vir ( numberOfSpecies ) ) 
+
+    do spk = 1, numberOfSpecies
+      call Matrix_constructorInteger ( CISCI_instance%confTarget_vir(spk), &
+                                  int(CIcore_instance%numberOfActiveOrbitals%values(spk) - &
+                                      CIcore_instance%numberOfOccupiedOrbitals%values(spk), 8 ), &  
+                                  int(CISCI_instance%targetSpaceSize,8), -1_4)
+    enddo
+
+    call CISCI_orb2vir()
+
+    !! clean buffer
+    call CISCI_resetBuffer()
+    !! copy target to first region of buffer to avoid duplicated internal configurations
+    call CISCI_copyTargetToBuffer()
+
+    !! blocks
+    n_blocks = 2
+    allocate ( block_id ( cicore_instance%numberOfActiveOrbitals%values(1) ) )
+    allocate ( block_cap ( n_blocks ) )
+    block_id = 0
+    block_cap = 0
+    
+    do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(1)
+      block_id(pi) = ((pi - 1) * n_blocks ) / CIcore_instance%numberOfActiveOrbitals%values(1) + 1
+    end do
+
+    do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(1)
+      block_cap ( block_id(pi ) ) = block_cap ( block_id(pi ) ) + 1  
+    enddo
+
+    !! getting the maximum excitation on the target space
+    CIlevel1_max = 0
+    do c = 1, size( CISCI_instance%CIorder_list, dim = 2 )
+      if ( CISCI_instance%CIorder_count(c) > 0 ) then
+        CIlevel1_max = max( CIlevel1_max,  CISCI_instance%CIorder_list(1, c)) 
+      endif
+    enddo
+
+    !! building the frozen core block
+    block_triplet_core = 0
+    do ti = 1, CIcore_instance%numberOfCoreOrbitals%values(1)
+      block_triplet_core( block_id ( ti ) ) = block_triplet_core( block_id ( ti ) ) + 1
+    enddo
+
+    !! building the Hartree-Fock block
+    block_triplet_A = 0
+    do ti = 1, CIcore_instance%numberOfOccupiedOrbitals%values(1)
+      block_triplet_A( block_id ( ti ) ) = block_triplet_A( block_id ( ti ) ) + 1
+    enddo
+
+    print *, "block triplet HF", block_triplet_A
+
+    print *, "Triplets (x, y, z) :"
+    print *, "-----------------------------------"
+
+    n_block_triplets = 0
+    do t1 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1), block_cap(1) )
+      if ( t1 < block_triplet_core(1) ) cycle
+          t2 = CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1  
+          if ( t2 < block_triplet_core(2) ) cycle
+          if ( t2 <= block_cap(2) ) then
+
+              block_triplet_B( 1 ) = t1
+              block_triplet_B( 2 ) = t2
+              difference = 0
+              do block_i = 1, n_blocks 
+                difference = difference + abs( block_triplet_A(block_i) - block_triplet_B(block_i) )
+              enddo
+              if ( difference > 2*(CIlevel1_max + 2) ) cycle
+              n_block_triplets = n_block_triplets + 1
+            endif
+    end do
+
+    allocate ( block_triplets ( n_blocks, n_block_triplets ) )
+    block_triplets = 0
+    n_block_triplets = 0
+    do t1 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1), block_cap(1) )
+      if ( t1 < block_triplet_core(1) ) cycle
+            t2 = CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1  
+            if ( t2 < block_triplet_core(2) ) cycle
+            if ( t2 <= block_cap(2) ) then
+              block_triplet_B( 1 ) = t1
+              block_triplet_B( 2 ) = t2
+              difference = 0
+              do block_i = 1, n_blocks 
+                difference = difference + abs( block_triplet_A(block_i) - block_triplet_B(block_i) )
+              enddo
+              if ( difference > 2*(CIlevel1_max + 2) ) cycle
+
+              n_block_triplets = n_block_triplets + 1
+              block_triplets(1, n_block_triplets ) = block_triplet_B(1) 
+              block_triplets(2, n_block_triplets ) = block_triplet_B(2) 
+            endif
+    end do
+
+
+!    n_block_triplets = 0
+!    do t1 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1), block_cap(1) )
+!      if ( t1 < block_triplet_core(1) ) cycle
+!      do t2 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1, block_cap(2))
+!        if ( t2 < block_triplet_core(2) ) cycle
+!          t3 = CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1 - t2 
+!          if ( t3 < block_triplet_core(3) ) cycle
+!          if ( t3 <= block_cap(3) ) then
+!
+!              block_triplet_B( 1 ) = t1
+!              block_triplet_B( 2 ) = t2
+!              block_triplet_B( 3 ) = t3
+!              difference = 0
+!              do block_i = 1, n_blocks 
+!                difference = difference + abs( block_triplet_A(block_i) - block_triplet_B(block_i) )
+!              enddo
+!              if ( difference > 2*(CIlevel1_max + 2) ) cycle
+!              n_block_triplets = n_block_triplets + 1
+!              print *, n_block_triplets, t1, t2, t3, t1+t2+t3, difference
+!            endif
+!      end do
+!    end do
+!
+!    allocate ( block_triplets ( n_blocks, n_block_triplets ) )
+!    block_triplets = 0
+!    n_block_triplets = 0
+!    do t1 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1), block_cap(1) )
+!      if ( t1 < block_triplet_core(1) ) cycle
+!      do t2 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1, block_cap(2))
+!        if ( t2 < block_triplet_core(2) ) cycle
+!            t3 = CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1 - t2 
+!            if ( t3 < block_triplet_core(3) ) cycle
+!            if ( t3 <= block_cap(3) ) then
+!              block_triplet_B( 1 ) = t1
+!              block_triplet_B( 2 ) = t2
+!              block_triplet_B( 3 ) = t3
+!              difference = 0
+!              do block_i = 1, n_blocks 
+!                difference = difference + abs( block_triplet_A(block_i) - block_triplet_B(block_i) )
+!              enddo
+!              if ( difference > 2*(CIlevel1_max + 2) ) cycle
+!
+!              n_block_triplets = n_block_triplets + 1
+!              block_triplets(1, n_block_triplets ) = block_triplet_B(1) 
+!              block_triplets(2, n_block_triplets ) = block_triplet_B(2) 
+!              block_triplets(3, n_block_triplets ) = block_triplet_B(3) 
+!            endif
+!        end do
+!    end do
+
+!    n_block_triplets = 0
+!    do t1 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1), block_cap(1) )
+!      if ( t1 < block_triplet_core(1) ) cycle
+!      do t2 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1, block_cap(2))
+!        if ( t2 < block_triplet_core(2) ) cycle
+!        do t3 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1) - t2 - t1 , block_cap(3))
+!          if ( t3 < block_triplet_core(3) ) cycle
+!          t4 = CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1 - t2 - t3
+!          if ( t4 < block_triplet_core(4) ) cycle
+!          if ( t4 <= block_cap(4) ) then
+!
+!              block_triplet_B( 1 ) = t1
+!              block_triplet_B( 2 ) = t2
+!              block_triplet_B( 3 ) = t3
+!              block_triplet_B( 4 ) = t4
+!              difference = 0
+!              do block_i = 1, n_blocks 
+!                difference = difference + abs( block_triplet_A(block_i) - block_triplet_B(block_i) )
+!              enddo
+!              if ( difference > 2*(CIlevel1_max + 2) ) cycle
+!              n_block_triplets = n_block_triplets + 1
+!              print *, n_block_triplets, t1, t2, t3, t4, t1+t2+t3+t4, difference
+!            endif
+!          end do
+!      end do
+!    end do
+!
+!    allocate ( block_triplets ( n_blocks, n_block_triplets ) )
+!    block_triplets = 0
+!    n_block_triplets = 0
+!    do t1 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1), block_cap(1) )
+!      if ( t1 < block_triplet_core(1) ) cycle
+!      do t2 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1, block_cap(2))
+!        if ( t2 < block_triplet_core(2) ) cycle
+!        do t3 = 0, min(CIcore_instance%numberOfOccupiedOrbitals%values(1) - t2 -t1, block_cap(3))
+!          if ( t3 < block_triplet_core(3) ) cycle
+!            t4 = CIcore_instance%numberOfOccupiedOrbitals%values(1) - t1 - t2 - t3
+!            if ( t4 < block_triplet_core(4) ) cycle
+!            if ( t4 <= block_cap(4) ) then
+!              block_triplet_B( 1 ) = t1
+!              block_triplet_B( 2 ) = t2
+!              block_triplet_B( 3 ) = t3
+!              block_triplet_B( 4 ) = t4
+!              difference = 0
+!              do block_i = 1, n_blocks 
+!                difference = difference + abs( block_triplet_A(block_i) - block_triplet_B(block_i) )
+!              enddo
+!              if ( difference > 2*(CIlevel1_max + 2) ) cycle
+!
+!              n_block_triplets = n_block_triplets + 1
+!              block_triplets(1, n_block_triplets ) = block_triplet_B(1) 
+!              block_triplets(2, n_block_triplets ) = block_triplet_B(2) 
+!              block_triplets(3, n_block_triplets ) = block_triplet_B(3) 
+!              block_triplets(4, n_block_triplets ) = block_triplet_B(4) 
+!            endif
+!          end do
+!        end do
+!    end do
+
+    !! get the global batch windows to group the excitations. 
+    !! obtained from call CISCI_getOrbitalBatches
+    block_min = 1!CISCI_instance%batch_sum_min 
+    block_mid = 1!CISCI_instance%batch_sum_mid
+    block_max = n_block_triplets!CISCI_instance%batch_sum_max 
+    block_step = 1!CISCI_instance%batch_sum_step
+
+    allocate ( speciesWeight( numberOfSpecies ) )
+    speciesWeight = 0
+    speciesWeight(1) = 1
+    do spk = 2, numberOfSpecies
+      speciesWeight(spk) = speciesWeight(spk-1) * spk 
+    enddo
+
+    batch_min = CISCI_instance%batch_sum_min 
+    batch_mid = CISCI_instance%batch_sum_mid
+    batch_max = CISCI_instance%batch_sum_max 
+    batch_step = CISCI_instance%batch_sum_step
+
+    !! generate connected external configuration per batches
+!    do block_start = block_min, block_max, block_step
+!      do batch_start = batch_min, batch_max, batch_step
+!      batch_end = min(batch_start + batch_step - 1, batch_max)
+    do block_start = block_min, block_max, block_step
+    do batch = 1, CONTROL_instance%CI_SCI_PT2_NUMBER_OF_BATCHES 
+
+      batch_start = CISCI_instance%batch_window(1, batch )
+      batch_end = CISCI_instance%batch_window(2, batch)
+
+      !$ timeAA(1) = omp_get_wtime()
+
+      !! preparing omp allocatables arrays
+      !$omp parallel &
+      !$omp& private ( occA, occB, virA, orbA, orbB, occBB, &
+      !$omp&           n, a, &
+      !$omp&           oia, via, pi, qi, ri, si, oi1, vi1, oi2, vi2, oj2, vj2, &
+      !$omp&           oi, ti, & 
+      !$omp&           spi, spj, spk, & 
+      !$omp&           factor1i, factor2i, factor2j, &
+      !$omp&           lowerActiveOrbitalI, upperActiveOrbitalI, upperVirtualOrbitalI, &
+      !$omp&           lowerActiveOrbitalJ, upperActiveOrbitalJ, upperVirtualOrbitalJ, &
+      !$omp&           summedOrbitals, summedOrbitals_aux, summedOrbitals_min, summedOrbitals_max, &
+      !$omp&           CIenergy ) 
+  
+      !! allocating auxiliary arrays (omp) for working with conf and orbitals
+      allocate ( orbA ( numberOfSpecies ) )
+      allocate ( occA ( numberOfSpecies ) )
+      allocate ( virA ( numberOfSpecies ) )
+      allocate ( orbB ( numberOfSpecies ) )
+      allocate ( occB ( numberOfSpecies ) )
+      allocate ( occBB ( numberOfSpecies ) ) !! canonical ordered B conf
+      allocate ( summedOrbitals_aux( numberOfSpecies ) )
+  
+      do spi = 1, numberOfSpecies
+        call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi), 0 ) 
+        call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+        call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+        call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi), 0 ) 
+        call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+        call Vector_constructorInteger ( occBB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+      end do
+      nskip = 0
+  
+      n = omp_get_thread_num() + 1
+      nonzeroElements = 0
+
+      !! loop to find all CI configurtions coupled to core space
+      !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+      !$omp do schedule (dynamic) reduction (+:nskip, nonzeroElements)
+      targetloop: do a = 1, nonzeroTarget
+  
+        ! getting configuration A
+        do spk = 1, numberOfSpecies 
+  
+          oia = 0_8
+          via = 0_8
+  
+          !! build the orbital from the index using the bit mapping
+          !!call CISCI_decimalToBinary ( confCore%values(spi,a), orbA(spi)%values )
+          orbA(spk)%values(:) = confCore(spk)%values(:,a) 
+          occA(spk)%values(:) = CISCI_instance%confTarget_occ(spk)%values(:,a) 
+          virA(spk)%values(:) = CISCI_instance%confTarget_vir(spk)%values(:,a) 
+  
+          !! copy to conf B, these are variable
+          orbB(spk)%values = orbA(spk)%values 
+          occB(spk)%values = occA(spk)%values 
+          occBB(spk)%values = occA(spk)%values 
+  
+        enddo
+
+        block_triplet_B = 0
+        do ti = 1, CIcore_instance%numberOfOccupiedOrbitals%values(1)
+          block_triplet_B( block_id ( occA(1)%values(ti) ) ) = block_triplet_B( block_id ( occA(1)%values(ti) ) ) + 1
+        enddo
+
+        difference = 0
+        do block_i = 1, n_blocks 
+          difference = difference + abs( block_triplet_B(block_i) -  block_triplets(block_i, block_start ) )
+        enddo
+
+        if ( difference > 4 ) then
+          nskip = nskip +1 
+          cycle
+        endif
+
+        !if ( summedOrbitals_min > batch_end .or. summedOrbitals_max < batch_start ) then
+        !  nskip = nskip +1 
+        !  cycle
+        !endif
+
+        do spk = 1, numberOfSpecies
+          summedOrbitals_aux(spk) = sum(occB(spk)%values(:)) 
+        enddo
+
+        do spi = 1, numberOfSpecies 
+  
+          !! building all single sustitutions from configuration A. 
+          !! here all configurations pairs are generated in maximum coincidence 
+          lowerActiveOrbitalI = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8
+          upperActiveOrbitalI = CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+          upperVirtualOrbitalI = CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) 
+  
+          do pi = lowerActiveOrbitalI, upperActiveOrbitalI
+            oi1 = occA(spi)%values(pi)  
+            orbB(spi)%values(oi1) = 0_8
+  
+            do qi = 1, upperVirtualOrbitalI
+              vi1 = virA(spi)%values(qi)
+              orbB(spi)%values(vi1) = 1_8
+              occB(spi)%values(pi) = vi1
+
+              !! checking if this configuration belongs to the current batch  
+              block_triplet_B = 0
+              do ti = 1, CIcore_instance%numberOfOccupiedOrbitals%values(1)
+                block_triplet_B( block_id ( occB(1)%values(ti) ) ) = block_triplet_B( block_id ( occB(1)%values(ti) ) ) + 1
+              enddo
+
+              summedOrbitals_aux(spi) = summedOrbitals_aux(spi) - oi1 + vi1
+              summedOrbitals = 0
+              do spk = 1, numberofspecies 
+                summedOrbitals = summedOrbitals + summedOrbitals_aux(spk) * speciesWeight(spk)
+              enddo
+
+              if ( all ( block_triplet_B(:) == block_triplets(:, block_start ) ) ) then
+              if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                !! get spingle sustitutions energy, H_ab C_a
+                CIenergy = CISCI_calculateEnergyOne( spi, occA, oi1, vi1  )
+                CIenergy = CIenergy * coefficientCore(a) 
+
+                if ( abs(cienergy) > 1.0e-10 ) then
+                  nonzeroElements = nonzeroElements + 1 
+
+                  !! computing the phase only for nonzero elements
+                  call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
+                  factor1i = CISCI_getPairOrbitalsPhase ( spi, orbA(spi), orbB(spi), occA(spi), occBB(spi) ) 
+                  CIenergy = CIenergy * factor1i
+                  !! append the amplitude 
+                  call CISCI_appendAmplitude ( n, CIenergy, orbB )
+                endif 
+                endif 
+              endif
+
+              !! building all double intraspecies sustitutions from configuration A
+              do ri = lowerActiveOrbitalI, pi - 1_8
+                oi2 = occA(spi)%values(ri)  
+                orbB(spi)%values(oi2) = 0_8
+  
+                do si = 1, qi - 1
+                  vi2 = virA(spi)%values(si)
+                  orbB(spi)%values(vi2) = 1_8
+                  occB(spi)%values(ri) = vi2 
+  
+                  !! checking if this configuration belongs to the current batch  
+                  !if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                  !! checking if this configuration belongs to the current batch  
+                  block_triplet_B = 0
+                  do ti = 1, CIcore_instance%numberOfOccupiedOrbitals%values(1)
+                    block_triplet_B( block_id ( occB(1)%values(ti) ) ) = block_triplet_B( block_id ( occB(1)%values(ti) ) ) + 1
+                  enddo
+                  summedOrbitals_aux(spi) = summedOrbitals_aux(spi) - oi2 + vi2
+                  summedOrbitals = 0
+                  do spk = 1, numberofspecies 
+                    summedOrbitals = summedOrbitals + summedOrbitals_aux(spk) * speciesWeight(spk)
+                  enddo
+
+                  if ( all ( block_triplet_B(:) == block_triplets(:, block_start ) ) ) then
+                if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                    !! get double intraspecies sustitutions energy
+                    CIenergy = CISCI_calculateEnergyTwoSame( spi, oi1, oi2, vi1,  vi2 )
+                    CIenergy = CIenergy * coefficientCore(a) 
+  
+                    if ( abs(cienergy) > 1.0e-10 ) then
+                      nonzeroElements = nonzeroElements + 1 
+
+                      call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
+                      factor2i = CISCI_getPairOrbitalsPhase ( spi, orbA(spi), orbB(spi), occA(spi), occBB(spi) ) 
+                      CIenergy = CIenergy * factor2i
+                      !! append the amplitude 
+                      call CISCI_appendAmplitude ( n, CIenergy, orbB )
+                    endif 
+                  endif
+                  endif
+                  summedOrbitals_aux(spi) = summedOrbitals_aux(spi) + oi2 - vi2
+  
+                  occB(spi)%values(ri) = occA(spi)%values(ri)  
+                  orbB(spi)%values(vi2) = 0_8 ! reset orbital 
+                enddo
+                orbB(spi)%values(oi2) = 1_8 ! reset orbital
+              enddo
+
+              do spj = spi + 1, numberOfSpecies 
+                lowerActiveOrbitalJ = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1_8
+                upperActiveOrbitalJ = CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+                upperVirtualOrbitalJ = CIcore_instance%numberOfActiveOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+  
+                do rj = lowerActiveOrbitalJ, upperActiveOrbitalJ
+                  oj2 = occA(spj)%values(rj)  
+                  orbB(spj)%values(oj2) = 0_8
+  
+                  do sj = 1_8, upperVirtualOrbitalJ
+                    vj2 = virA(spj)%values(sj)
+                    orbB(spj)%values(vj2) = 1_8
+                    occB(spj)%values(rj) = vj2 
+
+                    !! checking if this configuration belongs to the current batch  
+
+                    block_triplet_B = 0
+                    do ti = 1, CIcore_instance%numberOfOccupiedOrbitals%values(1)
+                      block_triplet_B( block_id ( occB(1)%values(ti) ) ) = block_triplet_B( block_id ( occB(1)%values(ti) ) ) + 1
+                    enddo
+                    summedOrbitals_aux(spj) = summedOrbitals_aux(spj) - oj2 + vj2
+                    summedOrbitals = 0
+                    do spk = 1, numberOfSpecies 
+                      summedOrbitals = summedOrbitals + summedOrbitals_aux(spk) * speciesWeight(spk)
+                    enddo
+
+                    if ( all ( block_triplet_B(:) == block_triplets(:, block_start ) ) ) then
+                    if ( summedOrbitals >= batch_start .and. summedOrbitals <= batch_end ) then
+                      !! get double interspecies sustitutions energy
+                      CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, vi1, vj2 )
+                      CIenergy = CIenergy * coefficientCore(a) 
+
+                      if ( abs(cienergy) > 1.0e-10 ) then
+                        nonzeroElements = nonzeroElements + 1 
+
+                        call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
+                        call CISCI_1orbS2occS( spj, orbB(spj), occBB(spj) ) !! to get occb in the canonical order
+                        factor1i = CISCI_getPairOrbitalsPhase ( spi, orbA(spi), orbB(spi), occA(spi), occBB(spi) ) 
+                        factor2j = CISCI_getPairOrbitalsPhase ( spj, orbA(spj), orbB(spj), occA(spj), occBB(spj) ) 
+                        CIenergy = CIenergy * factor1i * factor2j
+
+                        !! append the amplitude 
+                        call CISCI_appendAmplitude ( n, cienergy, orbb )
+                      endif
+                    endif
+                    endif
+                    summedOrbitals_aux(spj) = summedOrbitals_aux(spj) + oj2 - vj2
+  
+                    !! reset the confB
+                    occB(spj)%values(rj) = occA(spj)%values(rj)  
+                    orbB(spj)%values(vj2) = 0_8
+                  enddo ! sj
+                  orbB(spj)%values(oj2) = 1_8
+                enddo ! rj
+
+              enddo !spj
+
+              summedOrbitals_aux(spi) = summedOrbitals_aux(spi) + oi1 - vi1
+
+              !! reset the confB
+              occB(spi)%values(pi) = occA(spi)%values(pi)  
+              orbB(spi)%values(vi1) = 0_8
+            enddo !qi
+            orbB(spi)%values(oi1) = 1_8
+          enddo !pi
+
+        enddo !spi
+        
+      enddo targetloop !enddo a
+      !$omp enddo 
+
+      do spi = 1, numberOfSpecies
+        call Vector_destructorInteger ( occBB(spi) )
+        call Vector_destructorInteger ( occB(spi) )
+        call Vector_destructorInteger ( orbB(spi) ) 
+        call Vector_destructorInteger ( virA(spi) )  
+        call Vector_destructorInteger ( occA(spi) ) 
+        call Vector_destructorInteger ( orbA(spi) ) 
+      end do
+  
+      !deallocate ( CIlevel )
+      deallocate ( summedOrbitals_aux )
+      deallocate ( occBB )
+      deallocate ( occB  )
+      deallocate ( orbB  )
+      deallocate ( virA  )
+      deallocate ( occA  )
+      deallocate ( orbA  )
+  
+      !$omp end parallel
+
+      nonzeroBuffer = 0
+      energyCorrection = 0.0_8
+      if ( nonzeroElements > 0 ) then
+
+      !! sort and reduce the target arrays among all OMP threads, final run
+      call CISCI_sortAmplitude( CIcore_instance%nproc + 1 ) 
+
+      do a = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
+        if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(a)) <= 1E-8 ) exit
+        nonzeroBuffer = nonzeroBuffer + 1
+      enddo
+
+      !! -------------------------------------------------------------------------------
+      !! PT2 energy correction
+      if ( .not. use_dressed_shift ) then 
+        energyCorrection = 0.0_8
+        !$omp parallel &
+        !$omp& private(a, spi, oia, pi, orbA, occA, CIenergy, &
+        !$omp&        diagonal, denominator ) &
+        !$omp& reduction (+:energyCorrection)
+  
+        allocate ( occA ( numberOfSpecies ) )
+        allocate ( orbA ( numberOfSpecies ) )
+  
+        do spi = 1, numberOfSpecies
+          call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) 
+          call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+        end do
+  
+        energyCorrection = 0.0_8
+  
+        !$omp do schedule (dynamic)
+        do a = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + nonzeroBuffer
+          ! getting configuration A
+          do spi = 1, numberOfSpecies 
+            orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore_orb( &
+                                  CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
+          enddo
+  
+          call CISCI_1orb2occ( numberOfSpecies, orbA, occA ) !! to get occb in the canonical order
+  
+          !! calculate diagonal term and denominator of Eq5 10.1063/1.4955109
+          CIenergy = CISCI_instance%buffer_amplitudeCore%values(a)
+          diagonal = CISCI_calculateEnergyZero( occA )
+          denominator = 1 / ( CIcore_instance%eigenValues%values(1) - diagonal ) 
+          energyCorrection = energyCorrection + ( CIenergy * CIenergy ) * denominator
+  
+        enddo ! a
+       !$omp end do nowait
+  
+        do spi = 1, numberOfSpecies
+          call Vector_destructorInteger ( occA(spi) ) 
+          call Vector_destructorInteger ( orbA(spi) ) 
+        end do
+  
+        deallocate ( occA  )
+        deallocate ( orbA  )
+        !$omp end parallel
+
+        !! accumulating over batches
+        CISCI_instance%PT2energy = CISCI_instance%PT2energy + energyCorrection
+
+      endif !! pt2
+
+      !! -------------------------------------------------------------------------------
+      if ( use_dressed_shift ) then 
+
+        energyCorrection = 0.0_8
+        !! store matrix-vector product per omp thread
+        allocate ( W_nproc ( SCICoreSpaceSize, CIcore_instance%nproc ) )
+        W_nproc = 0.0_8
+
+        !$omp parallel &
+        !$omp& private( a, orbA, occA, &
+        !$omp&          spi, &
+        !$omp&          thread_id, &
+        !$omp&          b, orbB, occB, &
+        !$omp&          couplingS, &
+        !$omp&          CIenergy, diagonal, denominator, &
+        !$omp&          dressedV, auxCIenergy ) &
+        !$omp& reduction (+:energyCorrection)
+
+        allocate ( occA ( numberOfSpecies ) )
+        allocate ( occB ( numberOfSpecies ) )
+        allocate ( orbA ( numberOfSpecies ) )
+        allocate ( orbB ( numberOfSpecies ) )
+        allocate ( couplingS ( numberOfSpecies ) )
+  
+        do spi = 1, numberOfSpecies
+          call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) 
+          call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+          call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+          call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+        end do
+  
+        energyCorrection = 0.0_8
+        thread_id = omp_get_thread_num() + 1
+  
+        !$omp do schedule (dynamic)
+        do a = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + nonzeroBuffer
+          ! getting configuration A
+          do spi = 1, numberOfSpecies 
+            orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore_orb( &
+                                  CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
+          enddo
+  
+          call CISCI_1orb2occ( numberOfSpecies, orbA, occA ) !! to get occb in the canonical order
+
+          CIenergy = CISCI_instance%buffer_amplitudeCore%values(a)
+          diagonal = CISCI_calculateEnergyZero( occA )
+          denominator = 1 / ( CIcore_instance%eigenValues%values(1) - diagonal ) 
+          dressedV = CIenergy * denominator
+          energyCorrection = energyCorrection + ( CIenergy * CIenergy ) * denominator
+
+          do b = 1,  nonzeroTarget
+            ! getting configuration B
+            do spi = 1, numberOfSpecies 
+              orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,b)
+              occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:,b) 
+            enddo
+
+            call CISCI_compute_HamiltonianElement( orbA, occA, orbB, occB, couplingS, numberOfSpecies, auxCIenergy, offElements = .true.) 
+
+            W_nproc(b, thread_id) = W_nproc(b, thread_id) + auxCIenergy * dressedV
+  
+          end do !b
+
+        end do !a 
+        !$omp end do nowait
+  
+        do spi = 1, numberOfSpecies
+          call Vector_destructorInteger ( occA(spi) ) 
+          call Vector_destructorInteger ( occB(spi) )
+          call Vector_destructorInteger ( orbA(spi) ) 
+          call Vector_destructorInteger ( orbB(spi) ) 
+        end do
+  
+        deallocate ( couplingS )
+        deallocate ( occA )
+        deallocate ( occB )
+        deallocate ( orbA )
+        deallocate ( orbB )
+        !$omp end parallel
+
+        do thread_id = 1, CIcore_instance%nproc
+          W(:) = W(:) + W_nproc(:,thread_id) 
+        enddo
+
+        deallocate ( W_nproc )
+
+      endif !! sbk
+      endif
+
+      !$ timeBB(1) = omp_get_wtime()
+
+      write (6,"(T2,I8,I8,I8, ES12.2,ES12.2,ES12.2,I10,F18.12, I8, ES10.2)") &
+                             block_start, &
+                             batch_start, &
+                             batch_end, &
+                             CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + 1), &       ! max coeff 
+                             CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%buffer_amplitudeCoreSize/2), &       ! max coeff 
+                             CISCI_instance%buffer_amplitudeCore%values(CISCI_instance%targetSpaceSize + nonzeroBuffer), & ! min coeff
+                             nonzeroBuffer, &
+                             energyCorrection, &
+                             nskip, &
+                             timeBB(1) - timeAA(1)
+
+      if ( nonzeroElements > 0 ) then
+        call CISCI_resetBuffer()
+        call CISCI_copyTargetToBuffer()
+      endif
+
+      !! exit the batch computation if the energy correction change is too small and we if already passed half of the batches, so we are on the tail. 
+      !if ( abs( energyCorrection ) <= 1E-10 .and. batch_start > batch_min + ( batch_mid - batch_min) * 2 ) then 
+      !  exit
+      !endif
+
+    enddo ! batches
+    enddo ! blocks
+
+    if ( .not. use_dressed_shift ) then 
+      write (6,"(T2,A,F18.12)") "Total PT2 energy correction: ", CISCI_instance%PT2energy 
+    endif
+
+!$  timeB = omp_get_wtime()
+!$  write(*,"(A,ES10.2,A4)") "** TOTAL Elapsed Time for building all external configurations : ", timeB - timeA ," (s)"
+
+  end subroutine CISCI_compute_PT_orbitalBlock
 
   !! compute the estimated amplitude to form the target space from the core space
   subroutine CISCI_compute_PT_tripleConstraints ( coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, use_dressed_shift, W )
@@ -2104,6 +2930,7 @@ contains
     logical :: uniqueA, uniqueB
     logical :: found(3)
     logical :: new, old
+    integer(8) :: nonzeroElements
     !! Dressed shift
     !! For dressed hamiltonian only
     integer :: thread_id
@@ -2129,7 +2956,6 @@ contains
 
     !! generate occupied orbital representation
     call CISCI_orb2occ()
-
 
     !! building temporary arrays to avoid recomputations for: virA, sum and mid orbital window
     allocate ( confTarget_vir( numberOfSpecies ) )
@@ -2305,10 +3131,11 @@ contains
 
       n = omp_get_thread_num() + 1
       nskip = 0
+      nonzeroElements = 0
 
       !! loop to find all CI configurtions coupled to core space
       !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
-      !$omp do schedule (dynamic)
+      !$omp do schedule (dynamic) reduction (+:nskip, nonzeroElements)
       targetloop: do a = 1, nonzeroTarget
   
         ! getting configuration A
@@ -2446,6 +3273,7 @@ contains
 
                 if ( abs(cienergy) > 1.0e-8 ) then
 
+                    nonzeroElements = nonzeroElements + 1 
                     do spk = 1, numberOfSpecies
                       call CISCI_1orbS2occS( spk, orbB(spk), occBB(spk) ) !! to get occb in the canonical order
                     enddo 
@@ -2492,6 +3320,7 @@ contains
 
                   if ( abs(cienergy) > 1.0e-8 ) then
 
+                    nonzeroElements = nonzeroElements + 1 
                     !call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
                     do spk = 1, numberOfSpecies
                       call CISCI_1orbS2occS( spk, orbB(spk), occBB(spk) ) !! to get occb in the canonical order
@@ -2536,6 +3365,7 @@ contains
                       CIenergy = CIenergy * coefficientCore(a) 
 
                       if ( abs(cienergy) > 1.0e-8 ) then
+                        nonzeroElements = nonzeroElements + 1 
 
                         do spk = 1, numberOfSpecies
                           call CISCI_1orbS2occS( spk, orbB(spk), occBB(spk) ) !! to get occb in the canonical order
@@ -2600,6 +3430,10 @@ contains
       deallocate ( orbA  )
   
       !$omp end parallel
+
+      nonzeroBuffer = 0
+      energyCorrection = 0.0_8
+      if ( nonzeroElements > 0 ) then
 
       !$ timeBB(2) = omp_get_wtime()
 
@@ -2769,6 +3603,7 @@ contains
         deallocate ( W_nproc )
 
       endif !! sbk
+      endif 
       !$ timeBB(1) = omp_get_wtime()
 
       !write (6,"(T2,I8,I8,I8, ES12.2,ES12.2,ES12.2,I10,F18.12,ES10.2,I8)") batch_mid_start, batch_mid_end, batch_sum_start,  &
@@ -2779,9 +3614,10 @@ contains
                              nonzeroBuffer, &
                              energyCorrection, &
                              timeBB(1) - timeAA(1), nskip
-  
-      call CISCI_resetBuffer()
-      call CISCI_copyTargetToBuffer()
+     if ( nonzeroElements > 0 ) then
+        call CISCI_resetBuffer()
+        call CISCI_copyTargetToBuffer()
+      endif
 
     enddo ! batches
 
@@ -4589,7 +5425,7 @@ contains
     implicit none
     integer, intent(in) :: n
     real(8), intent(in) :: amplitude
-    type (ivector) :: orbB(:)
+    type (ivector), contiguous :: orbB(:)
     integer(8) :: m
     integer :: spi, numberOfSpecies
 
@@ -5031,6 +5867,60 @@ contains
     deallocate ( orbA )
 
   end subroutine CISCI_orb2occ
+
+  !! Generate the occupied configuration representation from the orbital configuration (1 or 0)
+  subroutine CISCI_orb2vir()
+    implicit none
+    integer :: spi, numberOfSpecies
+    integer :: pi, via
+    integer :: a, aa
+    type (ivector), allocatable :: virA(:)
+    type (ivector), allocatable :: orbA(:)
+
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+
+    do spi = 1, numberOfSpecies
+      CISCI_instance%confTarget_vir(spi)%values = -1_4
+    enddo
+
+    allocate ( virA ( numberOfSpecies ) )
+    allocate ( orbA ( numberOfSpecies ) )
+
+    do spi = 1, numberOfSpecies
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+    end do
+
+    do a = 1, CISCI_instance%targetSpaceSize
+
+      if (CISCI_instance%confTarget_orb(1)%values(1,a) == -1_1 ) exit
+
+      do spi = 1, numberOfSpecies 
+
+        via = 0
+        orbA(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:, a) 
+
+        virA(spi)%values(:) = 0
+        !! build auxiliary vectors of occupied and virtuals orbitals
+        do pi = 1, CIcore_instance%numberOfActiveOrbitals%values(spi)
+          if ( orbA(spi)%values(pi) == 0_1 ) then
+            via = via + 1_8
+            virA(spi)%values(via) = pi
+          end if
+        enddo
+
+        if ( orbA(spi)%values(1) == -1_1 ) virA(spi)%values(:) = -1_4
+
+        CISCI_instance%confTarget_vir(spi)%values(:, a) = virA(spi)%values(:) 
+
+      enddo ! spi, numberOfSpecies
+    enddo ! a, buffer_amplitudeCoreSize
+
+    deallocate ( virA )
+    deallocate ( orbA )
+
+  end subroutine CISCI_orb2vir
+
 
   !! Generate the orbital configuration representation from the occupied orbitals
   subroutine CISCI_occ2orb()
