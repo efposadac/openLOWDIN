@@ -583,22 +583,33 @@ contains
         endif
         if ( CIcore_instance%level == "FCI" ) then
           write(6,"(T2,A31)") "Computing SCI-PT2 correction..."
+          select case ( CONTROL_instance%DUMMY_INTEGER(1) )
+          case (0)
           call CISCI_core_amplitudes_PT ( eigenVectors%values(:,1), &
                                           CISCI_instance%confTarget_orb, &
                                           CISCI_instance%targetSpaceSize, & 
                                           currentEnergy, &
                                           use_dressed_shift = .false. )
-          !call CISCI_compute_PT_orbitalBlock ( eigenVectors%values(:,1), &
-          !                                CISCI_instance%confTarget_orb, &
-          !                                CISCI_instance%targetSpaceSize, & 
-          !                                currentEnergy, &
-          !                                use_dressed_shift = .false. )
-          !call CISCI_compute_PT_tripleConstraints ( eigenVectors%values(:,1), &
-          !                                CISCI_instance%confTarget_orb, &
-          !                                CISCI_instance%targetSpaceSize, & 
-          !                                currentEnergy, &
-          !                                use_dressed_shift = .false. )
-          !call CISCI_compute_PT_tripleLoop (  CISCI_instance%diagonalTarget, eigenVectors%values(:,1), CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, currentEnergy, eigenVectors  )
+          case (1)
+          call CISCI_compute_PT_orbitalBlock ( eigenVectors%values(:,1), &
+                                          CISCI_instance%confTarget_orb, &
+                                          CISCI_instance%targetSpaceSize, & 
+                                          currentEnergy, &
+                                          use_dressed_shift = .false. )
+          case (2)
+          call CISCI_compute_PT_tripleConstraints ( eigenVectors%values(:,1), &
+                                          CISCI_instance%confTarget_orb, &
+                                          CISCI_instance%targetSpaceSize, & 
+                                          currentEnergy, &
+                                          use_dressed_shift = .false. )
+          case (3)
+          call CISCI_compute_PT_tripleLoop ( CISCI_instance%diagonalTarget, &
+                                             eigenVectors%values(:,1), &
+                                             CISCI_instance%confTarget_orb, &
+                                             CISCI_instance%targetSpaceSize, &
+                                             currentEnergy, &
+                                             eigenVectors  )
+          endselect
         endif
       case ("HBCI")
           !! reset iterators
@@ -1165,12 +1176,12 @@ contains
   subroutine CISCI_core_amplitudes_PT ( coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, use_dressed_shift, W )
 
     implicit none
-    real(8), intent(in) :: coefficientCore ( SCICoreSpaceSize )
+    real(8), intent(in), contiguous :: coefficientCore ( SCICoreSpaceSize )
     type(IMatrix1), intent(in), contiguous :: confCore(:)
     integer(8), intent(in) :: SCICoreSpaceSize
     real(8), intent(in) :: oldEnergy
     logical, intent(in) :: use_dressed_shift 
-    real(8), intent(inout), optional :: W( SCICoreSpaceSize )
+    real(8), intent(inout), optional, contiguous :: W( SCICoreSpaceSize )
     real(8) :: CIEnergy, auxCIenergy
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj, oi, ti
     integer(4) :: nproc, n, nn
@@ -4527,7 +4538,7 @@ contains
     !! the private matrix-vector multiplication
     iiter = iiter +1
     IF (IJOB.EQ.1) THEN
-      call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter, eigenVectors,  eigenValues%values(1), use_dressed_shift ) 
+      call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter, eigenValues%values(1), use_dressed_shift ) 
       GOTO 10
     END IF
   
@@ -4553,7 +4564,7 @@ contains
 
   end subroutine CISCI_jadamiluInterface
 
-  subroutine CISCI_matvec ( NX, V, W, iter, eigenVectors, refEnergy, use_dressed_shift )
+  subroutine CISCI_matvec ( NX, V, W, iter, refEnergy, use_dressed_shift )
   
   !*******************************************************************************
   !! AV computes w <- A * V where A is a discretized Laplacian.
@@ -4565,8 +4576,8 @@ contains
     implicit none
   
     integer(8), intent(in) :: NX
-    real(8), intent(in) :: V(NX)
-    real(8), intent(out) :: W(NX)
+    real(8), intent(in), contiguous :: V(NX)
+    real(8), intent(out), contiguous :: W(NX)
     integer(4), intent(in) :: iter
     logical :: use_dressed_shift 
     integer(8) :: a,b,aa,bb
@@ -4588,7 +4599,6 @@ contains
     real(8), allocatable :: W_nproc(:,:)
     integer :: thread_id
     !! For dressed hamiltonian only
-    type(Matrix), intent(in) :: eigenVectors
     real(8), intent(in) :: refEnergy
     real(8), allocatable :: auxCIenergy(:,:)
     real(8) :: dressedV
@@ -4755,7 +4765,12 @@ contains
 !$  write(*,"(2X,I2,1X,ES10.2,1X,I12,1X,I12)") iter, timeB - timeA, nonzero, nonzerow
 
     if ( use_dressed_shift ) then
-      call CISCI_core_amplitudes_PT ( V, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, refEnergy, use_dressed_shift, W )
+      select case ( CONTROL_instance%DUMMY_INTEGER(1) )
+        case (0)
+          call CISCI_core_amplitudes_PT ( V, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, refEnergy, use_dressed_shift, W )
+        case (2)
+          call CISCI_compute_PT_tripleConstraints ( V, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, refEnergy, use_dressed_shift, W )
+      end select
     endif
 
     return
