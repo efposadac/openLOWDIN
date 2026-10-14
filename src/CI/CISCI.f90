@@ -30,6 +30,7 @@ module CISCI_
     real(8), allocatable :: minCoeff(:) ! eigenvalues per SCI iteration
     type(Vector) :: diagonalCore
     type(Vector) :: diagonalTarget
+    type(Vector) :: diagonalTargetShifted
     !! length of SCI search vectors
     integer(8) :: coreSpaceSize
     integer(8) :: targetSpaceSize
@@ -407,6 +408,7 @@ contains
           call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                    1_8, &
                    CISCI_instance%eigenValues(k), &
+                   CISCI_instance%diagonalTarget, &
                    eigenVectors, timeAA, timeBB, use_guess, use_dressed_shift = .False. )
 
         end select
@@ -524,6 +526,7 @@ contains
         call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                  1_8, &
                  CISCI_instance%eigenValues(k), &
+                 CISCI_instance%diagonalTarget, &
                  eigenVectors, timeAA, timeBB, use_guess, use_dressed_shift = .False. )
       end select
 
@@ -628,12 +631,20 @@ contains
       write(6,"(T2,A36)") "J. Chem. Phys. 149, 064103 (2018)   "
       write (6,*) "-----------------------------------------------------------------------"
 
-      !! computing the diagonal in the target space, for fast computation of core amplitudes
+      !! recomputing the diagonal in the target space, but now it's sorted, for fast computation of core amplitudes
       call CISCI_buildDiagonal ( CISCI_instance%diagonalTarget, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize )
+
+      !! compute the dressing shift on the diagonal, for the preconditioner
+      call CISCI_core_diagonal_PT ( &
+                                    CISCI_instance%confTarget_orb, &
+                                    CISCI_instance%targetSpaceSize, & 
+                                    CISCI_instance%diagonalTarget, &
+                                    CISCI_instance%diagonalTargetShifted )
 
       call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                1_8, &
                CISCI_instance%eigenValues(finalk), &
+               CISCI_instance%diagonalTargetShifted, &
                eigenVectors, timeAA, timeBB, use_guess, use_dressed_shift = .True. )
 
       CIcore_instance%eigenValues%values(1) = CISCI_instance%eigenValues(finalk)%values(1)
@@ -1173,15 +1184,261 @@ contains
   end subroutine CISCI_core_amplitudes
 
   !! compute the estimated amplitude to form the target space from the core space
+  subroutine CISCI_core_diagonal_PT ( confCore, SCICoreSpaceSize, diagonalTarget, diagonalTargetShifted )
+    implicit none
+    type(IMatrix1), intent(in), contiguous :: confCore(:)
+    integer(8), intent(in) :: SCICoreSpaceSize
+    type(vector), intent(in) :: diagonalTarget
+    type(vector), intent(inout) :: diagonalTargetShifted
+    real(8) :: CIEnergy, auxCIenergy
+    integer(8) :: i, j, ia, ib, ii, jj, iii, jjj, oi, ti
+    integer(4) :: nproc, n, nn
+    real(8) :: timeA, timeB
+    integer(4) :: iter, size1, size2
+    integer :: ci
+    integer :: auxSize
+    integer(8) :: a,b,c, aa
+    integer :: spi, spj, spk, numberOfSpecies
+    real(8) :: shift
+    type (ivector), allocatable :: occA(:), occB(:), virA(:), occBB(:)
+    type (ivector), allocatable :: orbA(:), orbB(:)
+    integer(8) :: pi, qi, ri, si, pj, qj, rj, sj
+    integer(8) :: oia, oja, via, vja, aaa
+    integer(8) :: oi1, vi1, oi2, vi2, oj2, vj2
+    integer :: factor1i, factor2i, factor2j
+    integer :: nonzeroTarget, nonzeroBuffer
+    integer :: lowerActiveOrbitalI, upperActiveOrbitalI
+    integer :: upperVirtualOrbitalI
+    integer :: lowerActiveOrbitalJ, upperActiveOrbitalJ
+    integer :: upperVirtualOrbitalJ
+    real(8) :: energyCorrection, previousEnergyCorrection
+    real(8) :: diagonal, denominator
+    integer :: nskip
+
+    !$ timeA = omp_get_wtime()
+    shift = 1E-8 !! to avoid divergence
+    numberOfSpecies = CIcore_instance%numberOfQuantumSpecies 
+
+    !! work only with non-zero conf
+    nonzeroTarget = 0
+    do a = 1, SCICoreSpaceSize  
+      if ( confCore(1)%values(1,a) == -1_1 ) exit
+      nonzeroTarget = nonzeroTarget + 1
+    enddo
+
+    !! generate occupied orbital representation
+    call CISCI_orb2occ()
+
+    !! generate virtual orbital representation
+    if ( allocated ( CISCI_instance%confTarget_vir ) ) deallocate ( CISCI_instance%confTarget_vir )  
+    allocate ( CISCI_instance%confTarget_vir ( numberOfSpecies ) ) 
+
+    do spk = 1, numberOfSpecies
+      call Matrix_constructorInteger ( CISCI_instance%confTarget_vir(spk), &
+                                  int(CIcore_instance%numberOfActiveOrbitals%values(spk) - &
+                                      CIcore_instance%numberOfOccupiedOrbitals%values(spk), 8 ), &  
+                                  int(CISCI_instance%targetSpaceSize,8), -1_4)
+    enddo
+
+    call CISCI_orb2vir()
+
+    call Vector_constructor ( diagonalTargetShifted, int(CISCI_instance%targetSpaceSize,8),  0.0_8)
+
+    write (6,"(T2,A,I4,A)") "Building diagonal dressing shift "
+
+    !! preparing omp allocatables arrays
+    !$omp parallel &
+    !$omp& private ( occA, occB, virA, orbA, orbB, occBB, &
+    !$omp&           n, a, &
+    !$omp&           oia, via, pi, qi, ri, si, oi1, vi1, oi2, vi2, oj2, vj2, &
+    !$omp&           spi, spj, spk, & 
+    !$omp&           lowerActiveOrbitalI, upperActiveOrbitalI, upperVirtualOrbitalI, &
+    !$omp&           lowerActiveOrbitalJ, upperActiveOrbitalJ, upperVirtualOrbitalJ, &
+    !$omp&           diagonal, denominator, CIenergy ) 
+  
+    !! allocating auxiliary arrays (omp) for working with conf and orbitals
+    allocate ( orbA ( numberOfSpecies ) )
+    allocate ( occA ( numberOfSpecies ) )
+    allocate ( virA ( numberOfSpecies ) )
+    allocate ( orbB ( numberOfSpecies ) )
+    allocate ( occB ( numberOfSpecies ) )
+    allocate ( occBB ( numberOfSpecies ) ) !! canonical ordered B conf
+  
+    do spi = 1, numberOfSpecies
+      call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi), 0 ) 
+      call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) ! use core here? yes
+      call Vector_constructorInteger ( virA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )  
+      call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi), 0 ) 
+      call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+      call Vector_constructorInteger ( occBB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+    end do
+  
+    n = omp_get_thread_num() + 1
+
+    !! loop to find all CI configurtions coupled to core space
+    !!$omp do schedule (runtime) !with OMP_SCHEDULE for testing
+    !$omp do schedule (dynamic) 
+    targetloop: do a = 1, nonzeroTarget
+  
+      ! getting configuration A
+      do spk = 1, numberOfSpecies 
+  
+        oia = 0_8
+        via = 0_8
+  
+        !! build the orbital from the index using the bit mapping
+        !!call CISCI_decimalToBinary ( confCore%values(spi,a), orbA(spi)%values )
+        orbA(spk)%values(:) = confCore(spk)%values(:,a) 
+        occA(spk)%values(:) = CISCI_instance%confTarget_occ(spk)%values(:,a) 
+        virA(spk)%values(:) = CISCI_instance%confTarget_vir(spk)%values(:,a) 
+  
+        !! copy to conf B, these are variable
+        orbB(spk)%values = orbA(spk)%values 
+        occB(spk)%values = occA(spk)%values 
+        occBB(spk)%values = occA(spk)%values 
+  
+      enddo
+
+      do spi = 1, numberOfSpecies 
+  
+        !! building all single sustitutions from configuration A. 
+        !! here all configurations pairs are generated in maximum coincidence 
+        lowerActiveOrbitalI = CIcore_instance%numberOfCoreOrbitals%values(spi) + 1_8
+        upperActiveOrbitalI = CIcore_instance%numberOfOccupiedOrbitals%values(spi)
+        upperVirtualOrbitalI = CIcore_instance%numberOfActiveOrbitals%values(spi) - CIcore_instance%numberOfOccupiedOrbitals%values(spi) 
+  
+        do pi = lowerActiveOrbitalI, upperActiveOrbitalI
+          oi1 = occA(spi)%values(pi)  
+          orbB(spi)%values(oi1) = 0_8
+  
+          do qi = 1, upperVirtualOrbitalI
+            vi1 = virA(spi)%values(qi)
+            orbB(spi)%values(vi1) = 1_8
+            occB(spi)%values(pi) = vi1
+
+              !! get spingle sustitutions energy, H_ab 
+              CIenergy = CISCI_calculateEnergyOne( spi, occA, oi1, vi1  )
+
+              if ( abs(cienergy) > 1.0e-10 ) then
+
+                !! computing the phase only for nonzero elements
+                call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
+
+                diagonal = CISCI_calculateEnergyZero( occB )
+                denominator = 1 / ( CIcore_instance%eigenValues%values(1) - diagonal ) 
+                diagonalTargetShifted%values(a) = diagonalTargetShifted%values(a) + CIenergy * CIenergy * denominator
+
+              endif 
+
+            !! building all double intraspecies sustitutions from configuration A
+            do ri = lowerActiveOrbitalI, pi - 1_8
+              oi2 = occA(spi)%values(ri)  
+              orbB(spi)%values(oi2) = 0_8
+  
+              do si = 1, qi - 1
+                vi2 = virA(spi)%values(si)
+                orbB(spi)%values(vi2) = 1_8
+                occB(spi)%values(ri) = vi2 
+  
+                  !! get double intraspecies sustitutions energy
+                  CIenergy = CISCI_calculateEnergyTwoSame( spi, oi1, oi2, vi1,  vi2 )
+  
+                  if ( abs(cienergy) > 1.0e-10 ) then
+                    call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
+                    diagonal = CISCI_calculateEnergyZero( occB )
+                    denominator = 1 / ( CIcore_instance%eigenValues%values(1) - diagonal ) 
+                    diagonalTargetShifted%values(a) = diagonalTargetShifted%values(a) + CIenergy * CIenergy * denominator
+                  endif 
+  
+                occB(spi)%values(ri) = occA(spi)%values(ri)  
+                orbB(spi)%values(vi2) = 0_8 ! reset orbital 
+              enddo
+              orbB(spi)%values(oi2) = 1_8 ! reset orbital
+            enddo
+
+            do spj = spi + 1, numberOfSpecies 
+              lowerActiveOrbitalJ = CIcore_instance%numberOfCoreOrbitals%values(spj) + 1_8
+              upperActiveOrbitalJ = CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+              upperVirtualOrbitalJ = CIcore_instance%numberOfActiveOrbitals%values(spj) - CIcore_instance%numberOfOccupiedOrbitals%values(spj)
+  
+              do rj = lowerActiveOrbitalJ, upperActiveOrbitalJ
+                oj2 = occA(spj)%values(rj)  
+                orbB(spj)%values(oj2) = 0_8
+  
+                do sj = 1_8, upperVirtualOrbitalJ
+                  vj2 = virA(spj)%values(sj)
+                  orbB(spj)%values(vj2) = 1_8
+                  occB(spj)%values(rj) = vj2 
+
+                    !! get double interspecies sustitutions energy
+                    CIenergy = CISCI_calculateEnergyTwoDiff( spi, spj, oi1, oj2, vi1, vj2 )
+
+                    if ( abs(cienergy) > 1.0e-10 ) then
+
+                      call CISCI_1orbS2occS( spi, orbB(spi), occBB(spi) ) !! to get occb in the canonical order
+                      call CISCI_1orbS2occS( spj, orbB(spj), occBB(spj) ) !! to get occb in the canonical order
+                      diagonal = CISCI_calculateEnergyZero( occB )
+                      denominator = 1 / ( CIcore_instance%eigenValues%values(1) - diagonal ) 
+                      diagonalTargetShifted%values(a) = diagonalTargetShifted%values(a) + CIenergy * CIenergy * denominator
+                    endif
+  
+                  !! reset the confB
+                  occB(spj)%values(rj) = occA(spj)%values(rj)  
+                  orbB(spj)%values(vj2) = 0_8
+                enddo ! sj
+                orbB(spj)%values(oj2) = 1_8
+              enddo ! rj
+
+            enddo !spj
+
+            !! reset the confB
+            occB(spi)%values(pi) = occA(spi)%values(pi)  
+            orbB(spi)%values(vi1) = 0_8
+          enddo !qi
+          orbB(spi)%values(oi1) = 1_8
+        enddo !pi
+
+      enddo !spi
+      
+    enddo targetloop !enddo a
+    !$omp enddo 
+
+    do spi = 1, numberOfSpecies
+      call Vector_destructorInteger ( occBB(spi) )
+      call Vector_destructorInteger ( occB(spi) )
+      call Vector_destructorInteger ( orbB(spi) ) 
+      call Vector_destructorInteger ( virA(spi) )  
+      call Vector_destructorInteger ( occA(spi) ) 
+      call Vector_destructorInteger ( orbA(spi) ) 
+    end do
+  
+    deallocate ( occBB )
+    deallocate ( occB  )
+    deallocate ( orbB  )
+    deallocate ( virA  )
+    deallocate ( occA  )
+    deallocate ( orbA  )
+  
+    !$omp end parallel
+
+    !! adding the original diagonal to the shift (yes it could have done in the opposite way)
+    diagonalTargetShifted%values(:) = diagonalTarget%values(:) + diagonalTargetShifted%values(:)
+
+!$  timeB = omp_get_wtime()
+!$  write(*,"(A,ES10.2,A4)") "** TOTAL Elapsed Time for building diagonal shift dressing : ", timeB - timeA ," (s)"
+
+  end subroutine CISCI_core_diagonal_PT
+
+  !! compute the estimated amplitude to form the target space from the core space
   subroutine CISCI_core_amplitudes_PT ( coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, use_dressed_shift, W )
 
     implicit none
-    real(8), intent(in), contiguous :: coefficientCore ( SCICoreSpaceSize )
+    real(8), intent(in) :: coefficientCore ( SCICoreSpaceSize )
     type(IMatrix1), intent(in), contiguous :: confCore(:)
     integer(8), intent(in) :: SCICoreSpaceSize
     real(8), intent(in) :: oldEnergy
     logical, intent(in) :: use_dressed_shift 
-    real(8), intent(inout), optional, contiguous :: W( SCICoreSpaceSize )
+    real(8), intent(inout), optional :: W( SCICoreSpaceSize )
     real(8) :: CIEnergy, auxCIenergy
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj, oi, ti
     integer(4) :: nproc, n, nn
@@ -4435,11 +4692,12 @@ contains
   end subroutine CISCI_core_amplitudes_cisd
 
 
-  subroutine CISCI_jadamiluInterface( N, numberOfeigenValues, eigenValues, eigenVectors, timeA, timeB, use_guess, use_dressed_shift )
+  subroutine CISCI_jadamiluInterface( N, numberOfeigenValues, eigenValues, diagonal, eigenVectors, timeA, timeB, use_guess, use_dressed_shift )
     implicit none
     external DPJDREVCOM
     integer(8), intent(in) :: numberOfeigenValues
     type(Vector), intent(inout) :: eigenValues
+    type(Vector), intent(in) :: diagonal
     type(Matrix), intent(inout) :: eigenVectors
     logical, intent(in) :: use_guess
     logical :: use_dressed_shift 
@@ -4530,7 +4788,7 @@ contains
 
     iiter = 0
   
-10  CALL DPJDREVCOM( N, CISCI_instance%diagonalTarget%values , JA, IA, EIGS, RES, X, LX, NEIG, &
+10  CALL DPJDREVCOM( N, diagonal%values , JA, IA, EIGS, RES, X, LX, NEIG, &
                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                        SHIFT, DROPTOL, MEM, ICNTL, &
                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
@@ -4576,8 +4834,8 @@ contains
     implicit none
   
     integer(8), intent(in) :: NX
-    real(8), intent(in), contiguous :: V(NX)
-    real(8), intent(out), contiguous :: W(NX)
+    real(8), intent(in) :: V(NX)
+    real(8), intent(out) :: W(NX)
     integer(4), intent(in) :: iter
     logical :: use_dressed_shift 
     integer(8) :: a,b,aa,bb
