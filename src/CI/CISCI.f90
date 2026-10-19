@@ -592,7 +592,8 @@ contains
                                           CISCI_instance%confTarget_orb, &
                                           CISCI_instance%targetSpaceSize, & 
                                           currentEnergy, &
-                                          use_dressed_shift = .false. )
+                                          use_dressed_shift = .false., &
+                                          reset_buffer = .true. )
           case (1)
           call CISCI_compute_PT_orbitalBlock ( eigenVectors%values(:,1), &
                                           CISCI_instance%confTarget_orb, &
@@ -640,6 +641,18 @@ contains
                                     CISCI_instance%targetSpaceSize, & 
                                     CISCI_instance%diagonalTarget, &
                                     CISCI_instance%diagonalTargetShifted )
+
+      !! compute the buffer from the target (once) 
+      call CISCI_core_amplitudes_PT ( eigenVectors%values(:,1), &
+                                      CISCI_instance%confTarget_orb, &
+                                      CISCI_instance%targetSpaceSize, & 
+                                      currentEnergy, &
+                                      use_dressed_shift = .false., & 
+                                      reset_buffer = .false. &
+                                     )
+
+      !! clean up the PT2energy, it will be replace by sBk
+      CISCI_instance%PT2energy = 0.0_8
 
       call CISCI_jadamiluInterface( int(CISCI_instance%targetSpaceSize,8), &
                1_8, &
@@ -1430,15 +1443,16 @@ contains
   end subroutine CISCI_core_diagonal_PT
 
   !! compute the estimated amplitude to form the target space from the core space
-  subroutine CISCI_core_amplitudes_PT ( coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, use_dressed_shift, W )
+  subroutine CISCI_core_amplitudes_PT ( coefficientCore, confCore, SCICoreSpaceSize, oldEnergy, W, use_dressed_shift, reset_buffer )
 
     implicit none
     real(8), intent(in) :: coefficientCore ( SCICoreSpaceSize )
     type(IMatrix1), intent(in), contiguous :: confCore(:)
     integer(8), intent(in) :: SCICoreSpaceSize
     real(8), intent(in) :: oldEnergy
-    logical, intent(in) :: use_dressed_shift 
     real(8), intent(inout), optional :: W( SCICoreSpaceSize )
+    logical, intent(in) :: use_dressed_shift 
+    logical, intent(in) :: reset_buffer
     real(8) :: CIEnergy, auxCIenergy
     integer(8) :: i, j, ia, ib, ii, jj, iii, jjj, oi, ti
     integer(4) :: nproc, n, nn
@@ -2073,8 +2087,8 @@ contains
 
           CIenergy = CISCI_instance%buffer_amplitudeCore%values(a)
           diagonal = CISCI_calculateEnergyZero( occA )
-          denominator = 1 / ( CIcore_instance%eigenValues%values(1) - diagonal ) 
-          dressedV = CIenergy * denominator
+          denominator = 1 / ( CIcore_instance%eigenValues%values(1) - diagonal + shift ) 
+          dressedV = CIenergy * denominator 
           energyCorrection = energyCorrection + ( CIenergy * CIenergy ) * denominator
 
           do b = 1,  nonzeroTarget
@@ -2126,13 +2140,10 @@ contains
                              energyCorrection, &
                              timeBB(1) - timeAA(1)
 
-      call CISCI_resetBuffer()
-      call CISCI_copyTargetToBuffer()
-
-      !! exit the batch computation if the energy correction change is too small and we if already passed half of the batches, so we are on the tail. 
-      !if ( abs( energyCorrection ) <= 1E-10 .and. batch_start > batch_min + ( batch_mid - batch_min) * 2 ) then 
-      !  exit
-      !endif
+      if ( reset_buffer ) then 
+        call CISCI_resetBuffer()
+        call CISCI_copyTargetToBuffer()
+      endif
 
     enddo ! batches
 
@@ -4702,8 +4713,9 @@ contains
     logical, intent(in) :: use_guess
     logical :: use_dressed_shift 
     real(8), intent(out) :: timeA, timeB
-    integer(4) :: iiter
+    integer(4) :: iiter, imatvec
     integer(8) :: i, j, k
+    real(8) :: currentEigenValue, previousEigenValue
     !Jadamilu variables
     !N: size of the problem
     !MAXSP: max. value of MADSPACE
@@ -4741,7 +4753,7 @@ contains
     NEIG = numberOfeigenValues !    number of wanted eigenvalues
     MADSPACE = MAXSP !    desired size of the search space
     ITER = 30*NEIG !    maximum number of iteration steps
-    !if ( use_dressed_shift ) ITER = 1 * NEIG !    maximum number of iteration steps
+    !if ( use_dressed_shift ) ITER = 2*NEIG
 
     TOL = CONTROL_instance%CI_CONVERGENCE !1.0d-4 !    tolerance for the eigenvector residual
     TOL = 1E-3 !1.0d-4 !    tolerance for the eigenvector residual, for ASCI this can be higher
@@ -4780,24 +4792,40 @@ contains
 
     SIGMA = EIGS(1)
     GAP = 0
-    SHIFT = 0
+    SHIFT = SIGMA
 
     do i = 1, CONTROL_instance%CI_NUMBER_OF_STATES
       write(6,"(T2,A5,I4,2X,A10,F20.10,2X,A17,F10.6,A5,F10.6)") "State", i, "Eigenvalue", EIGS( i ), "Eigenvector. Max:", X((i-1)*N + i), "Min:", X(i*N )
     end do
 
     iiter = 0
+    imatvec = 0
+    previousEigenValue = 0.0
+    currentEigenValue = eigenValues%values(1)
   
 10  CALL DPJDREVCOM( N, diagonal%values , JA, IA, EIGS, RES, X, LX, NEIG, &
                        SIGMA, ISEARCH, NINIT, MADSPACE, ITER, TOL, &
                        SHIFT, DROPTOL, MEM, ICNTL, &
                        IJOB, NDX1, NDX2, IPRINT, INFO, GAP)
 
+    imatvec = imatvec + 1
+    currentEigenValue = EIGS(1)
+    if ( currentEigenValue < previousEigenValue ) then
+      iiter = iiter +1
+      previousEigenValue = currentEigenValue
+    endif
+
     !! the private matrix-vector multiplication
-    iiter = iiter +1
     IF (IJOB.EQ.1) THEN
-      call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter, eigenValues%values(1), use_dressed_shift ) 
-      GOTO 10
+      !if ( .not. use_dressed_shift ) then
+        call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter, imatvec, eigenValues%values(1), use_dressed_shift ) 
+        GOTO 10
+      !else
+      !  if ( imatvec <= 2 ) then
+      !    call CISCI_matvec ( N, X(NDX1), X(NDX2), iiter, imatvec, eigenValues%values(1), use_dressed_shift ) 
+      !    GOTO 10
+      !  endif
+      !endif
     END IF
   
     !! saving the eigenvalues
@@ -4822,7 +4850,7 @@ contains
 
   end subroutine CISCI_jadamiluInterface
 
-  subroutine CISCI_matvec ( NX, V, W, iter, refEnergy, use_dressed_shift )
+  subroutine CISCI_matvec ( NX, V, W, iter, matvec, refEnergy, use_dressed_shift )
   
   !*******************************************************************************
   !! AV computes w <- A * V where A is a discretized Laplacian.
@@ -4836,7 +4864,7 @@ contains
     integer(8), intent(in) :: NX
     real(8), intent(in) :: V(NX)
     real(8), intent(out) :: W(NX)
-    integer(4), intent(in) :: iter
+    integer(4), intent(in) :: iter, matvec
     logical :: use_dressed_shift 
     integer(8) :: a,b,aa,bb
     integer(8) :: nonzero, nonzerow, nonzeroTarget
@@ -4857,19 +4885,21 @@ contains
     real(8), allocatable :: W_nproc(:,:)
     integer :: thread_id
     !! For dressed hamiltonian only
+    integer :: nonzeroBuffer
     real(8), intent(in) :: refEnergy
+    real(8) :: CIenergy_AB 
     real(8), allocatable :: auxCIenergy(:,:)
     real(8) :: dressedV
     real(8) :: diagonal, denominator
 
     numberOfSpecies = CIcore_instance%numberOfQuantumSpecies
 
-    nonzero = 0
+    nonzeroTarget = 0
     nonzerow = 0
     W = 0.0_8
     tol = CONTROL_instance%CI_MATVEC_TOLERANCE 
     do a = 1 , NX
-       if ( abs(V(a) ) >= tol) nonzero = nonzero + 1
+       if ( abs(V(a) ) >= tol) nonzeroTarget = nonzeroTarget + 1
     end do
 
 !$    timeA= omp_get_wtime()
@@ -5020,12 +5050,109 @@ contains
        if ( abs(W(a) ) >= tol) nonzerow = nonzerow + 1
     end do
 
-!$  write(*,"(2X,I2,1X,ES10.2,1X,I12,1X,I12)") iter, timeB - timeA, nonzero, nonzerow
+!$  write(*,"(2X,I2,1X,I2,1X,ES10.2,1X,I12,1X,I12)") iter, matvec, timeB - timeA, nonzeroTarget, nonzerow
 
     if ( use_dressed_shift ) then
       select case ( CONTROL_instance%DUMMY_INTEGER(1) )
         case (0)
-          call CISCI_core_amplitudes_PT ( V, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, refEnergy, use_dressed_shift, W )
+
+        !! store matrix-vector product per omp thread
+        allocate ( W_nproc (  CISCI_instance%targetSpaceSize, CIcore_instance%nproc ) )
+        W_nproc = 0.0_8
+
+        allocate ( auxCIenergy ( CISCI_instance%targetSpaceSize, CIcore_instance%nproc ) )
+        auxCIenergy = 0.0_8
+
+        nonzeroBuffer = 0
+        do a = CISCI_instance%targetSpaceSize + 1, CISCI_instance%buffer_amplitudeCoreSize
+          if (CISCI_instance%confAmplitudeCore_orb(1,a) == -1_1 .or. abs(CISCI_instance%buffer_amplitudeCore%values(a)) <= 1E-8 ) exit
+          nonzeroBuffer = nonzeroBuffer + 1
+        enddo
+
+        !$omp parallel &
+        !$omp& private( a, orbA, occA, &
+        !$omp&          spi, &
+        !$omp&          thread_id, &
+        !$omp&          b, orbB, occB, &
+        !$omp&          couplingS, &
+        !$omp&          CIenergy_AB, CIenergy, diagonal, denominator, &
+        !$omp&          dressedV ) 
+
+        allocate ( occA ( numberOfSpecies ) )
+        allocate ( occB ( numberOfSpecies ) )
+        allocate ( orbA ( numberOfSpecies ) )
+        allocate ( orbB ( numberOfSpecies ) )
+        allocate ( couplingS ( numberOfSpecies ) )
+  
+        do spi = 1, numberOfSpecies
+          call Vector_constructorInteger ( occA(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 ) 
+          call Vector_constructorInteger ( occB(spi), CIcore_instance%numberOfOccupiedOrbitals%values(spi), 0 )
+          call Vector_constructorInteger ( orbA(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+          call Vector_constructorInteger ( orbB(spi), CIcore_instance%numberOfActiveOrbitals%values(spi),  0 ) 
+        end do
+  
+        thread_id = omp_get_thread_num() + 1
+  
+        !$omp do schedule (dynamic)
+        do a = CISCI_instance%targetSpaceSize + 1,  CISCI_instance%targetSpaceSize + nonzeroBuffer
+          ! getting configuration A
+          do spi = 1, numberOfSpecies 
+            orbA(spi)%values(:) = CISCI_instance%confAmplitudeCore_orb( &
+                                  CISCI_instance%combinedOrbitalsPositions(1,spi) : CISCI_instance%combinedOrbitalsPositions(2,spi), a) 
+          enddo
+  
+          call CISCI_1orb2occ( numberOfSpecies, orbA, occA ) !! to get occb in the canonical order
+
+          CIenergy = 0.0_8
+          auxCIenergy(:,thread_id) = 0.0_8
+
+          do b = 1,  nonzeroTarget
+            ! getting configuration B
+            do spi = 1, numberOfSpecies 
+              orbB(spi)%values(:) = CISCI_instance%confTarget_orb(spi)%values(:,b)
+              occB(spi)%values(:) = CISCI_instance%confTarget_occ(spi)%values(:,b) 
+            enddo
+
+            call CISCI_compute_HamiltonianElement( orbA, occA, orbB, occB, couplingS, numberOfSpecies, CIenergy_AB, offElements = .true.) 
+
+            auxCIenergy(b, thread_id ) = CIenergy_AB  
+            CIenergy = CIenergy + CIenergy_AB * V(b)
+
+          end do !b
+
+          diagonal = CISCI_calculateEnergyZero( occA )
+          denominator = 1 / ( CIcore_instance%eigenValues%values(1) - diagonal ) 
+          dressedV = CIenergy * denominator 
+
+          do b = 1,  nonzeroTarget
+            W_nproc(b, thread_id) = W_nproc(b, thread_id) + auxCIenergy(b, thread_id) * dressedV
+          end do !b
+
+        end do !a 
+        !$omp end do nowait
+  
+        do spi = 1, numberOfSpecies
+          call Vector_destructorInteger ( occA(spi) ) 
+          call Vector_destructorInteger ( occB(spi) )
+          call Vector_destructorInteger ( orbA(spi) ) 
+          call Vector_destructorInteger ( orbB(spi) ) 
+        end do
+  
+        deallocate ( couplingS )
+        deallocate ( occA )
+        deallocate ( occB )
+        deallocate ( orbA )
+        deallocate ( orbB )
+        !$omp end parallel
+
+        do thread_id = 1, CIcore_instance%nproc
+          W(:) = W(:) + W_nproc(:,thread_id) 
+        enddo
+
+        deallocate ( W_nproc )
+
+        case (-1)
+          call CISCI_core_amplitudes_PT ( V, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, refEnergy, W, use_dressed_shift, reset_buffer = .true. )
         case (2)
           call CISCI_compute_PT_tripleConstraints ( V, CISCI_instance%confTarget_orb, CISCI_instance%targetSpaceSize, refEnergy, use_dressed_shift, W )
       end select
