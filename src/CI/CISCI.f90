@@ -5914,8 +5914,8 @@ contains
                                      1_8, m2b - m1 + 1, n )
 
     !! Sort amplituted coeff vector according to sorting of index array, keeping both arrays aligned
-    call CISort_sortVectorByIndex( CISCI_instance%buffer_amplitudeCore%values(m1:m2b), &
-                                   CISCI_instance%index_amplitudeCore%values(m1:m2b), &
+    call CISort_sortVectorByIndex( CISCI_instance%buffer_amplitudeCore%values(m1:m2), &
+                                   CISCI_instance%index_amplitudeCore%values(m1:m2), &
                                    m2b - m1 + 1 )
 
     !! merge duplicated configurations (sum amplitudes)
@@ -5937,8 +5937,8 @@ contains
                                      1_8, m2b - m1 + 1 )
 
     !! organize configurations according to the sorted amplitudes
-    call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore_orb(:,m1:m2b), &
-                                  CISCI_instance%index_amplitudeCore%values(m1:m2b), &
+    call CISort_sortArrayByIndex( CISCI_instance%confAmplitudeCore_orb(:,m1:m2), &
+                                  CISCI_instance%index_amplitudeCore%values(m1:m2), &
                                   CISort_instance%combinedNumberOfOrbitals, &
                                   m2b - m1 + 1, n )
 
